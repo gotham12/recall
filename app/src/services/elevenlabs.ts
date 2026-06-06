@@ -1,4 +1,4 @@
-const KEY      = (import.meta.env.VITE_ELEVENLABS_API_KEY as string) || 'sk_2dfc0a11a3c934245854192399a9d50eea3ca8948aa9a12f';
+const KEY      = (import.meta.env.VITE_ELEVENLABS_API_KEY as string) || 'sk_d36c8525b450a193b58231b83a2f2d89a99965a3433c931d';
 const VOICE_ID = 'XrExE9yKIg1WjnnlVkGX'; // Matilda — warm female
 const BASE     = 'https://api.elevenlabs.io/v1';
 
