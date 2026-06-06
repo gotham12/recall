@@ -161,7 +161,7 @@ function EventsTab({ events }: { events: Event[] }) {
                   width: 40,
                   height: 40,
                   borderRadius: '50%',
-                  background: e.completed ? '#EEF6FF' : '#F0E8DC',
+                  background: e.completed ? 'rgba(255,255,255,0.12)' : 'rgba(255,255,255,0.06)',
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'center',
@@ -171,7 +171,7 @@ function EventsTab({ events }: { events: Event[] }) {
               >
                 {icon}
               </div>
-              <div style={{ width: 2, flex: 1, background: '#E5D5C0', minHeight: 16 }} />
+              <div style={{ width: 2, flex: 1, background: 'rgba(255,255,255,0.15)', minHeight: 16 }} />
             </div>
             <div style={{ paddingTop: 6, flex: 1 }}>
               <p className="studio-text-bright" style={{ fontSize: 18, fontWeight: 600, margin: '0 0 2px' }}>

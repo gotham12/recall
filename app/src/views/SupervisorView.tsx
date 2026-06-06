@@ -105,13 +105,13 @@ function SupervisorHomeTab({ user }: { user: User | null }) {
       {/* Stats row */}
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 12, marginBottom: 20 }}>
         {[
-          { label: 'ACSE', value: acseScore, unit: '/100', color: acseScore >= 75 ? '#10B981' : acseScore >= 50 ? '#F59E0B' : '#EF4444' },
-          { label: 'Events', value: eventCount, unit: ' today', color: '#2196F3' },
-          { label: 'Med Logs', value: medCount, unit: ' total', color: '#8B5CF6' },
+          { label: 'ACSE', value: acseScore, unit: '/100' },
+          { label: 'Events', value: eventCount, unit: ' today' },
+          { label: 'Med Logs', value: medCount, unit: ' total' },
         ].map((stat) => (
           <div key={stat.label} className="card" style={{ padding: '16px 12px', textAlign: 'center' }}>
-            <p style={{ fontSize: 28, fontWeight: 700, color: stat.color, margin: 0 }}>{stat.value}</p>
-            <p style={{ fontSize: 11, color: '#8A9AB0', margin: 0, textTransform: 'uppercase', letterSpacing: '0.5px' }}>{stat.label}</p>
+            <p className="studio-stat-value">{stat.value}</p>
+            <p className="studio-stat-label">{stat.label}</p>
           </div>
         ))}
       </div>
@@ -119,13 +119,13 @@ function SupervisorHomeTab({ user }: { user: User | null }) {
       {/* Patient info */}
       {user && (
         <div className="card" style={{ padding: 20 }}>
-          <p style={{ fontSize: 14, color: '#8A9AB0', textTransform: 'uppercase', letterSpacing: '1px', margin: '0 0 8px' }}>Patient Profile</p>
-          <p style={{ fontSize: 22, fontWeight: 600, color: '#1A2B4A', margin: '0 0 4px' }}>{user.name}</p>
-          <p style={{ fontSize: 18, color: '#6B7A8D', margin: '0 0 2px' }}>Age {user.age} · {user.city}</p>
-          <p style={{ fontSize: 18, color: '#6B7A8D', margin: '0 0 12px' }}>Caregiver: {user.caregiverName} ({user.caregiverRelationship})</p>
-          <p style={{ fontSize: 14, color: '#8A9AB0', textTransform: 'uppercase', letterSpacing: '1px', margin: '0 0 6px' }}>Medications</p>
+          <p className="studio-section-title">Patient Profile</p>
+          <p className="studio-text-bright" style={{ fontSize: 22, fontWeight: 600, margin: '0 0 4px' }}>{user.name}</p>
+          <p className="studio-text-muted" style={{ fontSize: 17, margin: '0 0 2px' }}>Age {user.age} · {user.city}</p>
+          <p className="studio-text-muted" style={{ fontSize: 17, margin: '0 0 12px' }}>Caregiver: {user.caregiverName} ({user.caregiverRelationship})</p>
+          <p className="studio-section-title" style={{ marginBottom: 6 }}>Medications</p>
           {user.medications.map((m, i) => (
-            <p key={i} style={{ fontSize: 18, color: '#1A2B4A', margin: '0 0 2px' }}>
+            <p key={i} className="studio-text-bright" style={{ fontSize: 17, margin: '0 0 2px' }}>
               💊 {m.name} {m.dosage} — {m.schedule.join(', ')}
             </p>
           ))}
@@ -217,39 +217,17 @@ function EventsTab({ user }: { user: User | null }) {
     <div style={{ flex: 1, overflowY: 'auto', padding: 16 }}>
       {/* Caregiver quick message */}
       <div className="card" style={{ padding: 16, marginBottom: 16 }}>
-        <p style={{ fontSize: 14, color: '#8A9AB0', textTransform: 'uppercase', letterSpacing: '1px', margin: '0 0 8px' }}>
-          Quick Caregiver Note
-        </p>
+        <p className="studio-section-title">Quick Caregiver Note</p>
         <div style={{ display: 'flex', gap: 8 }}>
           <input
             value={caregiverMsg}
             onChange={(e) => setCaregiverMsg(e.target.value)}
             onKeyDown={(e) => e.key === 'Enter' && handleCaregiverMsg()}
-              placeholder="e.g. I'll visit at 6 PM"
-            style={{
-              flex: 1,
-              border: '1.5px solid #D0DCF0',
-              borderRadius: 12,
-              padding: '10px 14px',
-              fontSize: 18,
-              background: 'white',
-              outline: 'none',
-            }}
+            placeholder="e.g. I'll visit at 6 PM"
+            className="studio-input"
+            style={{ flex: 1 }}
           />
-          <button
-            onClick={handleCaregiverMsg}
-            className="tap-feedback"
-            style={{
-              background: 'linear-gradient(135deg, #2196F3, #0057CC)',
-              color: 'white',
-              border: 'none',
-              borderRadius: 12,
-              padding: '10px 16px',
-              fontSize: 18,
-              cursor: 'pointer',
-              fontWeight: 600,
-            }}
-          >
+          <button onClick={handleCaregiverMsg} className="studio-btn studio-btn--primary tap-feedback" style={{ padding: '10px 16px' }}>
             Add
           </button>
         </div>
@@ -261,17 +239,8 @@ function EventsTab({ user }: { user: User | null }) {
           <button
             key={f}
             onClick={() => setFilter(f)}
-            style={{
-              padding: '6px 14px',
-              borderRadius: 20,
-              border: 'none',
-              background: filter === f ? '#2196F3' : '#E5D5C0',
-              color: filter === f ? 'white' : '#6B7A8D',
-              fontSize: 15,
-              fontWeight: filter === f ? 600 : 400,
-              cursor: 'pointer',
-              whiteSpace: 'nowrap',
-            }}
+            className={`studio-chip tap-feedback ${filter === f ? 'studio-chip--active' : ''}`}
+            style={{ fontWeight: filter === f ? 600 : 400 }}
           >
             {f.charAt(0).toUpperCase() + f.slice(1)}
           </button>
@@ -281,19 +250,8 @@ function EventsTab({ user }: { user: User | null }) {
       {/* Add event button */}
       <button
         onClick={() => setShowForm(!showForm)}
-        className="tap-feedback"
-        style={{
-          background: showForm ? '#F0E8DC' : 'linear-gradient(135deg, #2196F3, #0057CC)',
-          color: showForm ? '#1A2B4A' : 'white',
-          border: 'none',
-          borderRadius: 12,
-          padding: '12px 20px',
-          fontSize: 18,
-          fontWeight: 600,
-          cursor: 'pointer',
-          marginBottom: 12,
-          width: '100%',
-        }}
+        className={`studio-btn tap-feedback ${showForm ? '' : 'studio-btn--primary'}`}
+        style={{ marginBottom: 12, width: '100%', alignItems: 'center' }}
       >
         {showForm ? '✕ Cancel' : '+ Add Event'}
       </button>
@@ -305,25 +263,29 @@ function EventsTab({ user }: { user: User | null }) {
             value={newEvent.title}
             onChange={(e) => setNewEvent((p) => ({ ...p, title: e.target.value }))}
             placeholder="Event title"
-            style={{ width: '100%', border: '1.5px solid #D0DCF0', borderRadius: 10, padding: '10px', fontSize: 18, marginBottom: 8, outline: 'none' }}
+            className="studio-input"
+            style={{ marginBottom: 8 }}
           />
           <textarea
             value={newEvent.description}
             onChange={(e) => setNewEvent((p) => ({ ...p, description: e.target.value }))}
             placeholder="Description (optional)"
             rows={2}
-            style={{ width: '100%', border: '1.5px solid #D0DCF0', borderRadius: 10, padding: '10px', fontSize: 16, marginBottom: 8, outline: 'none', resize: 'none' }}
+            className="studio-textarea"
+            style={{ marginBottom: 8 }}
           />
           <input
             type="datetime-local"
             value={newEvent.datetime}
             onChange={(e) => setNewEvent((p) => ({ ...p, datetime: e.target.value }))}
-            style={{ width: '100%', border: '1.5px solid #D0DCF0', borderRadius: 10, padding: '10px', fontSize: 16, marginBottom: 8, outline: 'none' }}
+            className="studio-input"
+            style={{ marginBottom: 8 }}
           />
           <select
             value={newEvent.type}
             onChange={(e) => setNewEvent((p) => ({ ...p, type: e.target.value as Event['type'] }))}
-            style={{ width: '100%', border: '1.5px solid #D0DCF0', borderRadius: 10, padding: '10px', fontSize: 16, marginBottom: 12, outline: 'none' }}
+            className="studio-select"
+            style={{ marginBottom: 12 }}
           >
             <option value="planned">Planned</option>
             <option value="caregiver_input">Caregiver Input</option>
@@ -349,11 +311,11 @@ function EventsTab({ user }: { user: User | null }) {
         >
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
             <div style={{ flex: 1 }}>
-              <p style={{ fontSize: 18, fontWeight: 600, color: '#1A2B4A', margin: '0 0 2px' }}>{e.title}</p>
-              <p style={{ fontSize: 14, color: '#2196F3', margin: '0 0 4px' }}>
+              <p className="studio-text-bright" style={{ fontSize: 17, fontWeight: 600, margin: '0 0 2px' }}>{e.title}</p>
+              <p className="studio-text-muted" style={{ fontSize: 14, margin: '0 0 4px' }}>
                 {new Date(e.timestamp).toLocaleString([], { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}
               </p>
-              <p style={{ fontSize: 15, color: '#6B7A8D', margin: 0 }}>{e.description}</p>
+              <p className="studio-text-muted" style={{ fontSize: 15, margin: 0 }}>{e.description}</p>
             </div>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 6, marginLeft: 8 }}>
               <button
@@ -390,14 +352,14 @@ function MedicationsTab({ user }: { user: User | null }) {
 
   return (
     <div style={{ flex: 1, overflowY: 'auto', padding: 16 }}>
-      <h2 style={{ fontSize: 22, color: '#1A2B4A', margin: '0 0 16px' }}>Medication History</h2>
+      <h2 className="studio-page-title">Medication History</h2>
       {sorted.length === 0 && (
-        <p style={{ color: '#8A9AB0', fontSize: 18 }}>No medication logs yet.</p>
+        <p className="studio-text-muted" style={{ fontSize: 17 }}>No medication logs yet.</p>
       )}
       {sorted.map((log) => (
         <div key={log.id} className="card" style={{ padding: '14px 16px', marginBottom: 10 }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
-            <p style={{ fontSize: 20, fontWeight: 600, color: '#1A2B4A', margin: 0 }}>
+            <p className="studio-text-bright" style={{ fontSize: 18, fontWeight: 600, margin: 0 }}>
               💊 {log.medicationName}
             </p>
             <span
@@ -414,10 +376,10 @@ function MedicationsTab({ user }: { user: User | null }) {
               {log.visionConfidence}
             </span>
           </div>
-          <p style={{ fontSize: 14, color: '#2196F3', margin: '0 0 4px' }}>
+          <p className="studio-text-muted" style={{ fontSize: 14, margin: '0 0 4px' }}>
             {new Date(log.timestamp).toLocaleString([], { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}
           </p>
-          <p style={{ fontSize: 15, color: '#6B7A8D', margin: 0 }}>{log.visionDescription}</p>
+          <p className="studio-text-muted" style={{ fontSize: 15, margin: 0 }}>{log.visionDescription}</p>
           {!log.confirmed && (
             <p style={{ fontSize: 14, color: '#EF4444', margin: '6px 0 0', fontWeight: 600 }}>
               ⚠️ Unconfirmed — caregiver follow-up needed
@@ -460,12 +422,12 @@ function AcseTab({ user }: { user: User | null }) {
 
   return (
     <div style={{ flex: 1, overflowY: 'auto', padding: 16 }}>
-      <h2 style={{ fontSize: 22, color: '#1A2B4A', margin: '0 0 16px' }}>ACSE Score — Last 24 Hours</h2>
+      <h2 className="studio-page-title">ACSE — Last 24 Hours</h2>
 
       {/* Current score */}
       <div className="card" style={{ padding: 20, marginBottom: 16, textAlign: 'center' }}>
         <p style={{ fontSize: 60, fontWeight: 700, color, margin: 0 }}>{acseScore}</p>
-        <p style={{ fontSize: 18, color: '#6B7A8D', margin: 0 }}>
+        <p className="studio-text-muted" style={{ fontSize: 17, margin: 0 }}>
           {acseScore >= 75 ? 'Stable' : acseScore >= 50 ? 'Moderate — monitor closely' : 'Low — Comfort Mode may activate'}
         </p>
       </div>
@@ -475,7 +437,7 @@ function AcseTab({ user }: { user: User | null }) {
         <div className="card" style={{ padding: 16, marginBottom: 16 }}>
           <ResponsiveContainer width="100%" height={200}>
             <LineChart data={chartData}>
-              <CartesianGrid strokeDasharray="3 3" stroke="#E5D5C0" />
+              <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.12)" />
               <XAxis dataKey="time" tick={{ fontSize: 11 }} />
               <YAxis domain={[0, 100]} tick={{ fontSize: 11 }} />
               <Tooltip
@@ -500,31 +462,31 @@ function AcseTab({ user }: { user: User | null }) {
               />
             </LineChart>
           </ResponsiveContainer>
-          <p style={{ fontSize: 13, color: '#8A9AB0', margin: '8px 0 0', textAlign: 'center' }}>
+          <p className="studio-text-muted" style={{ fontSize: 13, margin: '8px 0 0', textAlign: 'center' }}>
             Red dashed line = Comfort Mode threshold (50)
           </p>
         </div>
       ) : (
         <div className="card" style={{ padding: 32, textAlign: 'center' }}>
-          <p style={{ color: '#8A9AB0', fontSize: 18 }}>No score history yet today.</p>
+          <p className="studio-text-muted" style={{ fontSize: 17 }}>No score history yet today.</p>
         </div>
       )}
 
       {/* Score history list */}
       {scoreHistory.length > 0 && (
         <div>
-          <h3 style={{ fontSize: 18, color: '#6B7A8D', margin: '0 0 10px' }}>Score Events</h3>
+          <h3 className="studio-section-title">Score Events</h3>
           {[...scoreHistory].reverse().slice(0, 10).map((s, i) => (
             <div key={i} className="card" style={{ padding: '10px 14px', marginBottom: 8 }}>
               <div style={{ display: 'flex', justifyContent: 'space-between' }}>
                 <span style={{ fontSize: 18, fontWeight: 600, color: s.score < 50 ? '#EF4444' : s.score < 75 ? '#F59E0B' : '#10B981' }}>
                   {s.score}
                 </span>
-                <span style={{ fontSize: 13, color: '#8A9AB0' }}>
+                <span className="studio-text-muted" style={{ fontSize: 13 }}>
                   {new Date(s.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                 </span>
               </div>
-              {s.reason && <p style={{ fontSize: 14, color: '#6B7A8D', margin: '2px 0 0' }}>{s.reason}</p>}
+              {s.reason && <p className="studio-text-muted" style={{ fontSize: 14, margin: '2px 0 0' }}>{s.reason}</p>}
             </div>
           ))}
         </div>
@@ -560,25 +522,16 @@ function ProfileTab() {
     label: string; value: string; onChange: (v: string) => void; type?: string;
   }) => (
     <div style={{ marginBottom: 12 }}>
-      <p style={{ fontSize: 13, color: '#8A9AB0', textTransform: 'uppercase', letterSpacing: '1px', margin: '0 0 4px' }}>
-        {label}
-      </p>
+      <p className="studio-field-label">{label}</p>
       {editing ? (
         <input
           type={type}
           value={value}
           onChange={(e) => onChange(e.target.value)}
-          style={{
-            width: '100%',
-            border: '1.5px solid #D0DCF0',
-            borderRadius: 10,
-            padding: '10px 14px',
-            fontSize: 18,
-            outline: 'none',
-          }}
+          className="studio-input"
         />
       ) : (
-        <p style={{ fontSize: 20, color: '#1A2B4A', margin: 0 }}>{value || '—'}</p>
+        <p className="studio-field-value">{value || '—'}</p>
       )}
     </div>
   );
@@ -586,20 +539,11 @@ function ProfileTab() {
   return (
     <div style={{ flex: 1, overflowY: 'auto', padding: 16 }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
-        <h2 style={{ fontSize: 22, color: '#1A2B4A', margin: 0 }}>Patient Profile</h2>
+        <h2 className="studio-page-title" style={{ margin: 0 }}>Patient Profile</h2>
         <button
           onClick={() => editing ? handleSave() : setEditing(true)}
-          className="tap-feedback"
-          style={{
-            background: editing ? 'linear-gradient(135deg, #2196F3, #0057CC)' : '#EEF6FF',
-            color: editing ? 'white' : '#2196F3',
-            border: 'none',
-            borderRadius: 10,
-            padding: '8px 16px',
-            fontSize: 16,
-            fontWeight: 600,
-            cursor: 'pointer',
-          }}
+          className={`studio-btn tap-feedback ${editing ? 'studio-btn--primary' : ''}`}
+          style={{ padding: '8px 16px', fontSize: 15 }}
         >
           {editing ? 'Save' : 'Edit'}
         </button>
@@ -620,12 +564,12 @@ function ProfileTab() {
             Medications
           </p>
           {user.medications.map((m, i) => (
-            <div key={i} style={{ marginBottom: 12, padding: '10px', background: '#F8F4EF', borderRadius: 10 }}>
-              <p style={{ fontSize: 18, fontWeight: 600, color: '#1A2B4A', margin: '0 0 2px' }}>💊 {m.name}</p>
-              <p style={{ fontSize: 16, color: '#6B7A8D', margin: 0 }}>{m.dosage} · {m.schedule.join(', ')}</p>
+            <div key={i} className="card" style={{ marginBottom: 12, padding: '10px 12px' }}>
+              <p className="studio-text-bright" style={{ fontSize: 17, fontWeight: 600, margin: '0 0 2px' }}>💊 {m.name}</p>
+              <p className="studio-text-muted" style={{ fontSize: 15, margin: 0 }}>{m.dosage} · {m.schedule.join(', ')}</p>
             </div>
           ))}
-          <p style={{ fontSize: 14, color: '#8A9AB0', margin: '8px 0 0' }}>
+          <p className="studio-text-muted" style={{ fontSize: 14, margin: '8px 0 0' }}>
             Edit medications in Supervisor setup (re-seed the app to change them).
           </p>
         </div>

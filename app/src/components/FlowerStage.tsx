@@ -7,12 +7,14 @@ interface FlowerStageProps {
   src: string;
   className?: string;
   glowIntensity?: number;
+  variant?: 'hero' | 'app';
 }
 
 export default function FlowerStage({
   src,
   className = '',
   glowIntensity = 1,
+  variant = 'hero',
 }: FlowerStageProps) {
   const rootRef = useRef<HTMLDivElement>(null);
   const imgRef = useRef<HTMLImageElement>(null);
@@ -28,20 +30,20 @@ export default function FlowerStage({
       gsap.fromTo(
         imgRef.current,
         isSwap
-          ? { opacity: 0, scale: 1.06, filter: 'blur(14px) brightness(1.35)' }
-          : { opacity: 0, scale: 1.04 },
+          ? { opacity: 0, scale: 0.94, filter: 'blur(8px) brightness(1.2)' }
+          : { opacity: 0, scale: 0.96 },
         {
           opacity: 1,
           scale: 1,
-          filter: 'blur(0px) brightness(1.12)',
-          duration: isSwap ? 1.35 : 1.1,
+          filter: 'blur(0px) brightness(1.05)',
+          duration: isSwap ? 1.2 : 0.9,
           ease: 'power3.out',
         }
       );
 
       gsap.to(imgRef.current, {
-        scale: 1.015,
-        duration: 5,
+        scale: 1.008,
+        duration: 6,
         ease: 'sine.inOut',
         repeat: -1,
         yoyo: true,
@@ -56,21 +58,25 @@ export default function FlowerStage({
   }, [src]);
 
   return (
-    <div ref={rootRef} className={`flower-stage ${className}`}>
-      <div
-        className="flower-glow"
-        style={{ opacity: 0.55 * glowIntensity }}
-      />
-      <div className="flower-glow flower-glow--inner" style={{ opacity: 0.35 * glowIntensity }} />
-      <SmokeVapour intensity={glowIntensity} />
-      <img
-        ref={imgRef}
-        src={src}
-        alt=""
-        className="flower-image"
-        draggable={false}
-      />
+    <div ref={rootRef} className={`flower-stage flower-stage--${variant} ${className}`}>
+      <div className="flower-image-frame">
+        <div
+          className="flower-glow"
+          style={{ opacity: 0.35 * glowIntensity }}
+        />
+        <div className="flower-glow flower-glow--inner" style={{ opacity: 0.2 * glowIntensity }} />
+        <SmokeVapour intensity={glowIntensity * 0.7} />
+        <img
+          ref={imgRef}
+          src={src}
+          alt=""
+          className="flower-image"
+          draggable={false}
+        />
+      </div>
       <div className="flower-vignette" />
+      <div className="flower-letterbox flower-letterbox--top" />
+      <div className="flower-letterbox flower-letterbox--bottom" />
     </div>
   );
 }

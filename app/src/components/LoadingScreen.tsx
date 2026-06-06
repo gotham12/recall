@@ -37,8 +37,8 @@ export default function LoadingScreen() {
   return (
     <div className="studio-screen splash-screen">
       <FlowerStage src={FLOWERS.splash} glowIntensity={1.2} />
-      <div ref={contentRef} className="studio-overlay splash-overlay">
-        <h1 className="splash-wordmark">Recall</h1>
+      <div ref={contentRef} className="login-top" style={{ background: 'linear-gradient(180deg, rgba(0,0,0,0.85) 0%, transparent 100%)' }}>
+        <h1 className="login-title" style={{ fontSize: 34, letterSpacing: '0.3em' }}>Recall</h1>
         <p className="splash-tagline">Cognitive Care</p>
       </div>
     </div>

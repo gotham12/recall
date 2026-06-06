@@ -211,11 +211,11 @@ export default function MedTracker() {
     <div style={{ flex: 1, overflowY: 'auto', padding: '16px' }}>
       {phase === 'list' && (
         <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
-          <h2 style={{ fontSize: 26, color: '#1A2B4A', margin: '0 0 8px' }}>
+          <h2 style={{ fontSize: 26, color: '#ffffff', margin: '0 0 8px' }}>
             Your Medications
           </h2>
           {medications.length === 0 && (
-            <p style={{ color: '#6B7A8D', fontSize: 20 }}>
+            <p style={{ color: 'rgba(255,255,255,0.85)', fontSize: 20 }}>
               No medications configured. Ask your caregiver to set them up.
             </p>
           )}
@@ -223,13 +223,13 @@ export default function MedTracker() {
             <div key={i} className="card" style={{ padding: '20px' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                 <div>
-                  <p style={{ fontSize: 24, fontWeight: 600, color: '#1A2B4A', margin: '0 0 4px' }}>
+                  <p style={{ fontSize: 24, fontWeight: 600, color: '#ffffff', margin: '0 0 4px' }}>
                     💊 {med.name}
                   </p>
-                  <p style={{ fontSize: 18, color: '#6B7A8D', margin: '0 0 4px' }}>
+                  <p style={{ fontSize: 18, color: 'rgba(255,255,255,0.85)', margin: '0 0 4px' }}>
                     {med.dosage}
                   </p>
-                  <p style={{ fontSize: 16, color: '#2196F3', margin: 0 }}>
+                  <p style={{ fontSize: 16, color: 'rgba(255,255,255,0.9)', margin: 0 }}>
                     {med.schedule.join(' & ')}
                   </p>
                 </div>
@@ -237,8 +237,9 @@ export default function MedTracker() {
                   className="tap-feedback"
                   onClick={() => startCamera(med)}
                   style={{
-                    background: 'linear-gradient(135deg, #2196F3, #0057CC)',
-                    color: 'white',
+                    background: 'rgba(255,255,255,0.14)',
+                    border: '1px solid rgba(255,255,255,0.22)',
+                    color: '#ffffff',
                     border: 'none',
                     borderRadius: 14,
                     padding: '12px 16px',
@@ -259,17 +260,17 @@ export default function MedTracker() {
       {phase === 'cooldown' && (
         <div className="card animate-fadeIn" style={{ padding: '28px 24px', textAlign: 'center', margin: '20px 0' }}>
           <div style={{ fontSize: 48, marginBottom: 16 }}>⏰</div>
-          <p style={{ fontSize: 22, color: '#1A2B4A', marginBottom: 20 }}>{cooldownMsg}</p>
+          <p style={{ fontSize: 22, color: '#ffffff', marginBottom: 20 }}>{cooldownMsg}</p>
           <button className="btn-electric" onClick={reset}>Got it</button>
         </div>
       )}
 
       {phase === 'camera' && (
         <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
-          <h2 style={{ fontSize: 24, color: '#1A2B4A', margin: 0 }}>
+          <h2 style={{ fontSize: 24, color: '#ffffff', margin: 0 }}>
             Show me: {selectedMed?.name}
           </h2>
-          <p style={{ color: '#6B7A8D', fontSize: 18, margin: 0 }}>
+          <p style={{ color: 'rgba(255,255,255,0.85)', fontSize: 18, margin: 0 }}>
             Hold your medication in front of the camera.
           </p>
           <div style={{ borderRadius: 16, overflow: 'hidden', background: '#000', aspectRatio: '4/3' }}>
@@ -289,7 +290,7 @@ export default function MedTracker() {
           <button className="btn-electric tap-feedback" onClick={captureAndVerify}>
             📸 Capture &amp; Verify
           </button>
-          <button onClick={reset} style={{ background: 'none', border: 'none', color: '#6B7A8D', fontSize: 18, cursor: 'pointer', padding: 8 }}>
+          <button onClick={reset} style={{ background: 'none', border: 'none', color: 'rgba(255,255,255,0.85)', fontSize: 18, cursor: 'pointer', padding: 8 }}>
             Cancel
           </button>
         </div>
@@ -298,15 +299,15 @@ export default function MedTracker() {
       {phase === 'verifying' && (
         <div className="card animate-fadeIn" style={{ padding: '40px 24px', textAlign: 'center' }}>
           <div className="skeleton" style={{ width: 80, height: 80, borderRadius: '50%', margin: '0 auto 20px' }} />
-          <p style={{ fontSize: 22, color: '#1A2B4A' }}>Verifying your medication...</p>
+          <p style={{ fontSize: 22, color: '#ffffff' }}>Verifying your medication...</p>
         </div>
       )}
 
       {phase === 'countdown' && (
         <div className="card animate-fadeIn" style={{ padding: '32px 24px', textAlign: 'center', margin: '20px 0' }}>
           <div style={{ fontSize: 48, marginBottom: 12 }}>✅</div>
-          <p style={{ fontSize: 22, color: '#10B981', fontWeight: 600, marginBottom: 8 }}>{visionMsg}</p>
-          <p style={{ fontSize: 20, color: '#1A2B4A', marginBottom: 20 }}>
+          <p className="studio-text-bright" style={{ fontSize: 22, fontWeight: 600, marginBottom: 8 }}>{visionMsg}</p>
+          <p style={{ fontSize: 20, color: '#ffffff', marginBottom: 20 }}>
             Please take your medication now.
           </p>
           <div
@@ -314,7 +315,8 @@ export default function MedTracker() {
               width: 80,
               height: 80,
               borderRadius: '50%',
-              background: 'linear-gradient(135deg, #2196F3, #0057CC)',
+              background: 'rgba(255,255,255,0.14)',
+              border: '1px solid rgba(255,255,255,0.22)',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
@@ -332,10 +334,10 @@ export default function MedTracker() {
       {phase === 'confirmed' && (
         <div className="card animate-fadeIn" style={{ padding: '32px 24px', textAlign: 'center', margin: '20px 0' }}>
           <div style={{ fontSize: 56, marginBottom: 16 }}>🎉</div>
-          <p style={{ fontSize: 24, color: '#10B981', fontWeight: 600, marginBottom: 8 }}>
+          <p className="studio-text-bright" style={{ fontSize: 24, fontWeight: 600, marginBottom: 8 }}>
             {selectedMed?.name} recorded!
           </p>
-          <p style={{ fontSize: 20, color: '#6B7A8D', marginBottom: 24 }}>
+          <p style={{ fontSize: 20, color: 'rgba(255,255,255,0.85)', marginBottom: 24 }}>
             Great job taking care of yourself.
           </p>
           <button className="btn-electric tap-feedback" onClick={reset}>Done</button>
@@ -348,8 +350,8 @@ export default function MedTracker() {
           <p style={{ fontSize: 22, color: '#F59E0B', fontWeight: 600, marginBottom: 8 }}>
             Could Not Verify
           </p>
-          <p style={{ fontSize: 20, color: '#1A2B4A', marginBottom: 24 }}>{visionMsg}</p>
-          <p style={{ fontSize: 18, color: '#6B7A8D', marginBottom: 24 }}>
+          <p style={{ fontSize: 20, color: '#ffffff', marginBottom: 24 }}>{visionMsg}</p>
+          <p style={{ fontSize: 18, color: 'rgba(255,255,255,0.85)', marginBottom: 24 }}>
             Your caregiver has been notified.
           </p>
           <button className="btn-electric tap-feedback" onClick={reset}>OK</button>
