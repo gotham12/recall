@@ -164,7 +164,7 @@ function EventsTab({ events }: { events: Event[] }) {
               <div className="event-icon-badge">
                 <StudioIcon name={eventIcon(e.type)} size={20} />
               </div>
-              <div style={{ width: 2, flex: 1, background: 'rgba(62,48,38,0.15)', minHeight: 16 }} />
+              <div style={{ width: 2, flex: 1, background: 'rgba(255,255,255,0.15)', minHeight: 16 }} />
             </div>
             <div style={{ paddingTop: 6, flex: 1 }}>
               <p className="studio-text-bright" style={{ fontSize: 18, fontWeight: 600, margin: '0 0 2px' }}>

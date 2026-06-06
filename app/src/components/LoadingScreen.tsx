@@ -57,7 +57,7 @@ export default function LoadingScreen() {
       <div
         ref={contentRef}
         className="login-top splash-wordmark"
-        style={{ background: 'linear-gradient(180deg, rgba(248,244,236,0.92) 0%, transparent 100%)' }}
+        style={{ background: 'linear-gradient(180deg, rgba(0,0,0,0.85) 0%, transparent 100%)' }}
       >
         <RecallLogo size="lg" />
         <p className="splash-tagline">Cognitive Care</p>

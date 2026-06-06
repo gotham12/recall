@@ -5,9 +5,9 @@ export default function ACSEDashboard() {
   const { acseScore, deductAcse, setAcseScore } = useAppStore();
 
   const scoreColor =
-    acseScore >= 75 ? 'var(--studio-accent)' :
-    acseScore >= 50 ? '#9a7b45' :
-    '#c45c5c';
+    acseScore >= 75 ? 'rgba(255,255,255,0.95)' :
+    acseScore >= 50 ? 'rgba(255,255,255,0.85)' :
+    'rgba(255,200,200,0.95)';
 
   const label =
     acseScore >= 75 ? 'Stable' :
@@ -39,7 +39,7 @@ export default function ACSEDashboard() {
           </span>
         </div>
         <div className="studio-progress-track">
-          <div style={{ width: `${acseScore}%`, height: '100%', background: 'var(--studio-accent)', borderRadius: 8, transition: 'width 0.5s ease' }} />
+          <div style={{ width: `${acseScore}%`, height: '100%', background: 'rgba(255,255,255,0.75)', borderRadius: 8, transition: 'width 0.5s ease' }} />
         </div>
         <p className="studio-text-bright" style={{ fontSize: 16, margin: '10px 0 0' }}>{label}</p>
       </div>

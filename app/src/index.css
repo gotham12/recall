@@ -8,17 +8,17 @@
   --sab: env(safe-area-inset-bottom, 0px);
   --sal: env(safe-area-inset-left, 0px);
   --sar: env(safe-area-inset-right, 0px);
-  --studio-bg: #f8f4ec;
-  --studio-bg-deep: #efe8db;
-  --studio-surface: rgba(255, 252, 247, 0.92);
-  --studio-surface-soft: rgba(255, 255, 255, 0.72);
-  --studio-text: #3d3028;
-  --studio-text-muted: rgba(61, 48, 40, 0.68);
-  --studio-text-bright: #2a2118;
-  --studio-accent: #c9a55c;
-  --studio-accent-soft: rgba(201, 165, 92, 0.22);
-  --studio-border: rgba(62, 48, 38, 0.14);
-  --studio-shadow: rgba(62, 48, 38, 0.12);
+  --studio-bg: #000000;
+  --studio-bg-deep: #000000;
+  --studio-surface: rgba(12, 12, 12, 0.72);
+  --studio-surface-soft: rgba(255, 255, 255, 0.06);
+  --studio-text: #f5f5f5;
+  --studio-text-muted: rgba(255, 255, 255, 0.82);
+  --studio-text-bright: #ffffff;
+  --studio-accent: rgba(255, 255, 255, 0.92);
+  --studio-accent-soft: rgba(255, 255, 255, 0.12);
+  --studio-border: rgba(255, 255, 255, 0.12);
+  --studio-shadow: rgba(0, 0, 0, 0.6);
   -webkit-tap-highlight-color: transparent;
   -webkit-touch-callout: none;
   user-select: none;
@@ -77,8 +77,8 @@ html, body, #root {
 
 /* ── Mic listening pulse ── */
 @keyframes micPulse {
-  0%, 100% { box-shadow: 0 0 0 0 rgba(201, 165, 92, 0.45); }
-  50%       { box-shadow: 0 0 0 24px rgba(201, 165, 92, 0); }
+  0%, 100% { box-shadow: 0 0 0 0 rgba(255, 255, 255, 0.35); }
+  50%       { box-shadow: 0 0 0 24px rgba(255, 255, 255, 0); }
 }
 .mic-listening {
   animation: micPulse 1.5s ease-in-out infinite;
@@ -146,7 +146,7 @@ html, body, #root {
   background: var(--studio-surface);
   border: 1px solid var(--studio-border);
   border-radius: 20px;
-  box-shadow: 0 8px 28px var(--studio-shadow), inset 0 1px 0 rgba(255, 255, 255, 0.65);
+  box-shadow: 0 8px 32px var(--studio-shadow), inset 0 1px 0 rgba(255, 255, 255, 0.06);
   backdrop-filter: blur(12px);
   -webkit-backdrop-filter: blur(12px);
 }
@@ -242,7 +242,7 @@ html, body, #root {
 .flower-vignette {
   position: absolute;
   inset: 0;
-  background: radial-gradient(ellipse at center 48%, transparent 40%, rgba(239,232,219,0.35) 65%, rgba(239,232,219,0.72) 90%);
+  background: radial-gradient(ellipse at center 48%, transparent 35%, rgba(0,0,0,0.25) 60%, rgba(0,0,0,0.65) 88%);
   pointer-events: none;
   z-index: 2;
 }
@@ -304,7 +304,7 @@ html, body, #root {
   z-index: 6;
   padding: max(20px, calc(var(--sat) + 12px)) 24px 16px;
   text-align: center;
-  background: linear-gradient(180deg, rgba(248,244,236,0.95) 0%, rgba(248,244,236,0.55) 70%, transparent 100%);
+  background: linear-gradient(180deg, rgba(0,0,0,0.92) 0%, rgba(0,0,0,0.5) 70%, transparent 100%);
 }
 
 .login-panel {
@@ -379,20 +379,20 @@ html, body, #root {
 }
 
 .studio-btn:hover {
-  background: rgba(255, 255, 255, 0.9);
-  border-color: rgba(201, 165, 92, 0.45);
-  box-shadow: 0 0 24px var(--studio-accent-soft);
+  background: rgba(255, 255, 255, 0.1);
+  border-color: rgba(255, 255, 255, 0.28);
+  box-shadow: 0 0 24px rgba(255, 255, 255, 0.08);
 }
 
 .studio-btn--primary {
-  background: linear-gradient(135deg, rgba(255,252,247,0.95), rgba(239,232,219,0.9));
-  border-color: rgba(201, 165, 92, 0.4);
+  background: rgba(255, 255, 255, 0.12);
+  border-color: rgba(255, 255, 255, 0.22);
   align-items: center;
   text-align: center;
 }
 
 .studio-btn--ghost {
-  background: rgba(255, 255, 255, 0.55);
+  background: rgba(0, 0, 0, 0.35);
 }
 
 .studio-btn--text {
@@ -418,12 +418,12 @@ html, body, #root {
 .studio-input:focus,
 .studio-textarea:focus,
 .studio-select:focus {
-  border-color: rgba(201, 165, 92, 0.55);
-  box-shadow: 0 0 0 3px var(--studio-accent-soft);
+  border-color: rgba(255, 255, 255, 0.35);
+  box-shadow: 0 0 0 3px rgba(255, 255, 255, 0.08);
 }
 
 .studio-error {
-  color: #c45c5c;
+  color: #ff8a8a;
   font-size: 15px;
   margin: 0;
   text-align: center;
@@ -457,7 +457,7 @@ html, body, #root {
   position: relative;
   z-index: 4;
   padding: 12px 20px 8px;
-  background: rgba(248, 244, 236, 0.82);
+  background: rgba(0, 0, 0, 0.55);
   border-bottom: 1px solid var(--studio-border);
   display: flex;
   justify-content: space-between;
@@ -483,7 +483,7 @@ html, body, #root {
   position: relative;
   z-index: 4;
   display: flex;
-  background: rgba(248, 244, 236, 0.9);
+  background: rgba(0, 0, 0, 0.78);
   border-top: 1px solid var(--studio-border);
   flex-shrink: 0;
   backdrop-filter: blur(12px);
@@ -591,8 +591,8 @@ html, body, #root {
 }
 
 .studio-chip--active {
-  background: var(--studio-accent-soft);
-  border-color: rgba(201, 165, 92, 0.45);
+  background: rgba(255, 255, 255, 0.18);
+  border-color: rgba(255, 255, 255, 0.35);
   color: var(--studio-text-bright);
 }
 
@@ -604,7 +604,7 @@ html, body, #root {
   border-radius: 12px;
   padding: 12px 14px;
   font-size: 17px;
-  background: rgba(255, 255, 255, 0.85);
+  background: rgba(0, 0, 0, 0.55);
   color: var(--studio-text-bright);
   outline: none;
 }
@@ -615,17 +615,17 @@ html, body, #root {
 
 .studio-input::placeholder,
 .studio-textarea::placeholder {
-  color: rgba(61, 48, 40, 0.42);
+  color: rgba(255, 255, 255, 0.45);
 }
 
 .studio-bubble-user {
-  background: var(--studio-accent-soft);
-  border: 1px solid rgba(201, 165, 92, 0.35);
+  background: rgba(255, 255, 255, 0.16);
+  border: 1px solid rgba(255, 255, 255, 0.22);
   color: var(--studio-text-bright);
 }
 
 .studio-bubble-assistant {
-  background: var(--studio-surface);
+  background: rgba(0, 0, 0, 0.55);
   border: 1px solid var(--studio-border);
   color: var(--studio-text-bright);
 }
@@ -656,7 +656,7 @@ html, body, #root {
 }
 
 .studio-progress-track {
-  background: rgba(62, 48, 38, 0.1);
+  background: rgba(255, 255, 255, 0.12);
   border-radius: 8px;
   height: 10px;
   overflow: hidden;
@@ -695,7 +695,7 @@ html, body, #root {
   height: 36px;
   border-radius: 50%;
   background: var(--studio-accent-soft);
-  border: 1px solid rgba(201, 165, 92, 0.35);
+  border: 1px solid rgba(255, 255, 255, 0.2);
   color: var(--studio-accent);
 }
 
@@ -741,7 +741,7 @@ html, body, #root {
   height: 72px;
   border-radius: 50%;
   background: var(--studio-accent-soft);
-  border: 1px solid rgba(201, 165, 92, 0.35);
+  border: 1px solid rgba(255, 255, 255, 0.2);
   color: var(--studio-accent);
   margin-bottom: 12px;
 }
@@ -767,7 +767,7 @@ html, body, #root {
 .clara-chat__composer {
   padding: 14px 16px;
   padding-bottom: max(14px, var(--sab));
-  background: rgba(248, 244, 236, 0.92);
+  background: rgba(0, 0, 0, 0.75);
   border-top: 1px solid var(--studio-border);
   backdrop-filter: blur(12px);
 }
@@ -818,8 +818,8 @@ html, body, #root {
 }
 
 .clara-chat__mic--active {
-  background: rgba(201, 165, 92, 0.3);
-  border-color: rgba(201, 165, 92, 0.55);
+  background: rgba(255, 255, 255, 0.22);
+  border-color: rgba(255, 255, 255, 0.4);
 }
 
 .event-icon-badge {

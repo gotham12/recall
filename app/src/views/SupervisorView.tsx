@@ -34,7 +34,7 @@ export default function SupervisorView() {
     <StudioShell
       flowerSrc={TAB_FLOWERS[activeTab]}
       contentKey={activeTab}
-      dimOverlay={0.62}
+      dimOverlay={0.76}
       header={
         <>
           <div className="studio-header">
@@ -330,7 +330,7 @@ function EventsTab({ user }: { user: User | null }) {
               <button
                 onClick={() => handleToggleComplete(e)}
                 className="studio-icon-btn tap-feedback"
-                style={{ background: e.completed ? 'rgba(201,165,92,0.2)' : 'var(--studio-surface-soft)' }}
+                style={{ background: e.completed ? 'rgba(255,255,255,0.12)' : 'var(--studio-surface-soft)' }}
                 aria-label={e.completed ? 'Mark incomplete' : 'Mark complete'}
               >
                 <StudioIcon name={e.completed ? 'check' : 'circle'} size={16} />

@@ -21,7 +21,7 @@ export default function StudioShell({
   contentKey,
   header,
   footer,
-  dimOverlay = 0.58,
+  dimOverlay = 0.82,
 }: StudioShellProps) {
   const scrimRef = useRef<HTMLDivElement>(null);
   const prevFlower = useRef(flowerSrc);
@@ -44,15 +44,12 @@ export default function StudioShell({
 
   return (
     <div className="studio-screen studio-app">
-      <FlowerStage src={flowerSrc} glowIntensity={0.75} variant="app" />
+      <FlowerStage src={flowerSrc} glowIntensity={0.6} variant="app" />
       <div
         ref={scrimRef}
         className="studio-app-scrim"
         style={{
-          background: `linear-gradient(180deg,
-            rgba(248,244,236,${dimOverlay + 0.12}) 0%,
-            rgba(239,232,219,${dimOverlay}) 38%,
-            rgba(248,244,236,${dimOverlay + 0.08}) 100%)`,
+          background: `linear-gradient(180deg, rgba(0,0,0,${dimOverlay + 0.06}) 0%, rgba(0,0,0,${dimOverlay}) 35%, rgba(0,0,0,${dimOverlay + 0.04}) 100%)`,
         }}
       />
       {header}
