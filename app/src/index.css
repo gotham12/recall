@@ -189,14 +189,14 @@ html, body, #root {
 
 .flower-stage--hero .flower-images {
   width: 100%;
-  transform: scale(1.38);
-  transform-origin: center 78%;
+  transform: scale(1.65);
+  transform-origin: center 82%;
 }
 
 .flower-stage--app .flower-images {
   width: 100%;
-  transform: scale(1.28);
-  transform-origin: center 78%;
+  transform: scale(1.52);
+  transform-origin: center 82%;
 }
 
 .flower-image {
