@@ -4,7 +4,7 @@ import { useAppStore } from '../store/appStore';
 import { useACSE } from '../hooks/useACSE';
 import { db } from '../db/db';
 import StateReconCard from '../components/StateReconCard';
-import { LeafLogo } from '../components/LoadingScreen';
+import { LeafLogo } from '../components/LeafLogo';
 import VoiceAgent from '../components/VoiceAgent';
 import MedTracker from '../components/MedTracker';
 import ACSEDashboard from '../components/ACSEDashboard';
@@ -47,7 +47,7 @@ export default function PatientView() {
   const changeTab = (t: Tab) => { if (t !== tab) { recordNavigation(); setTab(t); } };
 
   return (
-    <div className="app-shell">
+    <div className="app-shell view-enter">
       {/* Header */}
       <div className="app-header">
         <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
@@ -56,7 +56,7 @@ export default function PatientView() {
         </div>
         <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
           <span className="t-caption">Hi, {user?.name?.split(' ')[0]}</span>
-          <button onClick={() => setScreen('login')} style={{ background: 'var(--green-dim)', border: '1px solid var(--border)', borderRadius: 8, cursor: 'pointer', padding: '6px 8px', color: 'var(--muted)', display: 'flex' }}>
+          <button onClick={() => setScreen('opening')} style={{ background: 'var(--green-dim)', border: '1px solid var(--border)', borderRadius: 8, cursor: 'pointer', padding: '6px 8px', color: 'var(--muted)', display: 'flex' }}>
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
           </button>
         </div>

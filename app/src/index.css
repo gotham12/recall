@@ -64,7 +64,7 @@ body {
 .app-shell::before {
   width: 260px; height: 260px;
   bottom: 60px; left: -30px;
-  background-image: url('/leaf_bl.png');
+  background-image: var(--leaf-bl);
   background-position: top right;
   opacity: 0.28;
   mask-image: radial-gradient(ellipse at bottom left, black 30%, transparent 72%);
@@ -74,7 +74,7 @@ body {
 .app-shell::after {
   width: 280px; height: 280px;
   top: 50px; right: -20px;
-  background-image: url('/leaf_tr.png');
+  background-image: var(--leaf-tr);
   background-position: bottom left;
   opacity: 0.24;
   mask-image: radial-gradient(ellipse at top right, black 30%, transparent 72%);
@@ -325,3 +325,223 @@ body {
 .fade-up    { animation: fadeUp .4s ease both; }
 .spin-slow  { animation: spinSlow 6s linear infinite; }
 .float-anim { animation: floatY 3.2s ease-in-out infinite; }
+
+/* ── Opening flow — dewy leaf hero + zoom transition ─────── */
+.opening-flow {
+  position: fixed; inset: 0;
+  background: linear-gradient(165deg, #E8F8EC 0%, #F8FDF9 45%, #E2F5E8 100%);
+  overflow: hidden;
+  display: flex; align-items: center; justify-content: center;
+  padding-top: var(--sat);
+}
+
+.opening-glow {
+  position: absolute;
+  width: min(90vw, 520px);
+  height: min(90vw, 520px);
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(22,163,74,0.22) 0%, rgba(34,197,94,0.08) 45%, transparent 72%);
+  pointer-events: none;
+  opacity: 0.35;
+  transform: scale(1);
+  z-index: 1;
+}
+
+.opening-dew {
+  position: absolute; inset: 0;
+  pointer-events: none; z-index: 2;
+}
+.opening-dew-dot {
+  position: absolute;
+  border-radius: 50%;
+  background: radial-gradient(circle at 30% 30%, #fff 0%, rgba(255,255,255,0.7) 35%, rgba(34,197,94,0.25) 100%);
+  box-shadow: 0 0 12px rgba(255,255,255,0.8), 0 0 4px rgba(34,197,94,0.3);
+  animation: dewSparkle 3s ease-in-out infinite;
+}
+
+.opening-leaf-wrap {
+  position: relative;
+  z-index: 3;
+  width: min(92vw, 480px);
+  height: min(72vh, 640px);
+  display: flex; align-items: center; justify-content: center;
+  will-change: transform;
+}
+.opening-leaf-img {
+  width: 100%; height: 100%;
+  object-fit: contain;
+  object-position: center;
+  filter: drop-shadow(0 24px 48px rgba(22,163,74,0.18)) saturate(1.08);
+  will-change: transform, opacity, filter;
+  animation: leafFloat 5s ease-in-out infinite;
+}
+.opening-leaf-shine {
+  position: absolute; inset: 8% 12%;
+  background: linear-gradient(125deg, transparent 40%, rgba(255,255,255,0.35) 50%, transparent 60%);
+  pointer-events: none;
+  animation: leafShine 4s ease-in-out infinite;
+}
+
+.opening-splash {
+  position: absolute; inset: 0; z-index: 5;
+  display: flex; flex-direction: column;
+  align-items: center; justify-content: flex-end;
+  padding: 0 28px calc(48px + var(--sab));
+  pointer-events: none;
+}
+.opening-splash > * { pointer-events: auto; }
+
+.opening-brand {
+  text-align: center;
+  margin-bottom: 28px;
+  display: flex; flex-direction: column; align-items: center; gap: 6px;
+}
+.opening-title {
+  font-family: 'DM Serif Display', serif;
+  font-size: clamp(42px, 10vw, 56px);
+  font-weight: 400;
+  color: var(--text);
+  margin: 0;
+  letter-spacing: -0.02em;
+  text-shadow: 0 2px 20px rgba(255,255,255,0.8);
+}
+.opening-tagline {
+  font-family: Inter, sans-serif;
+  font-size: 11px; font-weight: 600;
+  letter-spacing: 0.14em; text-transform: uppercase;
+  color: var(--muted); margin: 0;
+}
+.opening-login-btn {
+  width: 100%; max-width: 320px;
+  padding: 18px 32px !important;
+  font-size: 17px !important;
+  border-radius: 999px !important;
+  box-shadow: 0 4px 20px rgba(22,163,74,0.35), 0 0 0 4px rgba(22,163,74,0.08) !important;
+}
+.opening-hint {
+  margin: 14px 0 0;
+  font-size: 13px; color: var(--muted-2);
+  font-family: Inter, sans-serif;
+}
+
+.opening-login {
+  position: absolute; inset: 0; z-index: 6;
+  display: flex; flex-direction: column;
+  justify-content: flex-end;
+  padding: 24px 20px calc(28px + var(--sab));
+  background: linear-gradient(180deg, transparent 0%, rgba(248,253,249,0.55) 35%, rgba(248,253,249,0.92) 70%);
+}
+.opening-login-header {
+  margin-bottom: 16px;
+}
+.opening-login-header h2 {
+  font-family: Inter, sans-serif;
+  font-size: 28px; font-weight: 800;
+  color: var(--text); margin: 0 0 4px;
+  letter-spacing: -0.5px;
+}
+.opening-login-header p {
+  font-size: 15px; color: var(--muted);
+  margin: 0; font-family: Inter, sans-serif;
+}
+
+.opening-role-card {
+  width: 100%;
+  display: flex; align-items: center; gap: 14px;
+  padding: 18px 16px;
+  margin-bottom: 10px;
+  background: rgba(255,255,255,0.94);
+  backdrop-filter: blur(20px) saturate(1.4);
+  -webkit-backdrop-filter: blur(20px) saturate(1.4);
+  border: 1px solid rgba(22,163,74,0.14);
+  border-radius: 20px;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.05), 0 8px 24px rgba(22,163,74,0.08);
+  cursor: pointer;
+  text-align: left;
+  transition: transform 120ms, border-color 150ms, box-shadow 150ms;
+}
+.opening-role-card:active { transform: scale(0.98); }
+.opening-role-card:hover {
+  border-color: rgba(22,163,74,0.28);
+  box-shadow: 0 4px 12px rgba(0,0,0,0.06), 0 12px 32px rgba(22,163,74,0.12);
+}
+
+.opening-role-icon {
+  width: 48px; height: 48px;
+  border-radius: 14px;
+  display: flex; align-items: center; justify-content: center;
+  flex-shrink: 0;
+}
+.opening-role-icon--patient {
+  background: rgba(34,197,94,0.12);
+  border: 1px solid rgba(34,197,94,0.22);
+  color: var(--green);
+}
+.opening-role-icon--supervisor {
+  background: rgba(59,130,246,0.1);
+  border: 1px solid rgba(59,130,246,0.2);
+  color: #3B82F6;
+}
+
+.opening-role-text { flex: 1; display: flex; flex-direction: column; gap: 2px; }
+.opening-role-label {
+  font-size: 10px; font-weight: 700;
+  letter-spacing: 0.1em; text-transform: uppercase;
+  color: var(--green); font-family: Inter, sans-serif;
+}
+.opening-role-text strong {
+  font-size: 17px; font-weight: 700;
+  color: var(--text); font-family: Inter, sans-serif;
+}
+.opening-role-sub {
+  font-size: 13px; color: var(--muted);
+  font-family: Inter, sans-serif;
+}
+
+.opening-pw-card {
+  background: rgba(255,255,255,0.96);
+  border: 1px solid rgba(59,130,246,0.25);
+  border-radius: 20px;
+  padding: 18px 16px;
+  box-shadow: 0 8px 24px rgba(0,0,0,0.06);
+}
+.opening-pw-card--err { border-color: rgba(220,38,38,0.4); }
+.opening-pw-card .input { margin: 10px 0; font-size: 18px; }
+.opening-pw-err { color: var(--danger); font-size: 13px; margin: 0 0 10px; font-family: Inter, sans-serif; }
+.opening-pw-actions { display: flex; gap: 10px; }
+
+.opening-back {
+  margin-top: 12px;
+  background: none; border: none;
+  color: var(--muted); font-size: 13px;
+  font-family: Inter, sans-serif; font-weight: 600;
+  cursor: pointer; align-self: center;
+  padding: 8px 16px;
+}
+
+.opening-flash {
+  position: fixed; inset: 0; z-index: 20;
+  background: #F8FDF9;
+  opacity: 0; pointer-events: none;
+}
+
+.view-enter {
+  animation: viewEnter 0.55s cubic-bezier(0.2, 0, 0, 1) both;
+}
+
+@keyframes dewSparkle {
+  0%, 100% { opacity: 0.3; transform: scale(0.8); }
+  50%      { opacity: 1; transform: scale(1.15); }
+}
+@keyframes leafFloat {
+  0%, 100% { transform: translateY(0) rotate(0deg); }
+  50%      { transform: translateY(-10px) rotate(0.6deg); }
+}
+@keyframes leafShine {
+  0%, 100% { opacity: 0; transform: translateX(-30%); }
+  40%, 60% { opacity: 0.6; transform: translateX(30%); }
+}
+@keyframes viewEnter {
+  from { opacity: 0; transform: scale(1.04); }
+  to   { opacity: 1; transform: scale(1); }
+}

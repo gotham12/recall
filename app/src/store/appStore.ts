@@ -2,7 +2,7 @@ import { create } from 'zustand';
 import type { User } from '../db/db';
 import { db } from '../db/db';
 
-export type AppScreen = 'loading' | 'login' | 'patient' | 'supervisor';
+export type AppScreen = 'opening' | 'patient' | 'supervisor';
 
 export interface SupervisorAlert {
   id: string;
@@ -29,7 +29,7 @@ interface AppState {
 }
 
 export const useAppStore = create<AppState>((set, get) => ({
-  screen: 'loading',
+  screen: 'opening',
   user: null,
   acseScore: 100,
   comfortModeActive: false,

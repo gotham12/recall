@@ -4,7 +4,7 @@ import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianG
 import { useAppStore } from '../store/appStore';
 import { db, type RecallEvent, type User, type Medication } from '../db/db';
 import { parseCaregiverMessage } from '../services/groq';
-import { LeafLogo } from '../components/LoadingScreen';
+import { LeafLogo } from '../components/LeafLogo';
 
 type Tab = 'home' | 'events' | 'medications' | 'acse' | 'profile';
 const TABS: { id: Tab; label: string; icon: React.ReactNode }[] = [
@@ -20,13 +20,13 @@ export default function SupervisorView() {
   const { user, supervisorAlerts, clearSupervisorAlert, setScreen } = useAppStore();
 
   return (
-    <div className="app-shell">
+    <div className="app-shell view-enter">
       <div className="app-header">
         <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
           <LeafLogo size={28} color="#16A34A" />
           <span className="logo-text" style={{ fontSize: 18, color: 'var(--text)' }}>Supervisor</span>
         </div>
-        <button onClick={() => setScreen('login')} style={{ background: 'var(--surface-2)', border: '1px solid var(--border)', borderRadius: 8, cursor: 'pointer', padding: '6px 12px', color: 'var(--muted-2)', fontFamily: 'Inter', fontSize: 13, fontWeight: 600, display: 'flex', alignItems: 'center', gap: 6 }}>
+        <button onClick={() => setScreen('opening')} style={{ background: 'var(--surface-2)', border: '1px solid var(--border)', borderRadius: 8, cursor: 'pointer', padding: '6px 12px', color: 'var(--muted-2)', fontFamily: 'Inter', fontSize: 13, fontWeight: 600, display: 'flex', alignItems: 'center', gap: 6 }}>
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
           Logout
         </button>
