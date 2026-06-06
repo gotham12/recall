@@ -1,11 +1,5 @@
 import Dexie, { type Table } from 'dexie';
 
-export interface Medication {
-  name: string;
-  dosage: string;
-  schedule: string[];
-}
-
 export interface User {
   id?: number;
   name: string;
@@ -19,7 +13,13 @@ export interface User {
   createdAt: string;
 }
 
-export interface RecallEvent {
+export interface Medication {
+  name: string;
+  dosage: string;
+  schedule: string[]; // e.g. ["8:00 AM", "8:00 PM"]
+}
+
+export interface Event {
   id?: number;
   userId: number;
   timestamp: string;
@@ -39,7 +39,6 @@ export interface MedicationLog {
   visionDescription: string;
   imageThumbnail?: string;
   confirmed: boolean;
-  escalated?: boolean;
 }
 
 export interface AcseScore {
@@ -52,16 +51,16 @@ export interface AcseScore {
 
 class RecallDB extends Dexie {
   users!: Table<User>;
-  events!: Table<RecallEvent>;
+  events!: Table<Event>;
   medicationLogs!: Table<MedicationLog>;
   acseScores!: Table<AcseScore>;
 
   constructor() {
-    super('RecallDB_v2');
+    super('RecallDB');
     this.version(1).stores({
       users: '++id, name',
       events: '++id, userId, timestamp, type, completed',
-      medicationLogs: '++id, userId, medicationName, timestamp, confirmed',
+      medicationLogs: '++id, userId, medicationName, timestamp',
       acseScores: '++id, userId, timestamp',
     });
   }

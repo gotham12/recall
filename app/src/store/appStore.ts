@@ -2,9 +2,9 @@ import { create } from 'zustand';
 import type { User } from '../db/db';
 import { db } from '../db/db';
 
-export type AppScreen = 'opening' | 'patient' | 'supervisor';
+export type AppScreen = 'loading' | 'login' | 'patient' | 'supervisor';
 
-export interface SupervisorAlert {
+interface SupervisorAlert {
   id: string;
   message: string;
   timestamp: string;
@@ -17,23 +17,26 @@ interface AppState {
   acseScore: number;
   comfortModeActive: boolean;
   supervisorAlerts: SupervisorAlert[];
+  isZooming: boolean;
 
-  setScreen: (s: AppScreen) => void;
-  setUser: (u: User) => void;
-  setAcseScore: (n: number) => void;
+  setScreen: (screen: AppScreen) => void;
+  setUser: (user: User) => void;
+  setAcseScore: (score: number) => void;
   deductAcse: (points: number, reason: string) => void;
   activateComfortMode: () => void;
   deactivateComfortMode: () => void;
-  addSupervisorAlert: (a: Omit<SupervisorAlert, 'id'>) => void;
+  addSupervisorAlert: (alert: Omit<SupervisorAlert, 'id'>) => void;
   clearSupervisorAlert: (id: string) => void;
+  setIsZooming: (v: boolean) => void;
 }
 
 export const useAppStore = create<AppState>((set, get) => ({
-  screen: 'opening',
+  screen: 'loading',
   user: null,
   acseScore: 100,
   comfortModeActive: false,
   supervisorAlerts: [],
+  isZooming: false,
 
   setScreen: (screen) => set({ screen }),
   setUser: (user) => set({ user }),
@@ -44,13 +47,19 @@ export const useAppStore = create<AppState>((set, get) => ({
     const next = Math.max(0, current - points);
     set({ acseScore: next });
 
-    const user = get().user;
-    if (user?.id) {
-      db.acseScores.add({ userId: user.id, score: next, timestamp: new Date().toISOString(), reason }).catch(console.error);
-    }
-
     if (next < 50 && !get().comfortModeActive) {
       get().activateComfortMode();
+    }
+
+    // Persist score to DB
+    const user = get().user;
+    if (user?.id) {
+      db.acseScores.add({
+        userId: user.id,
+        score: next,
+        timestamp: new Date().toISOString(),
+        reason,
+      }).catch(console.error);
     }
   },
 
@@ -58,9 +67,8 @@ export const useAppStore = create<AppState>((set, get) => ({
     const user = get().user;
     set({ comfortModeActive: true });
 
-    const timeStr = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
     get().addSupervisorAlert({
-      message: `Comfort Mode activated at ${timeStr}`,
+      message: `Comfort Mode activated at ${new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`,
       timestamp: new Date().toISOString(),
       type: 'comfort_mode',
     });
@@ -71,7 +79,7 @@ export const useAppStore = create<AppState>((set, get) => ({
         timestamp: new Date().toISOString(),
         type: 'system_alert',
         title: 'Comfort Mode activated',
-        description: `Cognitive Stability Score dropped below 50. Comfort Mode activated at ${timeStr}.`,
+        description: `Comfort Mode activated at ${new Date().toLocaleTimeString()}. ACSE score dropped below 50.`,
         completed: true,
         source: 'system',
       }).catch(console.error);
@@ -79,18 +87,30 @@ export const useAppStore = create<AppState>((set, get) => ({
   },
 
   deactivateComfortMode: () => {
-    set({ comfortModeActive: false });
-    const current = get().acseScore;
-    set({ acseScore: Math.max(current, 70) });
+    set({ comfortModeActive: false, acseScore: 70 });
+    const user = get().user;
+    if (user?.id) {
+      db.acseScores.add({
+        userId: user.id,
+        score: 70,
+        timestamp: new Date().toISOString(),
+        reason: 'Comfort Mode completed',
+      }).catch(console.error);
+    }
   },
 
   addSupervisorAlert: (alert) =>
     set((state) => ({
-      supervisorAlerts: [{ ...alert, id: crypto.randomUUID() }, ...state.supervisorAlerts],
+      supervisorAlerts: [
+        { ...alert, id: `${Date.now()}-${Math.random()}` },
+        ...state.supervisorAlerts,
+      ],
     })),
 
   clearSupervisorAlert: (id) =>
     set((state) => ({
       supervisorAlerts: state.supervisorAlerts.filter((a) => a.id !== id),
     })),
+
+  setIsZooming: (v) => set({ isZooming: v }),
 }));

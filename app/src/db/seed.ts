@@ -1,19 +1,11 @@
 import { db } from './db';
 
 export async function seedIfEmpty(): Promise<void> {
-  const count = await db.users.count();
-  if (count > 0) return;
+  const userCount = await db.users.count();
+  if (userCount > 0) return;
 
   const now = new Date();
-
-  const makeTime = (h: number, m = 0) => {
-    const d = new Date(now);
-    d.setHours(h, m, 0, 0);
-    return d.toISOString();
-  };
-
-  // Future events relative to current time
-  const inMinutes = (mins: number) => new Date(Date.now() + mins * 60000).toISOString();
+  const today = now.toISOString().split('T')[0];
 
   const userId = await db.users.add({
     name: 'Margaret',
@@ -24,11 +16,17 @@ export async function seedIfEmpty(): Promise<void> {
     familyPhotoUrl: undefined,
     calmingMusicUrl: undefined,
     medications: [
-      { name: 'Metformin',  dosage: '500mg', schedule: ['8:00 AM'] },
-      { name: 'Lisinopril', dosage: '10mg',  schedule: ['8:00 PM'] },
+      { name: 'Metformin', dosage: '500mg', schedule: ['8:00 AM'] },
+      { name: 'Lisinopril', dosage: '10mg', schedule: ['8:00 PM'] },
     ],
     createdAt: now.toISOString(),
   });
+
+  const makeTime = (h: number, m = 0) => {
+    const d = new Date(now);
+    d.setHours(h, m, 0, 0);
+    return d.toISOString();
+  };
 
   await db.events.bulkAdd([
     {
@@ -60,10 +58,10 @@ export async function seedIfEmpty(): Promise<void> {
     },
     {
       userId,
-      timestamp: inMinutes(45),
+      timestamp: makeTime(11, 0),
       type: 'planned',
-      title: "Susan's phone call",
-      description: "Susan will call to check in and chat.",
+      title: "Daughter's phone call",
+      description: 'Susan will call at 11:00 AM to check in.',
       completed: false,
       source: 'caregiver',
     },
@@ -78,19 +76,19 @@ export async function seedIfEmpty(): Promise<void> {
     },
   ]);
 
-  await db.medicationLogs.add({
-    userId,
-    medicationName: 'Metformin',
-    timestamp: makeTime(8, 5),
-    visionConfidence: 'high',
-    visionDescription: 'Pill bottle clearly visible with label.',
-    confirmed: true,
-  });
-
   await db.acseScores.add({
     userId,
     score: 100,
     timestamp: now.toISOString(),
     reason: 'Initial score',
+  });
+
+  await db.medicationLogs.add({
+    userId,
+    medicationName: 'Metformin',
+    timestamp: makeTime(8, 5),
+    visionConfidence: 'high',
+    visionDescription: 'Pill bottle clearly visible.',
+    confirmed: true,
   });
 }

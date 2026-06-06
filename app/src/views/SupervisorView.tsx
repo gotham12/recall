@@ -1,480 +1,635 @@
 import { useState } from 'react';
 import { useLiveQuery } from 'dexie-react-hooks';
-import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid } from 'recharts';
+import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
+import StudioShell from '../components/StudioShell';
+import { FLOWERS } from '../flowers';
 import { useAppStore } from '../store/appStore';
-import { db, type RecallEvent, type User, type Medication } from '../db/db';
-import { parseCaregiverMessage } from '../services/groq';
-import { LeafLogo } from '../components/LeafLogo';
+import { db, type Event, type User } from '../db/db';
 
 type Tab = 'home' | 'events' | 'medications' | 'acse' | 'profile';
-const TABS: { id: Tab; label: string; icon: React.ReactNode }[] = [
-  { id: 'home', label: 'Home', icon: <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 9.5L12 3l9 6.5V20a1 1 0 01-1 1H5a1 1 0 01-1-1V9.5z"/><path d="M9 21V12h6v9"/></svg> },
-  { id: 'events', label: 'Events', icon: <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg> },
-  { id: 'medications', label: 'Meds', icon: <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><path d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0016.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 002 8.5c0 2.3 1.5 4.05 3 5.5l7 7z"/></svg> },
-  { id: 'acse', label: 'ACSE', icon: <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><polyline points="22 12 18 12 15 20 9 4 6 12 2 12"/></svg> },
-  { id: 'profile', label: 'Profile', icon: <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2"/><circle cx="12" cy="7" r="4"/></svg> },
+
+const TAB_FLOWERS: Record<Tab, string> = {
+  home: FLOWERS.supervisorApp,
+  events: FLOWERS.landing,
+  medications: FLOWERS.patientEnter,
+  acse: FLOWERS.supervisor,
+  profile: FLOWERS.home,
+};
+
+const TABS: { id: Tab; label: string; icon: string }[] = [
+  { id: 'home',        label: 'Home',    icon: '🏠' },
+  { id: 'events',      label: 'Events',  icon: '📋' },
+  { id: 'medications', label: 'Meds',    icon: '💊' },
+  { id: 'acse',        label: 'ACSE',    icon: '📊' },
+  { id: 'profile',     label: 'Profile', icon: '👤' },
 ];
 
 export default function SupervisorView() {
-  const [tab, setTab] = useState<Tab>('home');
+  const [activeTab, setActiveTab] = useState<Tab>('home');
   const { user, supervisorAlerts, clearSupervisorAlert, setScreen } = useAppStore();
 
   return (
-    <div className="app-shell view-enter">
-      <div className="app-header">
-        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-          <LeafLogo size={28} color="#16A34A" />
-          <span className="logo-text" style={{ fontSize: 18, color: 'var(--text)' }}>Supervisor</span>
+    <StudioShell
+      flowerSrc={TAB_FLOWERS[activeTab]}
+      dimOverlay={0.76}
+      header={
+        <>
+          <div className="studio-header">
+            <span className="studio-header__title">Supervisor</span>
+            <button
+              onClick={() => setScreen('login')}
+              style={{ background: 'none', border: 'none', color: 'rgba(255,255,255,0.55)', fontSize: 15, cursor: 'pointer', padding: 4 }}
+            >
+              Logout
+            </button>
+          </div>
+          {supervisorAlerts.length > 0 && (
+            <div className="alert-banner" style={{ position: 'relative', zIndex: 4, borderRadius: 0 }}>
+              <span style={{ fontSize: 18 }}>🚨</span>
+              <span style={{ flex: 1 }}>{supervisorAlerts[0].message}</span>
+              <button
+                onClick={() => clearSupervisorAlert(supervisorAlerts[0].id)}
+                style={{ background: 'none', border: 'none', color: 'white', fontSize: 18, cursor: 'pointer' }}
+              >
+                ✕
+              </button>
+            </div>
+          )}
+        </>
+      }
+      footer={
+        <div className="studio-tab-bar tab-bar">
+          {TABS.map((tab) => (
+            <button
+              key={tab.id}
+              onClick={() => setActiveTab(tab.id)}
+              className={`studio-tab ${activeTab === tab.id ? 'studio-tab--active' : ''}`}
+            >
+              <span className="studio-tab__icon">{tab.icon}</span>
+              <span className="studio-tab__label">{tab.label}</span>
+            </button>
+          ))}
         </div>
-        <button onClick={() => setScreen('opening')} style={{ background: 'var(--surface-2)', border: '1px solid var(--border)', borderRadius: 8, cursor: 'pointer', padding: '6px 12px', color: 'var(--muted-2)', fontFamily: 'Inter', fontSize: 13, fontWeight: 600, display: 'flex', alignItems: 'center', gap: 6 }}>
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
-          Logout
-        </button>
-      </div>
-
-      {supervisorAlerts.map(a => (
-        <div key={a.id} className="alert-banner">
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--danger)" strokeWidth="2" strokeLinecap="round"><path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
-          <span style={{ flex: 1, color: 'var(--danger)', fontSize: 13, fontFamily: 'Inter', fontWeight: 600 }}>{a.message}</span>
-          <button onClick={() => clearSupervisorAlert(a.id)} style={{ background: 'none', border: 'none', color: 'var(--muted-2)', cursor: 'pointer', display: 'flex' }}>
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
-          </button>
-        </div>
-      ))}
-
-      <div style={{ flex: 1, overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>
-        {tab === 'home'        && <HomeTab user={user} />}
-        {tab === 'events'      && <EventsTab user={user} />}
-        {tab === 'medications' && <MedicationsTab user={user} />}
-        {tab === 'acse'        && <AcseTab user={user} />}
-        {tab === 'profile'     && <ProfileTab />}
-      </div>
-
-      <div className="tab-bar">
-        {TABS.map(t => (
-          <button key={t.id} className={`tab-btn ${tab === t.id ? 'active' : ''}`} onClick={() => setTab(t.id)}>
-            {t.icon}{t.label}
-          </button>
-        ))}
-      </div>
-    </div>
+      }
+    >
+      {activeTab === 'home'        && <SupervisorHomeTab user={user} />}
+      {activeTab === 'events'      && <EventsTab user={user} />}
+      {activeTab === 'medications' && <MedicationsTab user={user} />}
+      {activeTab === 'acse'        && <AcseTab user={user} />}
+      {activeTab === 'profile'     && <ProfileTab />}
+    </StudioShell>
   );
 }
 
-// ── Home ──────────────────────────────────────────────────────────────────────
-function HomeTab({ user }: { user: User | null }) {
-  const { acseScore, setScreen } = useAppStore();
-  const eventCount = useLiveQuery(() => user?.id ? db.events.where('userId').equals(user.id).count() : Promise.resolve(0), [user?.id]) ?? 0;
-  const medsTaken  = useLiveQuery(() => user?.id ? db.medicationLogs.where('userId').equals(user.id).and(l => l.confirmed && new Date(l.timestamp).toDateString() === new Date().toDateString()).count() : Promise.resolve(0), [user?.id]) ?? 0;
-  const totalMeds  = user?.medications?.length ?? 0;
-  const scoreColor = acseScore >= 75 ? 'var(--success)' : acseScore >= 50 ? 'var(--warning)' : 'var(--danger)';
+// ── Supervisor Home ───────────────────────────────────────────────────────────
+function SupervisorHomeTab({ user }: { user: User | null }) {
+  const { acseScore } = useAppStore();
+  const eventCount = useLiveQuery<number>(
+    () => user?.id ? db.events.where('userId').equals(user.id).count() : Promise.resolve(0),
+    [user?.id]
+  ) ?? 0;
+  const medCount = useLiveQuery<number>(
+    () => user?.id ? db.medicationLogs.where('userId').equals(user.id).count() : Promise.resolve(0),
+    [user?.id]
+  ) ?? 0;
 
   return (
-    <div className="scroll-area">
-      <div style={{ padding: '20px 20px 12px' }}>
-        <div className="t-overline" style={{ marginBottom: 6, color: 'var(--warning)' }}>Supervisor dashboard</div>
-        <div className="t-headline" style={{ fontSize: 22 }}>{user?.name ?? 'Patient'}</div>
-        <div className="t-caption">{new Date().toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' })}</div>
+    <div style={{ flex: 1, overflowY: 'auto', padding: 16 }}>
+      <div className="card" style={{ padding: 24, marginBottom: 20, textAlign: 'center' }}>
+        <p className="studio-section-title" style={{ marginBottom: 8 }}>Patient Care</p>
+        <p className="studio-text-bright" style={{ fontSize: 24, margin: 0 }}>
+          {user?.name ?? 'Patient'}
+        </p>
       </div>
 
-      {/* Stats grid */}
-      <div style={{ padding: '0 16px 16px', display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
-        <div className="card" style={{ padding: '18px 16px' }}>
-          <div className="t-label" style={{ marginBottom: 8 }}>ACSE Score</div>
-          <div style={{ fontFamily: 'Inter', fontSize: 38, fontWeight: 800, color: scoreColor, lineHeight: 1 }}>{acseScore}</div>
-          <div style={{ marginTop: 8 }}>
-            <div className={`chip ${acseScore >= 75 ? 'chip-success' : acseScore >= 50 ? 'chip-warning' : 'chip-danger'}`}>
-              <span className="chip-dot"/>{acseScore >= 75 ? 'Stable' : acseScore >= 50 ? 'Moderate' : 'Critical'}
-            </div>
+      {/* Stats row */}
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 12, marginBottom: 20 }}>
+        {[
+          { label: 'ACSE', value: acseScore, unit: '/100', color: acseScore >= 75 ? '#10B981' : acseScore >= 50 ? '#F59E0B' : '#EF4444' },
+          { label: 'Events', value: eventCount, unit: ' today', color: '#2196F3' },
+          { label: 'Med Logs', value: medCount, unit: ' total', color: '#8B5CF6' },
+        ].map((stat) => (
+          <div key={stat.label} className="card" style={{ padding: '16px 12px', textAlign: 'center' }}>
+            <p style={{ fontSize: 28, fontWeight: 700, color: stat.color, margin: 0 }}>{stat.value}</p>
+            <p style={{ fontSize: 11, color: '#8A9AB0', margin: 0, textTransform: 'uppercase', letterSpacing: '0.5px' }}>{stat.label}</p>
           </div>
-        </div>
-
-        <div className="card" style={{ padding: '18px 16px' }}>
-          <div className="t-label" style={{ marginBottom: 8 }}>Events Today</div>
-          <div style={{ fontFamily: 'Inter', fontSize: 38, fontWeight: 800, color: 'var(--blue)', lineHeight: 1 }}>{eventCount}</div>
-          <div style={{ marginTop: 8 }}><div className="chip chip-blue"><span className="chip-dot"/>Recorded</div></div>
-        </div>
-
-        <div className="card" style={{ padding: '18px 16px' }}>
-          <div className="t-label" style={{ marginBottom: 8 }}>Meds Today</div>
-          <div style={{ fontFamily: 'Inter', fontSize: 38, fontWeight: 800, color: 'var(--success)', lineHeight: 1 }}>
-            {medsTaken}<span style={{ fontSize: 18, fontWeight: 500, color: 'var(--muted-2)' }}>/{totalMeds}</span>
-          </div>
-          <div style={{ marginTop: 8 }}><div className="chip chip-success"><span className="chip-dot"/>On track</div></div>
-        </div>
-
-        <div className="card" style={{ padding: '18px 16px', cursor: 'pointer' }} onClick={() => setScreen('patient')}>
-          <div className="t-label" style={{ marginBottom: 8 }}>Patient View</div>
-          <div style={{ marginTop: 6 }}>
-            <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="var(--blue)" strokeWidth="1.6" strokeLinecap="round"><path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
-          </div>
-          <div style={{ marginTop: 8 }}><div className="chip chip-blue"><span className="chip-dot"/>Switch</div></div>
-        </div>
+        ))}
       </div>
 
-      <div style={{ padding: '0 16px 16px' }}>
-        <button className="btn btn-primary" style={{ width: '100%', padding: 16 }} onClick={() => setScreen('patient')}>
-          Switch to Patient View
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2.5" strokeLinecap="round"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>
-        </button>
-      </div>
+      {/* Patient info */}
+      {user && (
+        <div className="card" style={{ padding: 20 }}>
+          <p style={{ fontSize: 14, color: '#8A9AB0', textTransform: 'uppercase', letterSpacing: '1px', margin: '0 0 8px' }}>Patient Profile</p>
+          <p style={{ fontSize: 22, fontWeight: 600, color: '#1A2B4A', margin: '0 0 4px' }}>{user.name}</p>
+          <p style={{ fontSize: 18, color: '#6B7A8D', margin: '0 0 2px' }}>Age {user.age} · {user.city}</p>
+          <p style={{ fontSize: 18, color: '#6B7A8D', margin: '0 0 12px' }}>Caregiver: {user.caregiverName} ({user.caregiverRelationship})</p>
+          <p style={{ fontSize: 14, color: '#8A9AB0', textTransform: 'uppercase', letterSpacing: '1px', margin: '0 0 6px' }}>Medications</p>
+          {user.medications.map((m, i) => (
+            <p key={i} style={{ fontSize: 18, color: '#1A2B4A', margin: '0 0 2px' }}>
+              💊 {m.name} {m.dosage} — {m.schedule.join(', ')}
+            </p>
+          ))}
+        </div>
+      )}
     </div>
   );
 }
 
-// ── Events ────────────────────────────────────────────────────────────────────
+// ── Events Tab ────────────────────────────────────────────────────────────────
 function EventsTab({ user }: { user: User | null }) {
-  const [filter, setFilter]       = useState<'all'|'completed'|'upcoming'|'alerts'>('all');
-  const [showForm, setShowForm]   = useState(false);
+  const [filter, setFilter] = useState<'all' | 'completed' | 'upcoming' | 'alerts'>('all');
+  const [showForm, setShowForm] = useState(false);
   const [caregiverMsg, setCaregiverMsg] = useState('');
-  const [parsing, setParsing]     = useState(false);
-  const [newEvent, setNewEvent]   = useState({ datetime: '', title: '', description: '', type: 'planned' });
+  const [newEvent, setNewEvent] = useState({
+    title: '', description: '', datetime: '', type: 'planned' as Event['type'],
+  });
 
-  const events = useLiveQuery(() =>
-    user?.id ? db.events.where('userId').equals(user.id).sortBy('timestamp') : [], [user?.id]) ?? [];
+  const events = useLiveQuery<Event[]>(
+    () => user?.id ? db.events.where('userId').equals(user.id).sortBy('timestamp') : Promise.resolve([]),
+    [user?.id]
+  ) ?? [];
 
-  const filtered = events.filter(e => {
+  const filtered = events.filter((e) => {
     if (filter === 'completed') return e.completed;
     if (filter === 'upcoming')  return !e.completed && new Date(e.timestamp) > new Date();
     if (filter === 'alerts')    return e.type === 'system_alert';
     return true;
   }).reverse();
 
-  const addEvent = async () => {
+  const handleAddEvent = async () => {
     if (!user?.id || !newEvent.title || !newEvent.datetime) return;
-    await db.events.add({ userId: user.id, timestamp: new Date(newEvent.datetime).toISOString(), type: newEvent.type as RecallEvent['type'], title: newEvent.title, description: newEvent.description || newEvent.title, completed: false, source: 'caregiver' });
+    await db.events.add({
+      userId: user.id,
+      timestamp: new Date(newEvent.datetime).toISOString(),
+      type: newEvent.type,
+      title: newEvent.title,
+      description: newEvent.description || newEvent.title,
+      completed: false,
+      source: 'caregiver',
+    });
+    setNewEvent({ title: '', description: '', datetime: '', type: 'planned' });
     setShowForm(false);
-    setNewEvent({ datetime: '', title: '', description: '', type: 'planned' });
   };
 
-  const parseMessage = async () => {
+  const handleCaregiverMsg = async () => {
     if (!user?.id || !caregiverMsg.trim()) return;
-    setParsing(true);
-    try {
-      const parsed = await parseCaregiverMessage(caregiverMsg);
-      const dt = parsed.time ? (() => { const d = new Date(); const [h, m] = parsed.time!.split(':'); d.setHours(+h, +m || 0, 0, 0); return d.toISOString(); })() : new Date().toISOString();
-      await db.events.add({ userId: user.id, timestamp: dt, type: 'caregiver_input', title: parsed.title, description: parsed.description, completed: false, source: 'caregiver' });
-      setCaregiverMsg('');
-    } finally { setParsing(false); }
+    const msg = caregiverMsg.trim();
+
+    // Try to parse a time from the message
+    const timeMatch = msg.match(/(\d{1,2}(?::\d{2})?\s*(?:am|pm)?)/i);
+    let timestamp = new Date().toISOString();
+    if (timeMatch) {
+      try {
+        const d = new Date();
+        const parts = timeMatch[1].replace(/\s/g, '').match(/(\d{1,2})(?::(\d{2}))?([ap]m)?/i);
+        if (parts) {
+          let h = parseInt(parts[1]);
+          const m = parseInt(parts[2] ?? '0');
+          if (parts[3]?.toLowerCase() === 'pm' && h < 12) h += 12;
+          if (parts[3]?.toLowerCase() === 'am' && h === 12) h = 0;
+          d.setHours(h, m, 0, 0);
+          timestamp = d.toISOString();
+        }
+      } catch { /* ignore parse errors */ }
+    }
+
+    await db.events.add({
+      userId: user.id,
+      timestamp,
+      type: 'caregiver_input',
+      title: `Caregiver note`,
+      description: msg,
+      completed: false,
+      source: 'caregiver',
+    });
+    setCaregiverMsg('');
   };
 
-  const colorFor = (e: RecallEvent) => e.completed ? 'var(--success)' : e.type === 'system_alert' ? 'var(--danger)' : 'var(--blue)';
+  const handleToggleComplete = async (event: Event) => {
+    if (event.id) await db.events.update(event.id, { completed: !event.completed });
+  };
+
+  const handleDelete = async (id: number) => {
+    await db.events.delete(id);
+  };
 
   return (
-    <div className="scroll-area">
-      <div style={{ padding: '20px 20px 12px' }}>
-        <div className="t-overline" style={{ marginBottom: 6, color: 'var(--warning)' }}>Supervisor</div>
-        <div className="t-headline" style={{ fontSize: 22 }}>Event Stream</div>
-      </div>
-
-      {/* Quick add via message */}
-      <div style={{ padding: '0 16px 12px' }}>
-        <div className="card" style={{ padding: 16 }}>
-          <div className="t-label" style={{ marginBottom: 10 }}>Add via message</div>
-          <div style={{ display: 'flex', gap: 8 }}>
-            <input value={caregiverMsg} onChange={e => setCaregiverMsg(e.target.value)} onKeyDown={e => e.key === 'Enter' && parseMessage()}
-              placeholder="e.g. I'll visit at 6 PM" className="input" style={{ borderRadius: 12 }} />
-            <button className="btn btn-primary btn-sm" style={{ borderRadius: 12, padding: '0 16px', flexShrink: 0 }} onClick={parseMessage} disabled={parsing}>
-              {parsing ? '...' : <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2.5" strokeLinecap="round"><polyline points="20 6 9 17 4 12"/></svg>}
-            </button>
-          </div>
+    <div style={{ flex: 1, overflowY: 'auto', padding: 16 }}>
+      {/* Caregiver quick message */}
+      <div className="card" style={{ padding: 16, marginBottom: 16 }}>
+        <p style={{ fontSize: 14, color: '#8A9AB0', textTransform: 'uppercase', letterSpacing: '1px', margin: '0 0 8px' }}>
+          Quick Caregiver Note
+        </p>
+        <div style={{ display: 'flex', gap: 8 }}>
+          <input
+            value={caregiverMsg}
+            onChange={(e) => setCaregiverMsg(e.target.value)}
+            onKeyDown={(e) => e.key === 'Enter' && handleCaregiverMsg()}
+              placeholder="e.g. I'll visit at 6 PM"
+            style={{
+              flex: 1,
+              border: '1.5px solid #D0DCF0',
+              borderRadius: 12,
+              padding: '10px 14px',
+              fontSize: 18,
+              background: 'white',
+              outline: 'none',
+            }}
+          />
+          <button
+            onClick={handleCaregiverMsg}
+            className="tap-feedback"
+            style={{
+              background: 'linear-gradient(135deg, #2196F3, #0057CC)',
+              color: 'white',
+              border: 'none',
+              borderRadius: 12,
+              padding: '10px 16px',
+              fontSize: 18,
+              cursor: 'pointer',
+              fontWeight: 600,
+            }}
+          >
+            Add
+          </button>
         </div>
       </div>
 
-      {/* Filter row */}
-      <div style={{ padding: '0 16px 12px', display: 'flex', gap: 6, overflowX: 'auto' }}>
-        {(['all','completed','upcoming','alerts'] as const).map(f => (
-          <button key={f} onClick={() => setFilter(f)} style={{
-            flexShrink: 0, padding: '6px 14px', borderRadius: 999, border: '1px solid var(--border)',
-            cursor: 'pointer', fontFamily: 'Inter', fontSize: 12, fontWeight: 600,
-            background: filter === f ? 'var(--blue)' : 'var(--surface)',
-            color: filter === f ? 'white' : 'var(--muted-2)',
-          }}>
+      {/* Filter tabs */}
+      <div style={{ display: 'flex', gap: 8, marginBottom: 16, overflowX: 'auto' }}>
+        {(['all', 'completed', 'upcoming', 'alerts'] as const).map((f) => (
+          <button
+            key={f}
+            onClick={() => setFilter(f)}
+            style={{
+              padding: '6px 14px',
+              borderRadius: 20,
+              border: 'none',
+              background: filter === f ? '#2196F3' : '#E5D5C0',
+              color: filter === f ? 'white' : '#6B7A8D',
+              fontSize: 15,
+              fontWeight: filter === f ? 600 : 400,
+              cursor: 'pointer',
+              whiteSpace: 'nowrap',
+            }}
+          >
             {f.charAt(0).toUpperCase() + f.slice(1)}
           </button>
         ))}
-        <button onClick={() => setShowForm(v => !v)} style={{
-          flexShrink: 0, marginLeft: 'auto', padding: '6px 14px', borderRadius: 999,
-          border: '1px solid rgba(79,142,247,0.25)', cursor: 'pointer',
-          fontFamily: 'Inter', fontSize: 12, fontWeight: 600,
-          background: 'var(--blue-dim)', color: 'var(--blue)',
-        }}>+ Add</button>
       </div>
 
-      {/* Add form */}
+      {/* Add event button */}
+      <button
+        onClick={() => setShowForm(!showForm)}
+        className="tap-feedback"
+        style={{
+          background: showForm ? '#F0E8DC' : 'linear-gradient(135deg, #2196F3, #0057CC)',
+          color: showForm ? '#1A2B4A' : 'white',
+          border: 'none',
+          borderRadius: 12,
+          padding: '12px 20px',
+          fontSize: 18,
+          fontWeight: 600,
+          cursor: 'pointer',
+          marginBottom: 12,
+          width: '100%',
+        }}
+      >
+        {showForm ? '✕ Cancel' : '+ Add Event'}
+      </button>
+
+      {/* Add event form */}
       {showForm && (
-        <div style={{ padding: '0 16px 12px' }}>
-          <div className="card" style={{ padding: 16 }}>
-            <div className="t-label" style={{ marginBottom: 12 }}>New Event</div>
-            {[
-              { ph: 'Date & Time', key: 'datetime', type: 'datetime-local' },
-              { ph: 'Title', key: 'title', type: 'text' },
-              { ph: 'Description (optional)', key: 'description', type: 'text' },
-            ].map(f => (
-              <input key={f.key} type={f.type} placeholder={f.ph}
-                value={(newEvent as Record<string, string>)[f.key]}
-                onChange={e => setNewEvent(p => ({ ...p, [f.key]: e.target.value }))}
-                className="input" style={{ marginBottom: 8 }} />
-            ))}
-            <select value={newEvent.type} onChange={e => setNewEvent(p => ({ ...p, type: e.target.value }))}
-              className="input" style={{ marginBottom: 12 }}>
-              <option value="planned">Planned</option>
-              <option value="caregiver_input">Caregiver Input</option>
-              <option value="user_action">User Action</option>
-            </select>
-            <div style={{ display: 'flex', gap: 8 }}>
-              <button className="btn btn-ghost btn-sm" style={{ flex: 1 }} onClick={() => setShowForm(false)}>Cancel</button>
-              <button className="btn btn-primary btn-sm" style={{ flex: 1 }} onClick={addEvent}>Save</button>
-            </div>
-          </div>
+        <div className="card animate-fadeIn" style={{ padding: 16, marginBottom: 16 }}>
+          <input
+            value={newEvent.title}
+            onChange={(e) => setNewEvent((p) => ({ ...p, title: e.target.value }))}
+            placeholder="Event title"
+            style={{ width: '100%', border: '1.5px solid #D0DCF0', borderRadius: 10, padding: '10px', fontSize: 18, marginBottom: 8, outline: 'none' }}
+          />
+          <textarea
+            value={newEvent.description}
+            onChange={(e) => setNewEvent((p) => ({ ...p, description: e.target.value }))}
+            placeholder="Description (optional)"
+            rows={2}
+            style={{ width: '100%', border: '1.5px solid #D0DCF0', borderRadius: 10, padding: '10px', fontSize: 16, marginBottom: 8, outline: 'none', resize: 'none' }}
+          />
+          <input
+            type="datetime-local"
+            value={newEvent.datetime}
+            onChange={(e) => setNewEvent((p) => ({ ...p, datetime: e.target.value }))}
+            style={{ width: '100%', border: '1.5px solid #D0DCF0', borderRadius: 10, padding: '10px', fontSize: 16, marginBottom: 8, outline: 'none' }}
+          />
+          <select
+            value={newEvent.type}
+            onChange={(e) => setNewEvent((p) => ({ ...p, type: e.target.value as Event['type'] }))}
+            style={{ width: '100%', border: '1.5px solid #D0DCF0', borderRadius: 10, padding: '10px', fontSize: 16, marginBottom: 12, outline: 'none' }}
+          >
+            <option value="planned">Planned</option>
+            <option value="caregiver_input">Caregiver Input</option>
+            <option value="system_alert">System Alert</option>
+          </select>
+          <button className="btn-electric tap-feedback" style={{ width: '100%' }} onClick={handleAddEvent}>
+            Save Event
+          </button>
         </div>
       )}
 
       {/* Event list */}
-      <div style={{ padding: '0 16px 16px' }}>
-        <div className="card" style={{ overflow: 'hidden' }}>
-          {filtered.length === 0 && (
-            <div style={{ padding: 24, textAlign: 'center' }}>
-              <p className="t-caption">No events found.</p>
+      {filtered.map((e) => (
+        <div
+          key={e.id}
+          className="card"
+          style={{
+            padding: '14px 16px',
+            marginBottom: 10,
+            opacity: e.type === 'system_alert' ? 1 : 1,
+            borderLeft: e.type === 'system_alert' ? '4px solid #EF4444' : e.completed ? '4px solid #10B981' : '4px solid #2196F3',
+          }}
+        >
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+            <div style={{ flex: 1 }}>
+              <p style={{ fontSize: 18, fontWeight: 600, color: '#1A2B4A', margin: '0 0 2px' }}>{e.title}</p>
+              <p style={{ fontSize: 14, color: '#2196F3', margin: '0 0 4px' }}>
+                {new Date(e.timestamp).toLocaleString([], { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}
+              </p>
+              <p style={{ fontSize: 15, color: '#6B7A8D', margin: 0 }}>{e.description}</p>
             </div>
-          )}
-          {filtered.map((e, i) => (
-            <div key={e.id} style={{ padding: '14px 16px', borderBottom: i < filtered.length - 1 ? '1px solid var(--border)' : 'none', display: 'flex', gap: 10, alignItems: 'flex-start' }}>
-              <div style={{ width: 3, alignSelf: 'stretch', background: colorFor(e), borderRadius: 4, flexShrink: 0 }} />
-              <div style={{ flex: 1 }}>
-                <div style={{ fontFamily: 'Inter', fontWeight: 600, fontSize: 14, color: 'var(--navy)', marginBottom: 3 }}>{e.title}</div>
-                <div className="t-caption">{e.description}</div>
-                <div className="t-caption" style={{ marginTop: 4, color: 'var(--muted)' }}>
-                  {new Date(e.timestamp).toLocaleString([], { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })} · {e.source}
-                </div>
-              </div>
-              <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 6, flexShrink: 0 }}>
-                <div className={`chip ${e.completed ? 'chip-success' : e.type === 'system_alert' ? 'chip-danger' : 'chip-blue'}`}>
-                  {e.completed ? 'Done' : 'Planned'}
-                </div>
-                <button onClick={() => e.id && db.events.delete(e.id)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--danger)', fontSize: 11, fontFamily: 'Inter', fontWeight: 600 }}>Delete</button>
-              </div>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 6, marginLeft: 8 }}>
+              <button
+                onClick={() => handleToggleComplete(e)}
+                style={{ background: e.completed ? '#10B98122' : '#2196F322', border: 'none', borderRadius: 8, padding: '4px 8px', fontSize: 16, cursor: 'pointer' }}
+              >
+                {e.completed ? '✓' : '○'}
+              </button>
+              <button
+                onClick={() => e.id && handleDelete(e.id)}
+                style={{ background: '#EF444422', border: 'none', borderRadius: 8, padding: '4px 8px', fontSize: 14, cursor: 'pointer', color: '#EF4444' }}
+              >
+                ✕
+              </button>
             </div>
-          ))}
+          </div>
         </div>
-      </div>
+      ))}
     </div>
   );
 }
 
-// ── Medications ───────────────────────────────────────────────────────────────
+// ── Medications Tab ───────────────────────────────────────────────────────────
 function MedicationsTab({ user }: { user: User | null }) {
-  const logs = useLiveQuery(() => user?.id ? db.medicationLogs.where('userId').equals(user.id).reverse().sortBy('timestamp') : [], [user?.id]) ?? [];
+  const logs = useLiveQuery<import('../db/db').MedicationLog[]>(
+    () => user?.id ? db.medicationLogs.where('userId').equals(user.id).sortBy('timestamp') : Promise.resolve([]),
+    [user?.id]
+  ) ?? [];
+
+  const sorted = [...logs].reverse();
+
+  const confidenceColor = (c: string) =>
+    c === 'high' ? '#10B981' : c === 'medium' ? '#F59E0B' : c === 'manual' ? '#8B5CF6' : '#EF4444';
 
   return (
-    <div className="scroll-area">
-      <div style={{ padding: '20px 20px 12px' }}>
-        <div className="t-overline" style={{ marginBottom: 6, color: 'var(--warning)' }}>Supervisor</div>
-        <div className="t-headline" style={{ fontSize: 22 }}>Medication Log</div>
-      </div>
-
-      <div style={{ padding: '0 16px 16px' }}>
-        {logs.length === 0 && (
-          <div className="card" style={{ padding: 24, textAlign: 'center' }}>
-            <p className="t-caption">No medication records yet.</p>
+    <div style={{ flex: 1, overflowY: 'auto', padding: 16 }}>
+      <h2 style={{ fontSize: 22, color: '#1A2B4A', margin: '0 0 16px' }}>Medication History</h2>
+      {sorted.length === 0 && (
+        <p style={{ color: '#8A9AB0', fontSize: 18 }}>No medication logs yet.</p>
+      )}
+      {sorted.map((log) => (
+        <div key={log.id} className="card" style={{ padding: '14px 16px', marginBottom: 10 }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
+            <p style={{ fontSize: 20, fontWeight: 600, color: '#1A2B4A', margin: 0 }}>
+              💊 {log.medicationName}
+            </p>
+            <span
+              style={{
+                background: `${confidenceColor(log.visionConfidence)}22`,
+                color: confidenceColor(log.visionConfidence),
+                fontSize: 13,
+                fontWeight: 600,
+                padding: '3px 10px',
+                borderRadius: 20,
+                textTransform: 'uppercase',
+              }}
+            >
+              {log.visionConfidence}
+            </span>
           </div>
-        )}
-        <div className="card" style={{ overflow: 'hidden' }}>
-          {logs.map((l, i) => (
-            <div key={l.id} style={{ padding: '14px 16px', borderBottom: i < logs.length - 1 ? '1px solid var(--border)' : 'none', display: 'flex', alignItems: 'center', gap: 12 }}>
-              <div className={`icon-box${l.confirmed ? '-blue' : ''}`} style={l.confirmed ? {} : { background: 'rgba(239,68,68,0.08)', border: '1px solid rgba(239,68,68,0.15)' }}>
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke={l.confirmed ? 'var(--blue)' : 'var(--danger)'} strokeWidth="2" strokeLinecap="round">
-                  <path d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0016.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 002 8.5c0 2.3 1.5 4.05 3 5.5l7 7z"/>
-                </svg>
-              </div>
-              <div style={{ flex: 1 }}>
-                <div style={{ fontFamily: 'Inter', fontWeight: 600, fontSize: 14, color: 'var(--navy)' }}>{l.medicationName}</div>
-                <div className="t-caption">{new Date(l.timestamp).toLocaleString([], { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}</div>
-                <div className="t-caption">{l.visionDescription}</div>
-              </div>
-              <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 4 }}>
-                <div className={`chip ${l.confirmed ? 'chip-success' : 'chip-danger'}`}>
-                  <span className="chip-dot"/>{l.confirmed ? 'Confirmed' : 'Unconfirmed'}
-                </div>
-                <span className="t-caption" style={{ fontSize: 11 }}>{l.visionConfidence}</span>
-              </div>
-            </div>
-          ))}
+          <p style={{ fontSize: 14, color: '#2196F3', margin: '0 0 4px' }}>
+            {new Date(log.timestamp).toLocaleString([], { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}
+          </p>
+          <p style={{ fontSize: 15, color: '#6B7A8D', margin: 0 }}>{log.visionDescription}</p>
+          {!log.confirmed && (
+            <p style={{ fontSize: 14, color: '#EF4444', margin: '6px 0 0', fontWeight: 600 }}>
+              ⚠️ Unconfirmed — caregiver follow-up needed
+            </p>
+          )}
         </div>
-      </div>
+      ))}
     </div>
   );
 }
 
-// ── ACSE ──────────────────────────────────────────────────────────────────────
+// ── ACSE Tab ──────────────────────────────────────────────────────────────────
 function AcseTab({ user }: { user: User | null }) {
   const { acseScore } = useAppStore();
-  const history = useLiveQuery(async () => {
-    if (!user?.id) return [];
-    const cutoff = new Date(Date.now() - 24 * 3600000).toISOString();
-    return db.acseScores.where('userId').equals(user.id).and(s => s.timestamp > cutoff).sortBy('timestamp');
-  }, [user?.id]) ?? [];
+  const scoreHistory = useLiveQuery<import('../db/db').AcseScore[]>(
+    () =>
+      user?.id
+        ? db.acseScores
+            .where('userId')
+            .equals(user.id)
+            .and((s) => {
+              const cutoff = new Date(Date.now() - 24 * 60 * 60 * 1000);
+              return new Date(s.timestamp) > cutoff;
+            })
+            .sortBy('timestamp')
+        : Promise.resolve([]),
+    [user?.id]
+  ) ?? [];
 
-  const chartData = history.map(s => ({ time: new Date(s.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }), score: s.score }));
-  const color = acseScore >= 75 ? 'var(--success)' : acseScore >= 50 ? 'var(--warning)' : 'var(--danger)';
+  const chartData = scoreHistory.map((s) => ({
+    time: new Date(s.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+    score: s.score,
+    reason: s.reason,
+  }));
+
+  const color =
+    acseScore >= 75 ? '#10B981' :
+    acseScore >= 50 ? '#F59E0B' :
+    '#EF4444';
 
   return (
-    <div className="scroll-area">
-      <div style={{ padding: '20px 20px 12px' }}>
-        <div className="t-overline" style={{ marginBottom: 6, color: 'var(--warning)' }}>Supervisor</div>
-        <div className="t-headline" style={{ fontSize: 22 }}>Cognitive Stability</div>
+    <div style={{ flex: 1, overflowY: 'auto', padding: 16 }}>
+      <h2 style={{ fontSize: 22, color: '#1A2B4A', margin: '0 0 16px' }}>ACSE Score — Last 24 Hours</h2>
+
+      {/* Current score */}
+      <div className="card" style={{ padding: 20, marginBottom: 16, textAlign: 'center' }}>
+        <p style={{ fontSize: 60, fontWeight: 700, color, margin: 0 }}>{acseScore}</p>
+        <p style={{ fontSize: 18, color: '#6B7A8D', margin: 0 }}>
+          {acseScore >= 75 ? 'Stable' : acseScore >= 50 ? 'Moderate — monitor closely' : 'Low — Comfort Mode may activate'}
+        </p>
       </div>
 
-      <div style={{ padding: '0 16px 12px' }}>
-        <div className="card" style={{ padding: '20px 16px' }}>
-          <div style={{ display: 'flex', alignItems: 'flex-end', gap: 12, marginBottom: 16 }}>
-            <div>
-              <div className="t-label" style={{ marginBottom: 4 }}>Current ACSE Score</div>
-              <div style={{ fontFamily: 'Inter', fontSize: 52, fontWeight: 800, color, lineHeight: 1 }}>{acseScore}</div>
-            </div>
-            <div style={{ marginBottom: 6 }}>
-              <div className={`chip ${acseScore >= 75 ? 'chip-success' : acseScore >= 50 ? 'chip-warning' : 'chip-danger'}`}>
-                <span className="chip-dot"/>{acseScore >= 75 ? 'Stable' : acseScore >= 50 ? 'Moderate' : 'Critical'}
-              </div>
-            </div>
-          </div>
-
-          {chartData.length > 1 ? (
-            <ResponsiveContainer width="100%" height={140}>
-              <LineChart data={chartData}>
-                <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.04)" />
-                <XAxis dataKey="time" tick={{ fontSize: 10, fill: 'var(--muted)' }} />
-                <YAxis domain={[0, 100]} tick={{ fontSize: 10, fill: 'var(--muted)' }} />
-                <Tooltip contentStyle={{ background: 'var(--surface-2)', border: '1px solid var(--border)', borderRadius: 10, fontSize: 12, color: 'var(--navy)' }} />
-                <Line type="monotone" dataKey="score" stroke="var(--blue)" strokeWidth={2} dot={false} />
-              </LineChart>
-            </ResponsiveContainer>
-          ) : (
-            <p className="t-caption" style={{ textAlign: 'center', padding: '20px 0' }}>Score history will appear here as events are recorded.</p>
-          )}
+      {/* Line chart */}
+      {chartData.length > 0 ? (
+        <div className="card" style={{ padding: 16, marginBottom: 16 }}>
+          <ResponsiveContainer width="100%" height={200}>
+            <LineChart data={chartData}>
+              <CartesianGrid strokeDasharray="3 3" stroke="#E5D5C0" />
+              <XAxis dataKey="time" tick={{ fontSize: 11 }} />
+              <YAxis domain={[0, 100]} tick={{ fontSize: 11 }} />
+              <Tooltip
+                formatter={(value: number) => [`${value}`, 'Score']}
+                contentStyle={{ fontSize: 14, borderRadius: 8 }}
+              />
+              <Line
+                type="monotone"
+                dataKey="score"
+                stroke="#2196F3"
+                strokeWidth={2}
+                dot={{ fill: '#2196F3', r: 3 }}
+                activeDot={{ r: 5 }}
+              />
+              <Line
+                type="monotone"
+                dataKey={() => 50}
+                stroke="#EF4444"
+                strokeWidth={1}
+                strokeDasharray="4 4"
+                dot={false}
+              />
+            </LineChart>
+          </ResponsiveContainer>
+          <p style={{ fontSize: 13, color: '#8A9AB0', margin: '8px 0 0', textAlign: 'center' }}>
+            Red dashed line = Comfort Mode threshold (50)
+          </p>
         </div>
-      </div>
+      ) : (
+        <div className="card" style={{ padding: 32, textAlign: 'center' }}>
+          <p style={{ color: '#8A9AB0', fontSize: 18 }}>No score history yet today.</p>
+        </div>
+      )}
 
-      <div style={{ padding: '0 16px 16px' }}>
-        <div className="t-label" style={{ marginBottom: 10 }}>Recent Changes</div>
-        <div className="card" style={{ overflow: 'hidden' }}>
-          {history.slice().reverse().slice(0, 10).map((s, i) => (
-            <div key={s.id} style={{ padding: '12px 16px', borderBottom: i < Math.min(history.length, 10) - 1 ? '1px solid var(--border)' : 'none', display: 'flex', alignItems: 'center', gap: 12 }}>
-              <div style={{ flex: 1 }}>
-                <div style={{ fontFamily: 'Inter', fontWeight: 600, fontSize: 13, color: 'var(--navy)' }}>{s.reason ?? 'Score update'}</div>
-                <div className="t-caption">{new Date(s.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</div>
+      {/* Score history list */}
+      {scoreHistory.length > 0 && (
+        <div>
+          <h3 style={{ fontSize: 18, color: '#6B7A8D', margin: '0 0 10px' }}>Score Events</h3>
+          {[...scoreHistory].reverse().slice(0, 10).map((s, i) => (
+            <div key={i} className="card" style={{ padding: '10px 14px', marginBottom: 8 }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                <span style={{ fontSize: 18, fontWeight: 600, color: s.score < 50 ? '#EF4444' : s.score < 75 ? '#F59E0B' : '#10B981' }}>
+                  {s.score}
+                </span>
+                <span style={{ fontSize: 13, color: '#8A9AB0' }}>
+                  {new Date(s.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                </span>
               </div>
-              <div style={{ fontFamily: 'Inter', fontSize: 24, fontWeight: 800, color: s.score >= 75 ? 'var(--success)' : s.score >= 50 ? 'var(--warning)' : 'var(--danger)' }}>{s.score}</div>
+              {s.reason && <p style={{ fontSize: 14, color: '#6B7A8D', margin: '2px 0 0' }}>{s.reason}</p>}
             </div>
           ))}
         </div>
-      </div>
+      )}
     </div>
   );
 }
 
-// ── Profile ───────────────────────────────────────────────────────────────────
+// ── Profile Tab ───────────────────────────────────────────────────────────────
 function ProfileTab() {
   const { user, setUser } = useAppStore();
   const [editing, setEditing] = useState(false);
-  const [form, setForm] = useState({ name: user?.name ?? '', age: user?.age ?? 0, city: user?.city ?? '', caregiverName: user?.caregiverName ?? '', caregiverRelationship: user?.caregiverRelationship ?? '', familyPhotoUrl: user?.familyPhotoUrl ?? '' });
-  const [meds, setMeds] = useState<Medication[]>(user?.medications ?? []);
-  const [newMed, setNewMed] = useState({ name: '', dosage: '', schedule: '' });
+  const [form, setForm] = useState({
+    name: user?.name ?? '',
+    age: user?.age ?? 0,
+    city: user?.city ?? '',
+    caregiverName: user?.caregiverName ?? '',
+    caregiverRelationship: user?.caregiverRelationship ?? '',
+    familyPhotoUrl: user?.familyPhotoUrl ?? '',
+  });
 
-  const save = async () => {
+  const handleSave = async () => {
     if (!user?.id) return;
-    const updated = { ...user, ...form, medications: meds, age: +form.age };
+    const updated = { ...user, ...form };
     await db.users.put(updated);
     setUser(updated);
     setEditing(false);
   };
 
-  const addMed = () => {
-    if (!newMed.name) return;
-    setMeds(p => [...p, { name: newMed.name, dosage: newMed.dosage, schedule: newMed.schedule.split(',').map(s => s.trim()).filter(Boolean) }]);
-    setNewMed({ name: '', dosage: '', schedule: '' });
-  };
+  const Field = ({
+    label, value, onChange, type = 'text',
+  }: {
+    label: string; value: string; onChange: (v: string) => void; type?: string;
+  }) => (
+    <div style={{ marginBottom: 12 }}>
+      <p style={{ fontSize: 13, color: '#8A9AB0', textTransform: 'uppercase', letterSpacing: '1px', margin: '0 0 4px' }}>
+        {label}
+      </p>
+      {editing ? (
+        <input
+          type={type}
+          value={value}
+          onChange={(e) => onChange(e.target.value)}
+          style={{
+            width: '100%',
+            border: '1.5px solid #D0DCF0',
+            borderRadius: 10,
+            padding: '10px 14px',
+            fontSize: 18,
+            outline: 'none',
+          }}
+        />
+      ) : (
+        <p style={{ fontSize: 20, color: '#1A2B4A', margin: 0 }}>{value || '—'}</p>
+      )}
+    </div>
+  );
 
   return (
-    <div className="scroll-area">
-      <div style={{ padding: '20px 20px 12px', display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between' }}>
-        <div>
-          <div className="t-overline" style={{ marginBottom: 6, color: 'var(--warning)' }}>Supervisor</div>
-          <div className="t-headline" style={{ fontSize: 22 }}>Patient Profile</div>
-        </div>
-        <button className="btn btn-primary btn-sm" style={{ marginTop: 8 }} onClick={editing ? save : () => setEditing(true)}>
+    <div style={{ flex: 1, overflowY: 'auto', padding: 16 }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
+        <h2 style={{ fontSize: 22, color: '#1A2B4A', margin: 0 }}>Patient Profile</h2>
+        <button
+          onClick={() => editing ? handleSave() : setEditing(true)}
+          className="tap-feedback"
+          style={{
+            background: editing ? 'linear-gradient(135deg, #2196F3, #0057CC)' : '#EEF6FF',
+            color: editing ? 'white' : '#2196F3',
+            border: 'none',
+            borderRadius: 10,
+            padding: '8px 16px',
+            fontSize: 16,
+            fontWeight: 600,
+            cursor: 'pointer',
+          }}
+        >
           {editing ? 'Save' : 'Edit'}
         </button>
       </div>
 
-      <div style={{ padding: '0 16px 12px' }}>
-        <div className="card" style={{ overflow: 'hidden' }}>
-          {editing ? (
-            <div style={{ padding: 16 }}>
-              {[
-                { label: 'Full Name', key: 'name' }, { label: 'Age', key: 'age' },
-                { label: 'Home City', key: 'city' }, { label: 'Caregiver Name', key: 'caregiverName' },
-                { label: 'Relationship', key: 'caregiverRelationship' }, { label: 'Family Photo URL', key: 'familyPhotoUrl' },
-              ].map(f => (
-                <div key={f.key} style={{ marginBottom: 12 }}>
-                  <div className="t-label" style={{ marginBottom: 6 }}>{f.label}</div>
-                  <input type={f.key === 'age' ? 'number' : 'text'}
-                    value={(form as Record<string, string | number>)[f.key] as string}
-                    onChange={e => setForm(p => ({ ...p, [f.key]: e.target.value }))}
-                    className="input" />
-                </div>
-              ))}
-            </div>
-          ) : (
-            [['Name', form.name], ['Age', String(form.age)], ['City', form.city], ['Caregiver', `${form.caregiverName} (${form.caregiverRelationship})`]].map(([label, value]) => (
-              <div key={label} className="list-row">
-                <div style={{ flex: 1 }}>
-                  <div className="t-label" style={{ marginBottom: 3 }}>{label}</div>
-                  <div style={{ fontFamily: 'Inter', fontWeight: 600, fontSize: 15, color: 'var(--navy)' }}>{value || '—'}</div>
-                </div>
-              </div>
-            ))
-          )}
-        </div>
+      <div className="card" style={{ padding: 20, marginBottom: 16 }}>
+        <Field label="Full Name" value={form.name} onChange={(v) => setForm((p) => ({ ...p, name: v }))} />
+        <Field label="Age" value={String(form.age)} onChange={(v) => setForm((p) => ({ ...p, age: parseInt(v) || 0 }))} type="number" />
+        <Field label="Home City" value={form.city} onChange={(v) => setForm((p) => ({ ...p, city: v }))} />
+        <Field label="Caregiver Name" value={form.caregiverName} onChange={(v) => setForm((p) => ({ ...p, caregiverName: v }))} />
+        <Field label="Relationship" value={form.caregiverRelationship} onChange={(v) => setForm((p) => ({ ...p, caregiverRelationship: v }))} />
+        <Field label="Family Photo URL" value={form.familyPhotoUrl} onChange={(v) => setForm((p) => ({ ...p, familyPhotoUrl: v }))} />
       </div>
 
-      <div style={{ padding: '0 16px 16px' }}>
-        <div className="t-label" style={{ marginBottom: 10 }}>Medications</div>
-        <div className="card" style={{ overflow: 'hidden' }}>
-          {meds.map((m, i) => (
-            <div key={i} className="list-row">
-              <div className="icon-box-blue">
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--blue)" strokeWidth="2" strokeLinecap="round">
-                  <path d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0016.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 002 8.5c0 2.3 1.5 4.05 3 5.5l7 7z"/>
-                </svg>
-              </div>
-              <div style={{ flex: 1 }}>
-                <div style={{ fontFamily: 'Inter', fontWeight: 600, fontSize: 14, color: 'var(--navy)' }}>{m.name}</div>
-                <div className="t-caption">{m.dosage} · {m.schedule.join(', ')}</div>
-              </div>
-              {editing && (
-                <button onClick={() => setMeds(p => p.filter((_, j) => j !== i))}
-                  style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--danger)', fontFamily: 'Inter', fontSize: 12, fontWeight: 600 }}>
-                  Remove
-                </button>
-              )}
+      {user?.medications && (
+        <div className="card" style={{ padding: 20 }}>
+          <p style={{ fontSize: 14, color: '#8A9AB0', textTransform: 'uppercase', letterSpacing: '1px', margin: '0 0 12px' }}>
+            Medications
+          </p>
+          {user.medications.map((m, i) => (
+            <div key={i} style={{ marginBottom: 12, padding: '10px', background: '#F8F4EF', borderRadius: 10 }}>
+              <p style={{ fontSize: 18, fontWeight: 600, color: '#1A2B4A', margin: '0 0 2px' }}>💊 {m.name}</p>
+              <p style={{ fontSize: 16, color: '#6B7A8D', margin: 0 }}>{m.dosage} · {m.schedule.join(', ')}</p>
             </div>
           ))}
-
-          {editing && (
-            <div style={{ padding: 16, borderTop: '1px solid var(--border)' }}>
-              <div className="t-label" style={{ marginBottom: 10 }}>Add Medication</div>
-              {[{ ph: 'Name (e.g. Metformin)', key: 'name' }, { ph: 'Dosage (e.g. 500mg)', key: 'dosage' }, { ph: 'Schedule (e.g. 8:00 AM, 8:00 PM)', key: 'schedule' }].map(f => (
-                <input key={f.key} placeholder={f.ph}
-                  value={(newMed as Record<string, string>)[f.key]}
-                  onChange={e => setNewMed(p => ({ ...p, [f.key]: e.target.value }))}
-                  className="input" style={{ marginBottom: 8 }} />
-              ))}
-              <button className="btn btn-ghost btn-sm" style={{ width: '100%' }} onClick={addMed}>Add Medication</button>
-            </div>
-          )}
+          <p style={{ fontSize: 14, color: '#8A9AB0', margin: '8px 0 0' }}>
+            Edit medications in Supervisor setup (re-seed the app to change them).
+          </p>
         </div>
-      </div>
+      )}
     </div>
   );
 }

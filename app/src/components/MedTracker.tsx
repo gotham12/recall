@@ -1,340 +1,360 @@
-import { useState, useRef, useCallback, useEffect } from 'react';
+import { useState, useRef, useCallback } from 'react';
 import { useAppStore } from '../store/appStore';
 import { useACSE } from '../hooks/useACSE';
 import { verifyMedication } from '../services/vision';
 import { speak } from '../services/elevenlabs';
 import { db, type Medication } from '../db/db';
 
-const COOLDOWN_H = 6;
-const MAX_RETRY  = 3;
-
-type Phase = 'list' | 'confirm' | 'camera' | 'verifying' | 'countdown' | 'confirmed' | 'rejected' | 'cooldown' | 'escalated';
+const COOLDOWN_HOURS = 6;
+const MAX_RETRIES = 3;
 
 export default function MedTracker() {
-  const user   = useAppStore((s) => s.user);
-  const addAlert = useAppStore((s) => s.addSupervisorAlert);
-  const [med, setMed]         = useState<Medication | null>(null);
-  const [phase, setPhase]     = useState<Phase>('list');
+  const user = useAppStore((s) => s.user);
+  const [selectedMed, setSelectedMed] = useState<Medication | null>(null);
+  const [phase, setPhase] = useState<
+    'list' | 'camera' | 'verifying' | 'countdown' | 'confirmed' | 'rejected' | 'cooldown'
+  >('list');
   const [retries, setRetries] = useState(0);
-  const [countdown, setCd]    = useState(10);
+  const [countdown, setCountdown] = useState(10);
   const [cooldownMsg, setCooldownMsg] = useState('');
-  const [visionMsg, setVisionMsg]     = useState('');
-  const [visionConf, setVisionConf]   = useState<'high'|'medium'|'low'>('high');
-  const [cameraAvail, setCameraAvail] = useState(true);
-  const videoRef  = useRef<HTMLVideoElement>(null);
-  const streamRef = useRef<MediaStream|null>(null);
+  const [visionMsg, setVisionMsg] = useState('');
+  const videoRef = useRef<HTMLVideoElement>(null);
+  const streamRef = useRef<MediaStream | null>(null);
   const { recordMedicationReAttempt } = useACSE();
 
-  const stopCamera = useCallback(() => {
-    streamRef.current?.getTracks().forEach(t => t.stop());
-    streamRef.current = null;
-  }, []);
+  const medications: Medication[] = user?.medications ?? [];
 
-  useEffect(() => () => stopCamera(), [stopCamera]);
+  const checkCooldown = useCallback(
+    async (medName: string): Promise<boolean> => {
+      if (!user?.id) return false;
+      const cutoff = new Date(Date.now() - COOLDOWN_HOURS * 60 * 60 * 1000).toISOString();
+      const recent = await db.medicationLogs
+        .where('userId')
+        .equals(user.id)
+        .and((log) => log.medicationName === medName && log.timestamp > cutoff && log.confirmed)
+        .first();
+      return !!recent;
+    },
+    [user]
+  );
 
-  const checkCooldown = useCallback(async (medName: string) => {
-    if (!user?.id) return false;
-    const cutoff = new Date(Date.now() - COOLDOWN_H * 3600000).toISOString();
-    const recent = await db.medicationLogs
-      .where('userId').equals(user.id)
-      .and(l => l.medicationName === medName && l.timestamp > cutoff && l.confirmed)
-      .first();
-    return !!recent;
-  }, [user]);
+  const startCamera = useCallback(async (med: Medication) => {
+    setSelectedMed(med);
 
-  const logMed = useCallback(async (medication: Medication, conf: string, desc: string, img: string, escalated = false) => {
-    if (!user?.id) return;
-    await db.medicationLogs.add({
-      userId: user.id, medicationName: medication.name,
-      timestamp: new Date().toISOString(),
-      visionConfidence: conf as 'high'|'medium'|'low'|'manual'|'unconfirmed',
-      visionDescription: desc, imageThumbnail: img || undefined,
-      confirmed: !escalated, escalated,
-    });
-    if (!escalated) {
-      await db.events.add({
-        userId: user.id, timestamp: new Date().toISOString(),
-        type: 'user_action', title: `${medication.name} taken`,
-        description: `${user.name} took ${medication.name} ${medication.dosage}. Confidence: ${conf}.`,
-        completed: true, source: 'system',
-      });
-    }
-  }, [user]);
-
-  const selectMed = useCallback(async (medication: Medication) => {
-    setMed(medication);
-    const onCooldown = await checkCooldown(medication.name);
+    const onCooldown = await checkCooldown(med.name);
     if (onCooldown) {
       recordMedicationReAttempt();
-      const log = await db.medicationLogs.where('userId').equals(user!.id!)
-        .and(l => l.medicationName === medication.name).last();
-      const mins = log ? Math.round((Date.now() - new Date(log.timestamp).getTime()) / 60000) : 0;
-      const remaining = Math.max(0, COOLDOWN_H * 60 - mins);
-      setCooldownMsg(`You already took ${medication.name} ${mins} minutes ago. Next dose in ${remaining} minutes.`);
-      speak(`You already took ${medication.name} ${mins} minutes ago.`).catch(console.error);
+      const log = await db.medicationLogs
+        .where('userId').equals(user!.id!)
+        .and((l) => l.medicationName === med.name)
+        .last();
+      const minsAgo = log
+        ? Math.round((Date.now() - new Date(log.timestamp).getTime()) / 60000)
+        : 0;
+      setCooldownMsg(
+        `You already took ${med.name} ${minsAgo} minutes ago. Your next dose is in about ${COOLDOWN_HOURS * 60 - minsAgo} minutes.`
+      );
+      await speak(`You already took ${med.name} ${minsAgo} minutes ago.`);
       setPhase('cooldown');
       return;
     }
-    speak(`Time to take your ${medication.name}. Are you ready?`).catch(console.error);
-    setRetries(0);
-    setPhase('confirm');
-  }, [checkCooldown, recordMedicationReAttempt, user]);
 
-  const openCamera = useCallback(async () => {
     setPhase('camera');
+    setRetries(0);
+    await speak(`It's time to take your ${med.name}. Please show me the medication.`);
+
     try {
-      const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: { ideal: 'environment' } } });
+      const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' } });
       streamRef.current = stream;
       if (videoRef.current) {
         videoRef.current.srcObject = stream;
         await videoRef.current.play();
       }
-      setCameraAvail(true);
     } catch {
-      setCameraAvail(false);
-      speak('Camera not available. Please confirm manually.').catch(console.error);
-      // Fall back to manual confirm
-      if (med) {
-        await logMed(med, 'manual', 'Camera unavailable — manual confirmation.', '');
-      }
-      setVisionMsg('Logged without camera.');
+      await speak('Camera access is not available. Please confirm manually.');
+      await logMedication(med, 'manual', 'Camera unavailable — manual confirmation.', '');
       setPhase('confirmed');
     }
-  }, [med, logMed]);
+  }, [checkCooldown, recordMedicationReAttempt, user]);
 
-  const capture = useCallback(async () => {
-    if (!videoRef.current || !med) return;
+  const captureAndVerify = useCallback(async () => {
+    if (!videoRef.current || !selectedMed) return;
     setPhase('verifying');
+
+    // Capture frame
     const canvas = document.createElement('canvas');
-    canvas.width  = videoRef.current.videoWidth  || 640;
-    canvas.height = videoRef.current.videoHeight || 480;
-    canvas.getContext('2d')!.drawImage(videoRef.current, 0, 0);
-    const base64 = canvas.toDataURL('image/jpeg', 0.8).split(',')[1];
+    canvas.width = videoRef.current.videoWidth || 320;
+    canvas.height = videoRef.current.videoHeight || 240;
+    const ctx = canvas.getContext('2d')!;
+    ctx.drawImage(videoRef.current, 0, 0);
+    const dataUrl = canvas.toDataURL('image/jpeg', 0.8);
+    const base64 = dataUrl.split(',')[1];
+
     stopCamera();
 
     try {
-      const result = await verifyMedication(base64, med.name);
-      setVisionMsg(result.description);
-      setVisionConf(result.confidence);
+      const result = await verifyMedication(base64, selectedMed.name);
 
       if (result.detected) {
-        speak(`Confirmed. This looks like your ${med.name}. Please take it now.`).catch(console.error);
+        setVisionMsg(`Confirmed — ${result.description}`);
+        await speak(`Confirmed — this looks like your ${selectedMed.name}. Please take it now.`);
+        await logMedication(selectedMed, result.confidence, result.description, dataUrl);
         setPhase('countdown');
-        let c = 10;
-        setCd(c);
-        const iv = setInterval(() => {
-          c--;
-          setCd(c);
-          if (c <= 0) {
-            clearInterval(iv);
-            logMed(med, result.confidence, result.description, base64).then(() => setPhase('confirmed'));
-          }
-        }, 1000);
+        startCountdown();
       } else {
-        const next = retries + 1;
-        setRetries(next);
-        if (next >= MAX_RETRY) {
-          speak('I could not verify your medication. I am alerting your caregiver.').catch(console.error);
-          await logMed(med, 'unconfirmed', result.description, base64, true);
-          addAlert({ message: `Medication unconfirmed: ${med.name} for ${user?.name}`, timestamp: new Date().toISOString(), type: 'medication_unconfirmed' });
-          setPhase('escalated');
-        } else {
-          speak('I could not see the medication clearly. Please try again.').catch(console.error);
+        const newRetries = retries + 1;
+        setRetries(newRetries);
+        if (newRetries >= MAX_RETRIES) {
+          setVisionMsg("I couldn't see your medication clearly after multiple attempts.");
+          await speak("I couldn't verify your medication. I'll let your caregiver know.");
+          await escalate(selectedMed.name);
           setPhase('rejected');
+        } else {
+          setVisionMsg(`I couldn't see your medication clearly. ${MAX_RETRIES - newRetries} attempt(s) remaining.`);
+          await speak(`I couldn't see your medication clearly. Please try again.`);
+          setPhase('camera');
+          // Restart camera
+          const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' } });
+          streamRef.current = stream;
+          if (videoRef.current) {
+            videoRef.current.srcObject = stream;
+            await videoRef.current.play();
+          }
         }
       }
     } catch {
-      setPhase('rejected');
+      setVisionMsg('Vision service unavailable. Please confirm manually.');
+      await logMedication(selectedMed, 'manual', 'Vision unavailable — manual confirmation.', '');
+      setPhase('confirmed');
     }
-  }, [med, retries, user, addAlert, stopCamera, logMed]);
+  }, [selectedMed, retries]);
 
-  const markManually = useCallback(async () => {
-    if (!med) return;
-    await logMed(med, 'manual', 'Manually confirmed by patient.', '');
-    setVisionMsg('Recorded manually.');
-    speak(`Great. I have recorded that you took your ${med.name}.`).catch(console.error);
-    setPhase('confirmed');
-  }, [med, logMed]);
+  const startCountdown = useCallback(() => {
+    let c = 10;
+    setCountdown(c);
+    const timer = setInterval(() => {
+      c--;
+      setCountdown(c);
+      if (c <= 0) {
+        clearInterval(timer);
+        setPhase('confirmed');
+        speak('Thank you. Medication recorded successfully.');
+      }
+    }, 1000);
+  }, []);
 
-  const reset = useCallback(() => {
+  const stopCamera = () => {
+    streamRef.current?.getTracks().forEach((t) => t.stop());
+    streamRef.current = null;
+  };
+
+  const reset = () => {
     stopCamera();
-    setMed(null);
     setPhase('list');
+    setSelectedMed(null);
     setRetries(0);
     setVisionMsg('');
-  }, [stopCamera]);
+    setCooldownMsg('');
+  };
 
-  const meds: Medication[] = user?.medications ?? [];
+  const logMedication = async (
+    med: Medication,
+    confidence: 'high' | 'medium' | 'low' | 'manual' | 'unconfirmed',
+    description: string,
+    thumbnail: string
+  ) => {
+    if (!user?.id) return;
+    const ts = new Date().toISOString();
+    await db.medicationLogs.add({
+      userId: user.id,
+      medicationName: med.name,
+      timestamp: ts,
+      visionConfidence: confidence,
+      visionDescription: description,
+      imageThumbnail: thumbnail || undefined,
+      confirmed: confidence !== 'unconfirmed',
+    });
+    await db.events.add({
+      userId: user.id,
+      timestamp: ts,
+      type: 'user_action',
+      title: `${med.name} taken`,
+      description: `${med.name} ${med.dosage} taken. Vision confidence: ${confidence}. ${description}`,
+      completed: true,
+      source: 'system',
+    });
+  };
 
-  // ── List ──────────────────────────────────────────────────────────
-  if (phase === 'list') return (
-    <div className="scroll-area" style={{ padding: 16, display: 'flex', flexDirection: 'column', gap: 12 }}>
-      <div className="t-title" style={{ marginBottom: 4 }}>Medications</div>
-      {meds.length === 0 && (
-        <div className="glass" style={{ padding: 24, textAlign: 'center' }}>
-          <p className="t-body" style={{ color: 'var(--muted)' }}>No medications added yet. Ask your caregiver to add them.</p>
-        </div>
-      )}
-      {meds.map((m, i) => (
-        <div key={i} className="glass" style={{ padding: '20px 18px', display: 'flex', alignItems: 'center', gap: 14 }}>
-          <div style={{ width: 48, height: 48, borderRadius: 16, background: 'var(--blue-dim)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="var(--blue)" strokeWidth="1.8" strokeLinecap="round">
-              <path d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 00 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 002 8.5c0 2.3 1.5 4.05 3 5.5l7 7z"/>
-            </svg>
-          </div>
-          <div style={{ flex: 1 }}>
-            <div className="t-title" style={{ fontSize: 18 }}>{m.name}</div>
-            <div className="t-caption">{m.dosage} · {m.schedule.join(', ')}</div>
-          </div>
-          <button className="btn btn-primary" style={{ fontSize: 15, padding: '11px 18px', borderRadius: 14 }} onClick={() => selectMed(m)}>
-            Take
-          </button>
-        </div>
-      ))}
-    </div>
-  );
+  const escalate = async (medName: string) => {
+    if (!user?.id) return;
+    const ts = new Date().toISOString();
+    await db.medicationLogs.add({
+      userId: user.id,
+      medicationName: medName,
+      timestamp: ts,
+      visionConfidence: 'unconfirmed',
+      visionDescription: 'Could not verify after 3 attempts.',
+      confirmed: false,
+    });
+    await db.events.add({
+      userId: user.id,
+      timestamp: ts,
+      type: 'system_alert',
+      title: `${medName} — unconfirmed`,
+      description: `Vision could not confirm ${medName} after ${MAX_RETRIES} attempts.`,
+      completed: false,
+      source: 'system',
+    });
+  };
 
-  // ── Cooldown ──────────────────────────────────────────────────────
-  if (phase === 'cooldown') return (
-    <div className="scroll-area" style={{ padding: 20, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 16 }}>
-      <div style={{ width: 72, height: 72, borderRadius: '50%', background: 'rgba(245,158,11,.12)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-        <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="var(--warning)" strokeWidth="2" strokeLinecap="round">
-          <circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/>
-        </svg>
-      </div>
-      <div className="glass" style={{ padding: 20, width: '100%', textAlign: 'center' }}>
-        <div className="t-title" style={{ marginBottom: 8 }}>Already taken</div>
-        <p className="t-body">{cooldownMsg}</p>
-      </div>
-      <button className="btn btn-ghost" style={{ width: '100%', padding: 16 }} onClick={reset}>Back</button>
-    </div>
-  );
-
-  // ── Confirm (choose camera or manual) ────────────────────────────
-  if (phase === 'confirm') return (
-    <div className="scroll-area" style={{ padding: 20, display: 'flex', flexDirection: 'column', gap: 14 }}>
-      <div className="glass" style={{ padding: 20, textAlign: 'center' }}>
-        <div className="t-title" style={{ marginBottom: 6 }}>{med?.name}</div>
-        <div className="t-caption" style={{ fontSize: 16 }}>{med?.dosage}</div>
-      </div>
-      <div className="glass" style={{ padding: 20 }}>
-        <p className="t-body" style={{ marginBottom: 16, textAlign: 'center' }}>How would you like to verify?</p>
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-          <button className="btn btn-primary" style={{ width: '100%', padding: 18, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 10 }} onClick={openCamera}>
-            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="1.8" strokeLinecap="round">
-              <path d="M23 19a2 2 0 01-2 2H3a2 2 0 01-2-2V8a2 2 0 012-2h4l2-3h6l2 3h4a2 2 0 012 2z"/>
-              <circle cx="12" cy="13" r="4"/>
-            </svg>
-            Use Camera to Verify
-          </button>
-          <button className="btn btn-ghost" style={{ width: '100%', padding: 18, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 10 }} onClick={markManually}>
-            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="var(--blue)" strokeWidth="1.8" strokeLinecap="round">
-              <polyline points="20 6 9 17 4 12"/>
-            </svg>
-            Mark as Taken
-          </button>
-        </div>
-      </div>
-      <button className="btn btn-ghost" style={{ width: '100%', padding: 14 }} onClick={reset}>Cancel</button>
-    </div>
-  );
-
-  // ── Camera + Verifying ────────────────────────────────────────────
-  if (phase === 'camera' || phase === 'verifying') return (
-    <div className="scroll-area" style={{ padding: 16, display: 'flex', flexDirection: 'column', gap: 14 }}>
-      <div style={{ width: '100%', aspectRatio: '1', borderRadius: 28, overflow: 'hidden', position: 'relative', background: 'linear-gradient(145deg,#07101F,#1A2B4A)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-        <video ref={videoRef} playsInline muted style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover' }} />
-        {['tl','tr','bl','br'].map(c => (
-          <div key={c} style={{ position: 'absolute', width: 26, height: 26, borderColor: 'var(--blue)', borderStyle: 'solid', borderWidth: 0,
-            borderTopWidth: c.startsWith('t') ? 3 : 0, borderBottomWidth: c.startsWith('b') ? 3 : 0,
-            borderLeftWidth: c.endsWith('l') ? 3 : 0, borderRightWidth: c.endsWith('r') ? 3 : 0,
-            borderRadius: c==='tl'?'6px 0 0 0':c==='tr'?'0 6px 0 0':c==='bl'?'0 0 0 6px':'0 0 6px 0',
-            top: c.startsWith('t')?16:undefined, bottom: c.startsWith('b')?16:undefined,
-            left: c.endsWith('l')?16:undefined, right: c.endsWith('r')?16:undefined }} />
-        ))}
-        {phase === 'verifying' && (
-          <div style={{ position: 'absolute', inset: 0, background: 'rgba(14,122,230,0.2)', backdropFilter: 'blur(2px)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-            <div className="t-title" style={{ color: 'white' }}>Analyzing...</div>
-          </div>
-        )}
-      </div>
-      <div className="glass" style={{ padding: '14px 18px', textAlign: 'center' }}>
-        <p className="t-body">Hold up your <strong style={{ color: 'var(--blue)' }}>{med?.name} {med?.dosage}</strong> to the camera.</p>
-      </div>
-      {phase === 'camera' && (
-        <>
-          <button className="btn btn-primary" style={{ width: '100%', padding: 18, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 10 }} onClick={capture}>
-            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="1.8" strokeLinecap="round"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="4" fill="white"/></svg>
-            Capture and Verify
-          </button>
-          <button className="btn btn-ghost" style={{ width: '100%', padding: 14 }} onClick={markManually}>Skip camera — Mark as taken</button>
-          <button className="btn btn-ghost" style={{ width: '100%', padding: 14 }} onClick={reset}>Cancel</button>
-        </>
-      )}
-    </div>
-  );
-
-  // ── Countdown ─────────────────────────────────────────────────────
-  if (phase === 'countdown') return (
-    <div className="scroll-area" style={{ padding: 20, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 16 }}>
-      <div className="chip chip-success"><span className="chip-dot" />Vision confirmed — {visionConf} confidence</div>
-      <p className="t-body" style={{ textAlign: 'center', color: 'var(--success)' }}>This looks like your medication. Please take it now.</p>
-      <svg width="100" height="100" viewBox="0 0 100 100">
-        <circle cx="50" cy="50" r="42" fill="none" stroke="rgba(0,0,0,0.07)" strokeWidth="8"/>
-        <circle cx="50" cy="50" r="42" fill="none" stroke="var(--blue)" strokeWidth="8" strokeLinecap="round"
-          strokeDasharray="264" strokeDashoffset={264 - (264 * countdown / 10)} transform="rotate(-90 50 50)"
-          style={{ transition: 'stroke-dashoffset 1s linear' }}/>
-        <text x="50" y="57" textAnchor="middle" fontSize="26" fontWeight="800" fill="var(--blue)" fontFamily="Plus Jakarta Sans">{countdown}</text>
-      </svg>
-      <div className="t-caption">Recording in {countdown} seconds...</div>
-    </div>
-  );
-
-  // ── Confirmed ─────────────────────────────────────────────────────
-  if (phase === 'confirmed') return (
-    <div className="scroll-area" style={{ padding: 24, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 16 }}>
-      <div style={{ width: 72, height: 72, borderRadius: '50%', background: 'var(--success)', display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 4px 20px rgba(16,185,129,.3)' }}>
-        <svg width="34" height="34" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2.5" strokeLinecap="round"><polyline points="20 6 9 17 4 12"/></svg>
-      </div>
-      <div className="t-title" style={{ color: 'var(--success)', textAlign: 'center' }}>Medication Recorded</div>
-      <div className="glass" style={{ padding: 18, width: '100%', textAlign: 'center' }}>
-        <p className="t-body">{visionMsg || 'Successfully logged.'}</p>
-      </div>
-      <button className="btn btn-primary" style={{ width: '100%', padding: 18 }} onClick={reset}>Done</button>
-    </div>
-  );
-
-  // ── Rejected ──────────────────────────────────────────────────────
-  if (phase === 'rejected') return (
-    <div className="scroll-area" style={{ padding: 20, display: 'flex', flexDirection: 'column', gap: 14 }}>
-      <div className="chip chip-warning"><span className="chip-dot" />Could not verify — attempt {retries} of {MAX_RETRY}</div>
-      <div className="glass" style={{ padding: 18 }}>
-        <p className="t-body">I could not see the medication clearly. Try again or confirm manually.</p>
-      </div>
-      <button className="btn btn-primary" style={{ width: '100%', padding: 16 }} onClick={() => { setPhase('camera'); openCamera(); }}>
-        Try Camera Again
-      </button>
-      <button className="btn btn-ghost" style={{ width: '100%', padding: 16 }} onClick={markManually}>
-        Mark as Taken
-      </button>
-      <button className="btn btn-ghost" style={{ width: '100%', padding: 14 }} onClick={reset}>Cancel</button>
-    </div>
-  );
-
-  // ── Escalated ─────────────────────────────────────────────────────
   return (
-    <div className="scroll-area" style={{ padding: 24, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 16 }}>
-      <div style={{ width: 72, height: 72, borderRadius: '50%', background: 'rgba(220,38,38,.1)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-        <svg width="34" height="34" viewBox="0 0 24 24" fill="none" stroke="var(--danger)" strokeWidth="2" strokeLinecap="round">
-          <path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/>
-          <line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/>
-        </svg>
-      </div>
-      <div className="t-title" style={{ color: 'var(--danger)', textAlign: 'center' }}>Caregiver Alerted</div>
-      <div className="glass" style={{ padding: 18, width: '100%', textAlign: 'center' }}>
-        <p className="t-body">Your caregiver has been notified that medication could not be confirmed.</p>
-      </div>
-      <button className="btn btn-ghost" style={{ width: '100%', padding: 14 }} onClick={reset}>Close</button>
+    <div style={{ flex: 1, overflowY: 'auto', padding: '16px' }}>
+      {phase === 'list' && (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+          <h2 style={{ fontSize: 26, color: '#1A2B4A', margin: '0 0 8px' }}>
+            Your Medications
+          </h2>
+          {medications.length === 0 && (
+            <p style={{ color: '#6B7A8D', fontSize: 20 }}>
+              No medications configured. Ask your caregiver to set them up.
+            </p>
+          )}
+          {medications.map((med, i) => (
+            <div key={i} className="card" style={{ padding: '20px' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <div>
+                  <p style={{ fontSize: 24, fontWeight: 600, color: '#1A2B4A', margin: '0 0 4px' }}>
+                    💊 {med.name}
+                  </p>
+                  <p style={{ fontSize: 18, color: '#6B7A8D', margin: '0 0 4px' }}>
+                    {med.dosage}
+                  </p>
+                  <p style={{ fontSize: 16, color: '#2196F3', margin: 0 }}>
+                    {med.schedule.join(' & ')}
+                  </p>
+                </div>
+                <button
+                  className="tap-feedback"
+                  onClick={() => startCamera(med)}
+                  style={{
+                    background: 'linear-gradient(135deg, #2196F3, #0057CC)',
+                    color: 'white',
+                    border: 'none',
+                    borderRadius: 14,
+                    padding: '12px 16px',
+                    fontSize: 16,
+                    fontWeight: 600,
+                    cursor: 'pointer',
+                    whiteSpace: 'nowrap',
+                  }}
+                >
+                  Take Now
+                </button>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {phase === 'cooldown' && (
+        <div className="card animate-fadeIn" style={{ padding: '28px 24px', textAlign: 'center', margin: '20px 0' }}>
+          <div style={{ fontSize: 48, marginBottom: 16 }}>⏰</div>
+          <p style={{ fontSize: 22, color: '#1A2B4A', marginBottom: 20 }}>{cooldownMsg}</p>
+          <button className="btn-electric" onClick={reset}>Got it</button>
+        </div>
+      )}
+
+      {phase === 'camera' && (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+          <h2 style={{ fontSize: 24, color: '#1A2B4A', margin: 0 }}>
+            Show me: {selectedMed?.name}
+          </h2>
+          <p style={{ color: '#6B7A8D', fontSize: 18, margin: 0 }}>
+            Hold your medication in front of the camera.
+          </p>
+          <div style={{ borderRadius: 16, overflow: 'hidden', background: '#000', aspectRatio: '4/3' }}>
+            <video
+              ref={videoRef}
+              autoPlay
+              playsInline
+              muted
+              style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }}
+            />
+          </div>
+          {retries > 0 && (
+            <p style={{ color: '#F59E0B', fontSize: 18, textAlign: 'center' }}>
+              Attempt {retries + 1} of {MAX_RETRIES}
+            </p>
+          )}
+          <button className="btn-electric tap-feedback" onClick={captureAndVerify}>
+            📸 Capture &amp; Verify
+          </button>
+          <button onClick={reset} style={{ background: 'none', border: 'none', color: '#6B7A8D', fontSize: 18, cursor: 'pointer', padding: 8 }}>
+            Cancel
+          </button>
+        </div>
+      )}
+
+      {phase === 'verifying' && (
+        <div className="card animate-fadeIn" style={{ padding: '40px 24px', textAlign: 'center' }}>
+          <div className="skeleton" style={{ width: 80, height: 80, borderRadius: '50%', margin: '0 auto 20px' }} />
+          <p style={{ fontSize: 22, color: '#1A2B4A' }}>Verifying your medication...</p>
+        </div>
+      )}
+
+      {phase === 'countdown' && (
+        <div className="card animate-fadeIn" style={{ padding: '32px 24px', textAlign: 'center', margin: '20px 0' }}>
+          <div style={{ fontSize: 48, marginBottom: 12 }}>✅</div>
+          <p style={{ fontSize: 22, color: '#10B981', fontWeight: 600, marginBottom: 8 }}>{visionMsg}</p>
+          <p style={{ fontSize: 20, color: '#1A2B4A', marginBottom: 20 }}>
+            Please take your medication now.
+          </p>
+          <div
+            style={{
+              width: 80,
+              height: 80,
+              borderRadius: '50%',
+              background: 'linear-gradient(135deg, #2196F3, #0057CC)',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              margin: '0 auto',
+              fontSize: 32,
+              color: 'white',
+              fontWeight: 700,
+            }}
+          >
+            {countdown}
+          </div>
+        </div>
+      )}
+
+      {phase === 'confirmed' && (
+        <div className="card animate-fadeIn" style={{ padding: '32px 24px', textAlign: 'center', margin: '20px 0' }}>
+          <div style={{ fontSize: 56, marginBottom: 16 }}>🎉</div>
+          <p style={{ fontSize: 24, color: '#10B981', fontWeight: 600, marginBottom: 8 }}>
+            {selectedMed?.name} recorded!
+          </p>
+          <p style={{ fontSize: 20, color: '#6B7A8D', marginBottom: 24 }}>
+            Great job taking care of yourself.
+          </p>
+          <button className="btn-electric tap-feedback" onClick={reset}>Done</button>
+        </div>
+      )}
+
+      {phase === 'rejected' && (
+        <div className="card animate-fadeIn" style={{ padding: '28px 24px', textAlign: 'center', margin: '20px 0' }}>
+          <div style={{ fontSize: 48, marginBottom: 16 }}>⚠️</div>
+          <p style={{ fontSize: 22, color: '#F59E0B', fontWeight: 600, marginBottom: 8 }}>
+            Could Not Verify
+          </p>
+          <p style={{ fontSize: 20, color: '#1A2B4A', marginBottom: 24 }}>{visionMsg}</p>
+          <p style={{ fontSize: 18, color: '#6B7A8D', marginBottom: 24 }}>
+            Your caregiver has been notified.
+          </p>
+          <button className="btn-electric tap-feedback" onClick={reset}>OK</button>
+        </div>
+      )}
     </div>
   );
 }
