@@ -39,21 +39,20 @@ export default function AnimatedPanel({
             ease: EASE.enter,
           }
         );
+        gsap.set(buttons, { opacity: 1 });
         if (stagger && buttons.length) {
           gsap.fromTo(
             buttons,
-            { opacity: 0, y: 10 },
+            { y: 12, opacity: 1 },
             {
-              opacity: 1,
               y: 0,
+              opacity: 1,
               duration: duration(0.45),
               ease: EASE.enter,
               stagger: 0.07,
               delay: 0.12,
             }
           );
-        } else {
-          gsap.set(buttons, { opacity: 1, y: 0 });
         }
         return;
       }
@@ -70,21 +69,20 @@ export default function AnimatedPanel({
         }
       );
 
+      gsap.set(buttons, { opacity: 1 });
       if (stagger && buttons.length) {
         gsap.fromTo(
           buttons,
-          { opacity: 0, y: 8 },
+          { y: 10, opacity: 1 },
           {
-            opacity: 1,
             y: 0,
+            opacity: 1,
             duration: duration(0.4),
             ease: EASE.enter,
             stagger: 0.06,
             delay: 0.08,
           }
         );
-      } else {
-        gsap.set(buttons, { opacity: 1, y: 0 });
       }
     },
     { scope: ref, dependencies: [panelKey] }

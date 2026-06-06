@@ -35,6 +35,8 @@ export default function LoginScreen() {
 
   useGSAP(
     () => {
+      gsap.set('.login-actions .studio-btn', { opacity: 1, y: 0 });
+
       if (transitioning) {
         const tl = gsap.timeline({ defaults: { ease: EASE.smooth } });
         tl.to('.login-panel', { opacity: 0, y: 16, duration: duration(0.55) }, 0)
