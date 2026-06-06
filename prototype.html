@@ -1,0 +1,792 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Recall — UI Prototype</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;700;800&family=Atkinson+Hyperlegible:wght@400;700&display=swap" rel="stylesheet" />
+<style>
+  /* ── Reset & base ────────────────────────────────── */
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --bg:         #F8F5F0;
+    --blue:       #0E7AE6;
+    --blue-dark:  #0057CC;
+    --blue-glow:  rgba(14,122,230,0.35);
+    --navy:       #1A2B4A;
+    --muted:      #6B7A8D;
+    --card-bg:    rgba(255,255,255,0.72);
+    --transition: 600ms cubic-bezier(0.4, 0, 0.2, 1);
+  }
+
+  html, body { width: 100%; height: 100%; overflow: hidden; background: #0A0F1E; font-family: 'Atkinson Hyperlegible', sans-serif; }
+
+  /* ── Stage — full-viewport container ────────────── */
+  #stage {
+    position: fixed; inset: 0;
+    display: flex; align-items: center; justify-content: center;
+  }
+
+  /* ── Phone shell ─────────────────────────────────── */
+  .phone {
+    width: 390px; height: 844px;
+    background: var(--bg);
+    border-radius: 50px;
+    border: 8px solid rgba(255,255,255,0.12);
+    box-shadow:
+      0 0 0 1px rgba(255,255,255,0.06),
+      0 32px 80px rgba(0,0,0,0.7),
+      0 0 120px rgba(14,122,230,0.12);
+    position: relative; overflow: hidden;
+    transform-origin: center center;
+    transition: transform var(--transition);
+  }
+
+  /* ── Screen ──────────────────────────────────────── */
+  .screen {
+    position: absolute; inset: 0;
+    display: flex; flex-direction: column;
+    opacity: 0; pointer-events: none;
+    transition: opacity 400ms ease;
+  }
+  .screen.active { opacity: 1; pointer-events: all; }
+
+  /* ── Zoom-transition overlay ─────────────────────── */
+  #zoom-ring {
+    position: fixed; border-radius: 50%;
+    background: radial-gradient(circle, rgba(14,122,230,0.8) 0%, rgba(14,122,230,0) 70%);
+    transform: scale(0); pointer-events: none; z-index: 9999;
+    transition: transform 500ms cubic-bezier(0.4,0,0.2,1), opacity 400ms ease;
+    will-change: transform, opacity;
+  }
+
+  /* ─────────────────────────────────────────────────
+     DESIGN TOKENS
+  ────────────────────────────────────────────────── */
+
+  /* Glass card */
+  .glass {
+    background: var(--card-bg);
+    backdrop-filter: blur(20px) saturate(1.4);
+    -webkit-backdrop-filter: blur(20px) saturate(1.4);
+    border: 1.5px solid rgba(255,255,255,0.6);
+    border-radius: 24px;
+    box-shadow:
+      0 4px 6px rgba(0,0,0,0.04),
+      0 12px 28px rgba(0,0,0,0.1),
+      0 0 0 1px rgba(255,255,255,0.3) inset;
+  }
+  .glass-glow {
+    box-shadow:
+      0 4px 6px rgba(0,0,0,0.04),
+      0 12px 28px rgba(0,0,0,0.12),
+      0 0 32px var(--blue-glow),
+      0 0 0 1px rgba(255,255,255,0.3) inset;
+  }
+
+  /* Button styles */
+  .btn {
+    display: flex; align-items: center; justify-content: center; gap: 10px;
+    font-family: 'Plus Jakarta Sans', sans-serif;
+    font-size: 18px; font-weight: 700;
+    border: none; cursor: pointer; border-radius: 20px;
+    transition: transform 120ms ease, box-shadow 120ms ease;
+    position: relative; overflow: hidden;
+    -webkit-tap-highlight-color: transparent;
+  }
+  .btn:active { transform: scale(0.96) translateY(2px); }
+  .btn-primary {
+    background: linear-gradient(135deg, var(--blue) 0%, var(--blue-dark) 100%);
+    color: white; padding: 18px 32px;
+    box-shadow: 0 4px 20px var(--blue-glow), 0 2px 4px rgba(0,0,0,0.2);
+  }
+  .btn-primary:hover { box-shadow: 0 6px 28px rgba(14,122,230,0.55), 0 2px 4px rgba(0,0,0,0.2); }
+  .btn-ghost {
+    background: rgba(14,122,230,0.08);
+    color: var(--blue); padding: 14px 24px;
+    border: 1.5px solid rgba(14,122,230,0.2);
+  }
+
+  /* Tab bar */
+  .tab-bar {
+    display: flex; background: white;
+    border-top: 1px solid rgba(0,0,0,0.06);
+    padding-bottom: 8px; flex-shrink: 0;
+    box-shadow: 0 -4px 20px rgba(0,0,0,0.06);
+  }
+  .tab-item {
+    flex: 1; display: flex; flex-direction: column; align-items: center;
+    justify-content: center; gap: 3px;
+    padding: 10px 0; border: none; background: none; cursor: pointer;
+    font-family: 'Atkinson Hyperlegible', sans-serif;
+    font-size: 11px; color: #8A9AB0; transition: color 200ms;
+    -webkit-tap-highlight-color: transparent;
+  }
+  .tab-item.active { color: var(--blue); }
+  .tab-item .tab-icon { font-size: 22px; }
+
+  /* Header */
+  .header {
+    padding: 16px 20px 12px;
+    display: flex; align-items: center; justify-content: space-between;
+    border-bottom: 1px solid rgba(0,0,0,0.06); flex-shrink: 0;
+    background: var(--bg);
+  }
+  .header-title {
+    font-family: 'Plus Jakarta Sans', sans-serif;
+    font-size: 22px; font-weight: 800; color: var(--blue);
+  }
+
+  /* Mobius SVG spinner */
+  @keyframes rotateMobius { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+  .mobius-icon { animation: rotateMobius 3s linear infinite; }
+
+  /* Lava blobs */
+  @keyframes blobDrift1 {
+    0%,100% { transform: translate(0,0) scale(1); }
+    33%      { transform: translate(30px,-20px) scale(1.1); }
+    66%      { transform: translate(-20px,30px) scale(0.95); }
+  }
+  @keyframes blobDrift2 {
+    0%,100% { transform: translate(0,0) scale(1); }
+    40%     { transform: translate(-35px,25px) scale(1.05); }
+    70%     { transform: translate(25px,-15px) scale(1.1); }
+  }
+  .blob { position: absolute; border-radius: 50%; filter: blur(50px); pointer-events: none; opacity: 0.18; }
+  .blob1 { width: 300px; height: 300px; background: var(--blue); top: -80px; left: -60px; animation: blobDrift1 12s ease-in-out infinite; }
+  .blob2 { width: 240px; height: 240px; background: #60CFFF; bottom: 100px; right: -40px; animation: blobDrift2 10s ease-in-out infinite; }
+
+  /* Pulse rings */
+  @keyframes pulseRing {
+    0%   { transform: scale(0.9); opacity: 0.7; }
+    50%  { transform: scale(1.12); opacity: 0.25; }
+    100% { transform: scale(0.9); opacity: 0.7; }
+  }
+  .pulse-ring {
+    position: absolute; border-radius: 50%;
+    border: 2.5px solid rgba(14,122,230,0.4);
+    background: rgba(14,122,230,0.06);
+  }
+  .pulse-ring-1 { animation: pulseRing 4s ease-in-out infinite; }
+  .pulse-ring-2 { animation: pulseRing 4s ease-in-out infinite 0.6s; }
+  .pulse-ring-3 { animation: pulseRing 4s ease-in-out infinite 1.2s; }
+
+  /* Mic button */
+  @keyframes micPulse {
+    0%,100% { box-shadow: 0 0 0 0 rgba(14,122,230,0.5), 0 4px 20px var(--blue-glow); }
+    50%     { box-shadow: 0 0 0 18px rgba(14,122,230,0), 0 4px 20px var(--blue-glow); }
+  }
+  .mic-listening { animation: micPulse 1.5s ease-in-out infinite; }
+
+  /* FAB */
+  .fab {
+    position: absolute; bottom: 90px; right: 20px;
+    width: 68px; height: 68px; border-radius: 50%;
+    background: linear-gradient(135deg, var(--blue), var(--blue-dark));
+    display: flex; align-items: center; justify-content: center;
+    font-size: 28px; border: none; cursor: pointer; z-index: 10;
+    box-shadow: 0 4px 20px var(--blue-glow), 0 2px 8px rgba(0,0,0,0.2);
+    transition: transform 120ms ease, box-shadow 120ms ease;
+  }
+  .fab:active { transform: scale(0.93); }
+
+  /* Chat bubbles */
+  .bubble-user {
+    align-self: flex-end; max-width: 78%;
+    background: linear-gradient(135deg, var(--blue), var(--blue-dark));
+    color: white; border-radius: 20px 20px 4px 20px;
+    padding: 14px 18px; font-size: 17px; line-height: 1.5;
+    box-shadow: 0 4px 16px var(--blue-glow);
+  }
+  .bubble-clara {
+    align-self: flex-start; max-width: 78%;
+    background: var(--card-bg); backdrop-filter: blur(10px);
+    border: 1.5px solid rgba(255,255,255,0.6);
+    color: var(--navy); border-radius: 20px 20px 20px 4px;
+    padding: 14px 18px; font-size: 17px; line-height: 1.5;
+    box-shadow: 0 4px 16px rgba(0,0,0,0.06);
+  }
+
+  /* Breathing circle text */
+  @keyframes breatheInOut {
+    0%,100% { opacity: 1; transform: scale(1); }
+    50%     { opacity: 0.6; transform: scale(0.95); }
+  }
+  .breathe-label {
+    font-family: 'Plus Jakarta Sans', sans-serif;
+    font-size: 22px; font-weight: 700; color: var(--blue);
+    animation: breatheInOut 4s ease-in-out infinite;
+  }
+
+  /* Skeleton shimmer */
+  @keyframes shimmer {
+    0%   { background-position: -400px 0; }
+    100% { background-position: 400px 0; }
+  }
+  .skeleton {
+    background: linear-gradient(90deg, #e8e2d9 25%, #f0e8dc 50%, #e8e2d9 75%);
+    background-size: 800px 100%;
+    animation: shimmer 1.5s infinite linear;
+    border-radius: 8px;
+  }
+
+  /* Glow text */
+  .glow-text {
+    text-shadow: 0 0 30px rgba(14,122,230,0.6), 0 0 60px rgba(14,122,230,0.3);
+  }
+
+  /* Score gauge ring */
+  .gauge-track { stroke: rgba(0,0,0,0.08); }
+  .gauge-fill {
+    stroke: var(--blue); stroke-linecap: round;
+    transition: stroke-dashoffset 1s ease;
+  }
+
+  /* Slide-in animation for screens */
+  @keyframes slideInUp {
+    from { opacity: 0; transform: translateY(20px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+  .slide-in { animation: slideInUp 0.5s ease forwards; }
+
+  /* ── Event badge ── */
+  .event-badge {
+    display: inline-block; border-radius: 999px; padding: 3px 10px;
+    font-size: 12px; font-weight: 700; font-family: 'Plus Jakarta Sans', sans-serif;
+  }
+
+  /* ── Supervisor dark header ── */
+  .sv-header {
+    background: linear-gradient(135deg, #1A2B4A, #0D1829);
+    padding: 16px 20px 12px;
+    display: flex; align-items: center; justify-content: space-between; flex-shrink: 0;
+  }
+
+  /* ── Nav hint text ─────────────────────────────────── */
+  .nav-hint {
+    position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%);
+    color: rgba(255,255,255,0.4); font-size: 13px;
+    font-family: 'Atkinson Hyperlegible', sans-serif;
+    pointer-events: none; letter-spacing: 0.05em;
+    text-align: center;
+  }
+
+  /* ── Screen-name label ─────────────────────────────── */
+  .screen-label {
+    position: fixed; top: 24px; left: 50%; transform: translateX(-50%);
+    background: rgba(14,122,230,0.15); backdrop-filter: blur(8px);
+    border: 1px solid rgba(14,122,230,0.3);
+    color: rgba(255,255,255,0.8); font-size: 13px;
+    font-family: 'Plus Jakarta Sans', sans-serif; font-weight: 600;
+    padding: 6px 16px; border-radius: 999px; letter-spacing: 0.08em;
+    text-transform: uppercase; pointer-events: none;
+    transition: opacity 300ms;
+  }
+
+  /* Progress dots */
+  .progress-dots {
+    position: fixed; right: 24px; top: 50%; transform: translateY(-50%);
+    display: flex; flex-direction: column; gap: 8px;
+  }
+  .dot {
+    width: 8px; height: 8px; border-radius: 50%;
+    background: rgba(255,255,255,0.2); cursor: pointer;
+    transition: background 300ms, transform 300ms;
+  }
+  .dot.active { background: var(--blue); transform: scale(1.4); }
+
+</style>
+</head>
+<body>
+
+<!-- Zoom ring overlay -->
+<div id="zoom-ring"></div>
+
+<!-- Screen name label -->
+<div class="screen-label" id="screen-label">① Loading</div>
+
+<!-- Progress dots -->
+<div class="progress-dots" id="progress-dots"></div>
+
+<!-- Nav hint -->
+<div class="nav-hint">Tap any button to navigate · Click dots to jump screens</div>
+
+<!-- Stage -->
+<div id="stage">
+  <div class="phone" id="phone">
+
+    <!-- ─────────────────────────────────────────────
+         SCREEN 0 — LOADING
+    ──────────────────────────────────────────────── -->
+    <div class="screen active" id="s0" style="background:#F8F5F0; align-items:center; justify-content:center; gap:24px;">
+      <div class="blob blob1"></div>
+      <div class="blob blob2"></div>
+      <div style="position:relative; z-index:2; display:flex; flex-direction:column; align-items:center; gap:20px;">
+        <!-- Möbius SVG -->
+        <div style="position:relative; width:180px; height:180px; display:flex; align-items:center; justify-content:center;">
+          <svg width="180" height="180" viewBox="0 0 180 180" class="mobius-icon">
+            <defs>
+              <linearGradient id="mobGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+                <stop offset="0%" stop-color="#60CFFF"/>
+                <stop offset="50%" stop-color="#0E7AE6"/>
+                <stop offset="100%" stop-color="#0057CC"/>
+              </linearGradient>
+              <filter id="glow">
+                <feGaussianBlur stdDeviation="4" result="coloredBlur"/>
+                <feMerge><feMergeNode in="coloredBlur"/><feMergeNode in="SourceGraphic"/></feMerge>
+              </filter>
+            </defs>
+            <!-- Möbius strip as two interlocking ellipses with gradient -->
+            <ellipse cx="90" cy="90" rx="70" ry="30" fill="none" stroke="url(#mobGrad)" stroke-width="14" stroke-linecap="round" filter="url(#glow)" opacity="0.9"/>
+            <ellipse cx="90" cy="90" rx="35" ry="65" fill="none" stroke="url(#mobGrad)" stroke-width="10" stroke-linecap="round" filter="url(#glow)" opacity="0.7" transform="rotate(45 90 90)"/>
+            <circle cx="90" cy="90" r="8" fill="#0E7AE6" opacity="0.8" filter="url(#glow)"/>
+          </svg>
+        </div>
+        <div style="font-family:'Plus Jakarta Sans',sans-serif; font-size:48px; font-weight:800; color:#0E7AE6; letter-spacing:-1px;" class="glow-text">Recall</div>
+        <div style="font-size:16px; color:#8A9AB0; letter-spacing:0.1em; text-transform:uppercase;">Remember. Connect. Care.</div>
+        <!-- Skeleton loader bar -->
+        <div class="skeleton" style="width:140px; height:4px; border-radius:4px; margin-top:8px;"></div>
+        <button class="btn btn-primary slide-in" style="margin-top:16px; min-width:200px;" onclick="zoomTo(event, 1)">
+          Get Started →
+        </button>
+      </div>
+    </div>
+
+    <!-- ─────────────────────────────────────────────
+         SCREEN 1 — LOGIN
+    ──────────────────────────────────────────────── -->
+    <div class="screen" id="s1" style="background:#F8F5F0; align-items:center; justify-content:center; gap:24px; padding:32px;">
+      <div class="blob blob1" style="opacity:0.1;"></div>
+      <div style="position:relative; z-index:2; width:100%; display:flex; flex-direction:column; align-items:center; gap:24px;">
+        <div style="text-align:center;">
+          <div style="font-family:'Plus Jakarta Sans',sans-serif; font-size:32px; font-weight:800; color:#1A2B4A;">Welcome</div>
+          <div style="font-size:18px; color:#6B7A8D; margin-top:6px;">Who is using Recall?</div>
+        </div>
+        <!-- Patient card -->
+        <div class="glass glass-glow" style="width:100%; padding:28px 24px; cursor:pointer; transition:transform 200ms;" onclick="zoomTo(event, 2)"
+          onmouseenter="this.style.transform='scale(1.02) translateY(-3px)'" onmouseleave="this.style.transform=''">
+          <div style="display:flex; align-items:center; gap:16px;">
+            <div style="width:56px; height:56px; border-radius:18px; background:linear-gradient(135deg,#FFF5E0,#FFD580); display:flex; align-items:center; justify-content:center; font-size:28px; flex-shrink:0;">☀️</div>
+            <div>
+              <div style="font-family:'Plus Jakarta Sans',sans-serif; font-size:22px; font-weight:700; color:#1A2B4A;">I am Margaret</div>
+              <div style="font-size:16px; color:#6B7A8D; margin-top:2px;">Continue as patient</div>
+            </div>
+            <div style="margin-left:auto; font-size:24px; color:#0E7AE6;">›</div>
+          </div>
+        </div>
+        <!-- Supervisor card -->
+        <div class="glass" style="width:100%; padding:28px 24px; cursor:pointer; transition:transform 200ms;" onclick="zoomTo(event, 5)"
+          onmouseenter="this.style.transform='scale(1.02) translateY(-3px)'" onmouseleave="this.style.transform=''">
+          <div style="display:flex; align-items:center; gap:16px;">
+            <div style="width:56px; height:56px; border-radius:18px; background:linear-gradient(135deg,#EEF6FF,#A8D8FF); display:flex; align-items:center; justify-content:center; font-size:28px; flex-shrink:0;">🛡️</div>
+            <div>
+              <div style="font-family:'Plus Jakarta Sans',sans-serif; font-size:22px; font-weight:700; color:#1A2B4A;">Supervisor</div>
+              <div style="font-size:16px; color:#6B7A8D; margin-top:2px;">Caregiver dashboard</div>
+            </div>
+            <div style="margin-left:auto; font-size:24px; color:#6B7A8D;">›</div>
+          </div>
+        </div>
+        <div style="font-size:14px; color:#8A9AB0; margin-top:4px;">Need help? Contact Support</div>
+      </div>
+    </div>
+
+    <!-- ─────────────────────────────────────────────
+         SCREEN 2 — PATIENT HOME
+    ──────────────────────────────────────────────── -->
+    <div class="screen" id="s2" style="background:#F8F5F0; flex-direction:column;">
+      <div class="header">
+        <div style="display:flex; align-items:center; gap:10px;">
+          <svg width="28" height="28" viewBox="0 0 28 28" class="mobius-icon">
+            <ellipse cx="14" cy="14" rx="11" ry="5" fill="none" stroke="#0E7AE6" stroke-width="3" stroke-linecap="round"/>
+            <ellipse cx="14" cy="14" rx="5.5" ry="10" fill="none" stroke="#60CFFF" stroke-width="2.5" stroke-linecap="round" transform="rotate(45 14 14)"/>
+          </svg>
+          <span class="header-title">Recall</span>
+        </div>
+        <span style="font-size:17px; color:#6B7A8D;">Hi, Margaret 👋</span>
+      </div>
+      <div style="flex:1; overflow-y:auto; padding:16px; display:flex; flex-direction:column; gap:14px;">
+        <!-- State Reconstruction Card -->
+        <div class="glass glass-glow" style="padding:20px; border-radius:28px;">
+          <div style="display:flex; align-items:center; gap:8px; margin-bottom:10px;">
+            <span style="font-size:18px;">🌤️</span>
+            <span style="font-family:'Plus Jakarta Sans',sans-serif; font-size:13px; font-weight:700; color:#0E7AE6; text-transform:uppercase; letter-spacing:0.08em;">Your Reality Check</span>
+          </div>
+          <p style="font-size:20px; line-height:1.65; color:#1A2B4A; font-weight:500;">
+            You are at home in <strong style="color:#0E7AE6;">Shrewsbury, MA</strong>. It is Wednesday afternoon. You took Metformin this morning. Next: <strong style="color:#0E7AE6;">Susan calls at 3 PM</strong>.
+          </p>
+          <div style="margin-top:12px; font-size:14px; color:#8A9AB0; display:flex; align-items:center; gap:6px;">
+            <span>🕐</span> Updated just now · refreshes every 5 min
+          </div>
+        </div>
+
+        <!-- Medications today -->
+        <div>
+          <div style="font-family:'Plus Jakarta Sans',sans-serif; font-size:15px; font-weight:700; color:#1A2B4A; margin-bottom:10px; text-transform:uppercase; letter-spacing:0.06em;">Today's Medications</div>
+          <div style="display:flex; gap:12px; overflow-x:auto; padding-bottom:4px;">
+            <!-- Metformin -->
+            <div class="glass" style="flex-shrink:0; width:170px; padding:18px; cursor:pointer; transition:transform 200ms;" onclick="zoomTo(event, 3)"
+              onmouseenter="this.style.transform='scale(1.03)'" onmouseleave="this.style.transform=''">
+              <div style="font-size:28px; margin-bottom:8px;">💊</div>
+              <div style="font-family:'Plus Jakarta Sans',sans-serif; font-size:17px; font-weight:700; color:#1A2B4A;">Metformin</div>
+              <div style="font-size:14px; color:#6B7A8D; margin-top:2px;">500mg · 8 AM</div>
+              <div style="margin-top:10px; display:flex; align-items:center; gap:6px;">
+                <div style="width:8px; height:8px; border-radius:50%; background:#10B981;"></div>
+                <span style="font-size:13px; color:#10B981; font-weight:600;">Taken ✓</span>
+              </div>
+            </div>
+            <!-- Lisinopril -->
+            <div class="glass glass-glow" style="flex-shrink:0; width:170px; padding:18px; cursor:pointer; transition:transform 200ms;" onclick="zoomTo(event, 3)"
+              onmouseenter="this.style.transform='scale(1.03)'" onmouseleave="this.style.transform=''">
+              <div style="font-size:28px; margin-bottom:8px;">💊</div>
+              <div style="font-family:'Plus Jakarta Sans',sans-serif; font-size:17px; font-weight:700; color:#1A2B4A;">Lisinopril</div>
+              <div style="font-size:14px; color:#6B7A8D; margin-top:2px;">10mg · 8 PM</div>
+              <div style="margin-top:10px;">
+                <button class="btn btn-primary" style="font-size:14px; padding:10px 14px; border-radius:12px; width:100%;" onclick="zoomTo(event, 3)">
+                  Take Now
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Today's events -->
+        <div>
+          <div style="font-family:'Plus Jakarta Sans',sans-serif; font-size:15px; font-weight:700; color:#1A2B4A; margin-bottom:10px; text-transform:uppercase; letter-spacing:0.06em;">Today's Events</div>
+          <div style="display:flex; flex-direction:column; gap:8px;">
+            <div class="glass" style="padding:14px 18px; display:flex; align-items:center; gap:14px;">
+              <div style="width:36px; height:36px; border-radius:12px; background:#E8F5E9; display:flex; align-items:center; justify-content:center; font-size:18px; flex-shrink:0;">🍳</div>
+              <div style="flex:1;"><div style="font-size:17px; color:#1A2B4A; font-weight:500;">Breakfast</div><div style="font-size:14px; color:#6B7A8D;">7:30 AM</div></div>
+              <div style="width:22px; height:22px; border-radius:50%; background:#10B981; display:flex; align-items:center; justify-content:center; color:white; font-size:12px;">✓</div>
+            </div>
+            <div class="glass glass-glow" style="padding:14px 18px; display:flex; align-items:center; gap:14px;">
+              <div style="width:36px; height:36px; border-radius:12px; background:#EEF6FF; display:flex; align-items:center; justify-content:center; font-size:18px; flex-shrink:0;">📞</div>
+              <div style="flex:1;"><div style="font-size:17px; color:#1A2B4A; font-weight:500;">Susan calls</div><div style="font-size:14px; color:#0E7AE6; font-weight:600;">3:00 PM — upcoming</div></div>
+              <div style="width:22px; height:22px; border-radius:50%; background:rgba(14,122,230,0.12); display:flex; align-items:center; justify-content:center; color:#0E7AE6; font-size:14px;">›</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Floating mic FAB -->
+      <button class="fab" onclick="zoomTo(event, 4)">🎙️</button>
+
+      <!-- Tab bar -->
+      <div class="tab-bar">
+        <button class="tab-item active" onclick="zoomTo(event, 2)"><span class="tab-icon">🏠</span>Home</button>
+        <button class="tab-item" onclick="zoomTo(event, 4)"><span class="tab-icon">🎙️</span>Clara</button>
+        <button class="tab-item" onclick="zoomTo(event, 3)"><span class="tab-icon">💊</span>Meds</button>
+        <button class="tab-item" onclick="showTab(2,'events')"><span class="tab-icon">📋</span>Today</button>
+        <button class="tab-item" onclick="showTab(2,'score')"><span class="tab-icon">📊</span>Score</button>
+      </div>
+    </div>
+
+    <!-- ─────────────────────────────────────────────
+         SCREEN 3 — MEDICATION TRACKER
+    ──────────────────────────────────────────────── -->
+    <div class="screen" id="s3" style="background:#F8F5F0; flex-direction:column;">
+      <div class="header">
+        <button class="btn btn-ghost" style="padding:10px 16px; font-size:16px;" onclick="zoomTo(event, 2)">‹ Back</button>
+        <span style="font-family:'Plus Jakarta Sans',sans-serif; font-size:18px; font-weight:700; color:#1A2B4A;">Medication</span>
+        <div style="width:80px;"></div>
+      </div>
+      <div style="flex:1; overflow-y:auto; padding:20px; display:flex; flex-direction:column; align-items:center; gap:20px;">
+        <!-- Camera viewfinder -->
+        <div class="glass" style="width:100%; aspect-ratio:1; border-radius:32px; overflow:hidden; position:relative; display:flex; align-items:center; justify-content:center; background:linear-gradient(135deg,#0A0F1E,#1A2B4A);">
+          <div style="position:absolute; inset:20px; border:2px dashed rgba(14,122,230,0.5); border-radius:20px;"></div>
+          <div style="text-align:center; color:white; z-index:2;">
+            <div style="font-size:48px; margin-bottom:12px;">📷</div>
+            <div style="font-family:'Plus Jakarta Sans',sans-serif; font-size:18px; font-weight:600;">Camera Active</div>
+            <div style="font-size:15px; opacity:0.7; margin-top:6px;">Show me Lisinopril</div>
+          </div>
+          <!-- Corner brackets -->
+          <div style="position:absolute; top:16px; left:16px; width:24px; height:24px; border-top:3px solid #0E7AE6; border-left:3px solid #0E7AE6; border-radius:4px 0 0 0;"></div>
+          <div style="position:absolute; top:16px; right:16px; width:24px; height:24px; border-top:3px solid #0E7AE6; border-right:3px solid #0E7AE6; border-radius:0 4px 0 0;"></div>
+          <div style="position:absolute; bottom:16px; left:16px; width:24px; height:24px; border-bottom:3px solid #0E7AE6; border-left:3px solid #0E7AE6; border-radius:0 0 0 4px;"></div>
+          <div style="position:absolute; bottom:16px; right:16px; width:24px; height:24px; border-bottom:3px solid #0E7AE6; border-right:3px solid #0E7AE6; border-radius:0 0 4px 0;"></div>
+        </div>
+        <!-- Instruction -->
+        <div class="glass" style="width:100%; padding:18px 20px; text-align:center;">
+          <div style="font-size:20px; line-height:1.6; color:#1A2B4A;">It's time to take your <strong style="color:#0E7AE6;">Lisinopril 10mg</strong>. Please hold it up to the camera.</div>
+        </div>
+        <!-- Confirmed result -->
+        <div class="glass" style="width:100%; padding:18px 20px; border:2px solid rgba(16,185,129,0.3); background:rgba(16,185,129,0.05);">
+          <div style="display:flex; align-items:center; gap:12px;">
+            <div style="width:44px; height:44px; border-radius:50%; background:#10B981; display:flex; align-items:center; justify-content:center; font-size:22px; color:white; flex-shrink:0;">✓</div>
+            <div>
+              <div style="font-family:'Plus Jakarta Sans',sans-serif; font-size:18px; font-weight:700; color:#10B981;">Confirmed — Vision Verified</div>
+              <div style="font-size:15px; color:#6B7A8D; margin-top:2px;">High confidence · Pill bottle detected</div>
+            </div>
+          </div>
+          <!-- SVG countdown ring -->
+          <div style="display:flex; align-items:center; justify-content:center; margin-top:16px; gap:16px;">
+            <svg width="60" height="60" viewBox="0 0 60 60">
+              <circle class="gauge-track" cx="30" cy="30" r="24" fill="none" stroke-width="5"/>
+              <circle class="gauge-fill" cx="30" cy="30" r="24" fill="none" stroke-width="5" stroke-dasharray="150" stroke-dashoffset="45" transform="rotate(-90 30 30)"/>
+              <text x="30" y="35" text-anchor="middle" font-size="16" font-weight="700" fill="#0E7AE6" font-family="Plus Jakarta Sans">7</text>
+            </svg>
+            <div style="font-size:17px; color:#1A2B4A;">Taking in <strong>7 seconds</strong>…<br/><span style="font-size:14px; color:#6B7A8D;">Please take the medication now</span></div>
+          </div>
+        </div>
+        <button class="btn btn-primary" style="width:100%; padding:20px;" onclick="zoomTo(event, 2)">
+          Done ✓
+        </button>
+      </div>
+    </div>
+
+    <!-- ─────────────────────────────────────────────
+         SCREEN 4 — CLARA VOICE AGENT
+    ──────────────────────────────────────────────── -->
+    <div class="screen" id="s4" style="background:#F8F5F0; flex-direction:column;">
+      <div class="header">
+        <button class="btn btn-ghost" style="padding:10px 16px; font-size:16px;" onclick="zoomTo(event, 2)">‹ Back</button>
+        <div style="text-align:center;">
+          <div style="font-family:'Plus Jakarta Sans',sans-serif; font-size:18px; font-weight:700; color:#1A2B4A;">Clara</div>
+          <div style="font-size:13px; color:#10B981; font-weight:600;">● Your AI companion</div>
+        </div>
+        <div style="width:80px;"></div>
+      </div>
+      <div style="flex:1; overflow-y:auto; padding:16px; display:flex; flex-direction:column; gap:12px;">
+        <!-- Clara intro -->
+        <div style="display:flex; align-items:flex-end; gap:10px;">
+          <div style="width:38px; height:38px; border-radius:50%; background:linear-gradient(135deg,#60CFFF,#0E7AE6); display:flex; align-items:center; justify-content:center; font-size:18px; flex-shrink:0;">🌸</div>
+          <div class="bubble-clara">Hello Margaret, how are you feeling today?</div>
+        </div>
+        <div style="display:flex; justify-content:flex-end;">
+          <div class="bubble-user">I'm doing okay, just a little tired.</div>
+        </div>
+        <div style="display:flex; align-items:flex-end; gap:10px;">
+          <div style="width:38px; height:38px; border-radius:50%; background:linear-gradient(135deg,#60CFFF,#0E7AE6); display:flex; align-items:center; justify-content:center; font-size:18px; flex-shrink:0;">🌸</div>
+          <div class="bubble-clara">That's okay. Would you like to talk about something nice? You had a lovely morning walk today!</div>
+        </div>
+        <div style="display:flex; justify-content:flex-end;">
+          <div class="bubble-user">What did I do today?</div>
+        </div>
+        <div style="display:flex; align-items:flex-end; gap:10px;">
+          <div style="width:38px; height:38px; border-radius:50%; background:linear-gradient(135deg,#60CFFF,#0E7AE6); display:flex; align-items:center; justify-content:center; font-size:18px; flex-shrink:0;">🌸</div>
+          <div class="bubble-clara">This morning you had breakfast, took your Metformin, and had a nice walk in the garden. Susan will be calling you at 3 PM!</div>
+        </div>
+      </div>
+      <div style="padding:16px 16px 20px; background:#F8F5F0; border-top:1px solid rgba(0,0,0,0.06); display:flex; flex-direction:column; align-items:center; gap:10px;">
+        <p style="font-size:17px; color:#6B7A8D; margin:0;" id="mic-label">Tap to talk to Clara</p>
+        <button class="btn btn-primary mic-listening" style="width:72px; height:72px; border-radius:50%; font-size:30px; padding:0;" onclick="zoomTo(event, 6)">
+          🎙️
+        </button>
+      </div>
+    </div>
+
+    <!-- ─────────────────────────────────────────────
+         SCREEN 5 — SUPERVISOR DASHBOARD
+    ──────────────────────────────────────────────── -->
+    <div class="screen" id="s5" style="background:#F0F4FA; flex-direction:column;">
+      <div class="sv-header">
+        <div style="display:flex; align-items:center; gap:10px;">
+          <svg width="28" height="28" viewBox="0 0 28 28" class="mobius-icon">
+            <ellipse cx="14" cy="14" rx="11" ry="5" fill="none" stroke="#60CFFF" stroke-width="3" stroke-linecap="round"/>
+            <ellipse cx="14" cy="14" rx="5.5" ry="10" fill="none" stroke="#A8D8FF" stroke-width="2.5" stroke-linecap="round" transform="rotate(45 14 14)"/>
+          </svg>
+          <span style="font-family:'Plus Jakarta Sans',sans-serif; font-size:20px; font-weight:800; color:white;">Supervisor</span>
+        </div>
+        <button class="btn btn-ghost" style="font-size:14px; padding:8px 14px; color:rgba(255,255,255,0.8); border-color:rgba(255,255,255,0.2);" onclick="zoomTo(event, 1)">Logout</button>
+      </div>
+      <!-- Alert banner -->
+      <div style="background:#DC2626; padding:10px 16px; display:flex; align-items:center; gap:10px; flex-shrink:0;">
+        <span style="font-size:18px;">🚨</span>
+        <span style="flex:1; color:white; font-size:15px; font-weight:600;">Comfort Mode activated at 2:47 PM</span>
+        <span style="color:rgba(255,255,255,0.8); font-size:18px; cursor:pointer;">✕</span>
+      </div>
+      <div style="flex:1; overflow-y:auto; padding:16px; display:flex; flex-direction:column; gap:16px;">
+        <!-- Large Möbius center -->
+        <div style="display:flex; flex-direction:column; align-items:center; padding:24px 0 8px;">
+          <svg width="180" height="180" viewBox="0 0 180 180" class="mobius-icon">
+            <defs>
+              <linearGradient id="svMobGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+                <stop offset="0%" stop-color="#60CFFF"/>
+                <stop offset="50%" stop-color="#0E7AE6"/>
+                <stop offset="100%" stop-color="#0057CC"/>
+              </linearGradient>
+              <filter id="svGlow">
+                <feGaussianBlur stdDeviation="5" result="coloredBlur"/>
+                <feMerge><feMergeNode in="coloredBlur"/><feMergeNode in="SourceGraphic"/></feMerge>
+              </filter>
+            </defs>
+            <ellipse cx="90" cy="90" rx="70" ry="30" fill="none" stroke="url(#svMobGrad)" stroke-width="12" stroke-linecap="round" filter="url(#svGlow)"/>
+            <ellipse cx="90" cy="90" rx="35" ry="65" fill="none" stroke="url(#svMobGrad)" stroke-width="9" stroke-linecap="round" filter="url(#svGlow)" transform="rotate(45 90 90)" opacity="0.8"/>
+            <ellipse cx="90" cy="90" rx="55" ry="20" fill="none" stroke="#60CFFF" stroke-width="4" stroke-linecap="round" transform="rotate(-30 90 90)" opacity="0.4"/>
+            <circle cx="90" cy="90" r="10" fill="#0E7AE6" opacity="0.9" filter="url(#svGlow)"/>
+          </svg>
+          <div style="font-family:'Plus Jakarta Sans',sans-serif; font-size:24px; font-weight:700; color:#1A2B4A; margin-top:8px;">Margaret's Dashboard</div>
+        </div>
+        <!-- Stats grid 2x2 -->
+        <div style="display:grid; grid-template-columns:1fr 1fr; gap:12px;">
+          <div class="glass glass-glow" style="padding:18px; text-align:center;">
+            <div style="font-size:13px; color:#6B7A8D; text-transform:uppercase; letter-spacing:0.06em; margin-bottom:6px;">ACSE Score</div>
+            <div style="font-family:'Plus Jakarta Sans',sans-serif; font-size:38px; font-weight:800; color:#F59E0B;">47</div>
+            <div style="font-size:13px; color:#F59E0B; font-weight:600; margin-top:2px;">⚠ Moderate</div>
+          </div>
+          <div class="glass" style="padding:18px; text-align:center;">
+            <div style="font-size:13px; color:#6B7A8D; text-transform:uppercase; letter-spacing:0.06em; margin-bottom:6px;">Events Today</div>
+            <div style="font-family:'Plus Jakarta Sans',sans-serif; font-size:38px; font-weight:800; color:#0E7AE6;">5</div>
+            <div style="font-size:13px; color:#0E7AE6; font-weight:600; margin-top:2px; cursor:pointer;" onclick="zoomTo(event,5)">View timeline ›</div>
+          </div>
+          <div class="glass" style="padding:18px; text-align:center;">
+            <div style="font-size:13px; color:#6B7A8D; text-transform:uppercase; letter-spacing:0.06em; margin-bottom:6px;">Meds Taken</div>
+            <div style="font-family:'Plus Jakarta Sans',sans-serif; font-size:38px; font-weight:800; color:#10B981;">1<span style="font-size:22px; font-weight:400; color:#8A9AB0;">/2</span></div>
+            <div style="font-size:13px; color:#10B981; font-weight:600; margin-top:2px;">On track</div>
+          </div>
+          <div class="glass" style="padding:18px; text-align:center; cursor:pointer;" onclick="zoomTo(event, 6)">
+            <div style="font-size:13px; color:#6B7A8D; text-transform:uppercase; letter-spacing:0.06em; margin-bottom:6px;">Alerts</div>
+            <div style="font-family:'Plus Jakarta Sans',sans-serif; font-size:38px; font-weight:800; color:#DC2626;">1</div>
+            <div style="font-size:13px; color:#DC2626; font-weight:600; margin-top:2px;">Comfort Mode!</div>
+          </div>
+        </div>
+        <button class="btn btn-primary" style="width:100%; padding:18px;" onclick="zoomTo(event, 1)">
+          Switch to Patient View →
+        </button>
+      </div>
+      <!-- Tab bar -->
+      <div class="tab-bar">
+        <button class="tab-item active" onclick="zoomTo(event, 5)"><span class="tab-icon">🏠</span>Home</button>
+        <button class="tab-item" onclick="zoomTo(event, 5)"><span class="tab-icon">📋</span>Events</button>
+        <button class="tab-item" onclick="zoomTo(event, 5)"><span class="tab-icon">💊</span>Meds</button>
+        <button class="tab-item" onclick="zoomTo(event, 5)"><span class="tab-icon">📊</span>ACSE</button>
+        <button class="tab-item" onclick="zoomTo(event, 5)"><span class="tab-icon">👤</span>Profile</button>
+      </div>
+    </div>
+
+    <!-- ─────────────────────────────────────────────
+         SCREEN 6 — COMFORT MODE
+    ──────────────────────────────────────────────── -->
+    <div class="screen" id="s6" style="background:linear-gradient(180deg,#EEF6FF 0%,#F8F5F0 100%); flex-direction:column; align-items:center; justify-content:center;">
+      <div class="blob blob1" style="opacity:0.1;"></div>
+      <div style="position:relative; z-index:2; width:100%; padding:32px 24px; display:flex; flex-direction:column; align-items:center; gap:24px;">
+        <!-- Concentric breathing circles -->
+        <div style="position:relative; width:200px; height:200px; display:flex; align-items:center; justify-content:center;">
+          <div class="pulse-ring pulse-ring-1" style="width:200px; height:200px;"></div>
+          <div class="pulse-ring pulse-ring-2" style="width:150px; height:150px;"></div>
+          <div class="pulse-ring pulse-ring-3" style="width:100px; height:100px;"></div>
+          <div style="width:52px; height:52px; border-radius:50%; background:white; box-shadow:0 4px 20px rgba(14,122,230,0.2); display:flex; align-items:center; justify-content:center; font-size:24px;">🌸</div>
+        </div>
+        <div class="breathe-label">Breathe in...</div>
+        <!-- Grounding text -->
+        <p style="font-size:24px; font-weight:700; color:#1A2B4A; text-align:center; line-height:1.5; font-family:'Plus Jakarta Sans',sans-serif;">
+          You are safe at home.<br/>It is Wednesday afternoon.
+        </p>
+        <!-- Family photo card -->
+        <div class="glass" style="width:100%; padding:16px; border-radius:32px; overflow:hidden;">
+          <div style="width:100%; height:140px; background:linear-gradient(135deg,#FFF5E0,#FFD580,#FFA040); border-radius:20px; display:flex; align-items:center; justify-content:center; font-size:60px;">👩‍👧</div>
+          <p style="text-align:center; font-size:16px; color:#6B7A8D; margin-top:10px;">Susan will visit you tonight</p>
+        </div>
+        <button class="btn btn-primary" style="width:100%; padding:20px; font-size:20px;" onclick="zoomTo(event, 2)">
+          I'm feeling better ✓
+        </button>
+      </div>
+    </div>
+
+  </div><!-- /phone -->
+</div><!-- /stage -->
+
+<script>
+// ── State ────────────────────────────────────────────────────────────────────
+const SCREENS = [
+  '① Loading',
+  '② Login',
+  '③ Patient Home',
+  '④ Medication Tracker',
+  '⑤ Clara Voice Agent',
+  '⑥ Supervisor Dashboard',
+  '⑦ Comfort Mode',
+];
+let currentScreen = 0;
+
+// ── Build progress dots ───────────────────────────────────────────────────────
+const dotsEl = document.getElementById('progress-dots');
+SCREENS.forEach((_, i) => {
+  const dot = document.createElement('div');
+  dot.className = 'dot' + (i === 0 ? ' active' : '');
+  dot.title = SCREENS[i];
+  dot.addEventListener('click', () => navigateTo(i));
+  dotsEl.appendChild(dot);
+});
+
+function updateDots(idx) {
+  document.querySelectorAll('.dot').forEach((d, i) => d.classList.toggle('active', i === idx));
+}
+
+function updateLabel(idx) {
+  document.getElementById('screen-label').textContent = SCREENS[idx] ?? '';
+}
+
+// ── Zoom transition ──────────────────────────────────────────────────────────
+function zoomTo(event, targetIdx) {
+  event?.stopPropagation();
+  if (targetIdx === currentScreen) return;
+
+  const ring = document.getElementById('zoom-ring');
+  const rect = event?.target?.getBoundingClientRect?.() ?? { left: window.innerWidth/2, top: window.innerHeight/2, width: 0, height: 0 };
+  const cx = rect.left + rect.width / 2;
+  const cy = rect.top + rect.height / 2;
+  const size = Math.max(window.innerWidth, window.innerHeight) * 2.5;
+
+  // Position ring at click point
+  ring.style.cssText = `
+    position:fixed;
+    width:${size}px; height:${size}px;
+    left:${cx - size/2}px; top:${cy - size/2}px;
+    border-radius:50%;
+    background:radial-gradient(circle, rgba(14,122,230,0.6) 0%, rgba(14,122,230,0) 65%);
+    transform:scale(0); opacity:1; pointer-events:none; z-index:9999;
+    transition: transform 520ms cubic-bezier(0.4,0,0.2,1), opacity 300ms ease 350ms;
+  `;
+
+  // Force reflow
+  ring.getBoundingClientRect();
+
+  // Expand ring
+  ring.style.transform = 'scale(1)';
+
+  // Swap screens at peak
+  setTimeout(() => {
+    navigateTo(targetIdx);
+    ring.style.opacity = '0';
+  }, 320);
+
+  setTimeout(() => {
+    ring.style.transform = 'scale(0)';
+    ring.style.opacity = '1';
+    ring.style.transition = 'none';
+  }, 700);
+}
+
+function navigateTo(idx) {
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+  const target = document.getElementById('s' + idx);
+  if (target) {
+    target.classList.add('active');
+    // Trigger slide-in on children
+    target.querySelectorAll('.slide-in').forEach(el => {
+      el.style.animation = 'none';
+      el.getBoundingClientRect();
+      el.style.animation = '';
+    });
+  }
+  currentScreen = idx;
+  updateDots(idx);
+  updateLabel(idx);
+}
+
+// ── Keyboard navigation ───────────────────────────────────────────────────────
+document.addEventListener('keydown', (e) => {
+  if (e.key === 'ArrowRight' || e.key === 'ArrowDown') {
+    const next = Math.min(currentScreen + 1, SCREENS.length - 1);
+    navigateTo(next);
+  } else if (e.key === 'ArrowLeft' || e.key === 'ArrowUp') {
+    const prev = Math.max(currentScreen - 1, 0);
+    navigateTo(prev);
+  }
+});
+</script>
+</body>
+</html>
