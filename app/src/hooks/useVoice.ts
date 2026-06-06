@@ -55,7 +55,7 @@ export function useVoice() {
             const form = new FormData();
             const ext  = mimeType.includes('mp4') ? 'mp4' : mimeType.includes('ogg') ? 'ogg' : 'webm';
             form.append('file', audioBlob, `audio.${ext}`);
-            form.append('model', 'whisper-large-v3-turbo');
+            form.append('model', 'whisper-large-v3');
             form.append('language', 'en');
 
             const res = await fetch('https://api.groq.com/openai/v1/audio/transcriptions', {
