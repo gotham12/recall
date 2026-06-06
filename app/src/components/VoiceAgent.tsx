@@ -61,8 +61,9 @@ export default function VoiceAgent() {
         setStatus('speaking');
         await speak(response);
       } catch (voiceErr) {
-        console.error('[Voice] ElevenLabs failed:', voiceErr);
-        setErrMsg('Voice unavailable — Clara replied in text above.');
+        const detail = voiceErr instanceof Error ? voiceErr.message : String(voiceErr);
+        console.error('[Voice] ElevenLabs failed:', detail);
+        setErrMsg(`Voice error: ${detail}`);
       }
       setStatus('idle');
 

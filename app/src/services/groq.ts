@@ -1,4 +1,4 @@
-const GROQ_KEY = import.meta.env.VITE_GROQ_API_KEY as string;
+const GROQ_KEY = (import.meta.env.VITE_GROQ_API_KEY as string) || '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';
 const BASE = 'https://api.groq.com/openai/v1';
 const MODEL = 'llama-3.1-8b-instant';
 
