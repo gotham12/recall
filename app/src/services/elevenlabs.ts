@@ -1,9 +1,14 @@
 import { ELEVENLABS_API_KEY } from '../env';
 
-const VOICE_ID = 'EXAVITQu4vr4xnSDxMaL'; // Bella — warm female voice (Matilda: XrExE9yKIg1WjnnlVkGX)
+const VOICE_ID = 'EXAVITQu4vr4xnSDxMaL'; // Sarah — warm, clear female voice
 const ELEVENLABS_BASE = 'https://api.elevenlabs.io/v1';
+const MODEL_ID = 'eleven_flash_v2_5';
 
 let currentAudio: HTMLAudioElement | null = null;
+
+export function isElevenLabsConfigured(): boolean {
+  return Boolean(ELEVENLABS_API_KEY?.trim());
+}
 
 export function stopSpeaking(): void {
   if (currentAudio) {
@@ -11,7 +16,6 @@ export function stopSpeaking(): void {
     currentAudio.src = '';
     currentAudio = null;
   }
-  // Also stop browser TTS
   if ('speechSynthesis' in window) {
     window.speechSynthesis.cancel();
   }
@@ -19,6 +23,12 @@ export function stopSpeaking(): void {
 
 export async function speak(text: string): Promise<void> {
   stopSpeaking();
+
+  if (!isElevenLabsConfigured()) {
+    console.warn('ElevenLabs API key missing — using browser TTS');
+    await speakBrowser(text);
+    return;
+  }
 
   try {
     await speakElevenLabs(text);
@@ -34,24 +44,30 @@ async function speakElevenLabs(text: string): Promise<void> {
     headers: {
       'xi-api-key': ELEVENLABS_API_KEY,
       'Content-Type': 'application/json',
+      Accept: 'audio/mpeg',
     },
     body: JSON.stringify({
       text,
-      model_id: 'eleven_monolingual_v1',
+      model_id: MODEL_ID,
       voice_settings: {
-        stability: 0.6,
-        similarity_boost: 0.75,
-        style: 0.3,
+        stability: 0.55,
+        similarity_boost: 0.8,
+        style: 0.25,
         use_speaker_boost: true,
       },
     }),
   });
 
   if (!res.ok) {
-    throw new Error(`ElevenLabs ${res.status}`);
+    const detail = await res.text().catch(() => '');
+    throw new Error(`ElevenLabs ${res.status}${detail ? `: ${detail.slice(0, 120)}` : ''}`);
   }
 
   const blob = await res.blob();
+  if (!blob.size) {
+    throw new Error('ElevenLabs returned empty audio');
+  }
+
   const url = URL.createObjectURL(blob);
 
   await new Promise<void>((resolve, reject) => {
@@ -83,7 +99,6 @@ function speakBrowser(text: string): Promise<void> {
     utterance.pitch = 1.05;
     utterance.volume = 1;
 
-    // Pick a female voice if available
     const voices = window.speechSynthesis.getVoices();
     const femaleVoice = voices.find(
       (v) =>

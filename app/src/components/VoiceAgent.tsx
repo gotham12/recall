@@ -5,6 +5,7 @@ import { claraChat } from '../services/groq';
 import { useAppStore } from '../store/appStore';
 import { db } from '../db/db';
 import StudioIcon from './StudioIcon';
+import { speak, stopSpeaking } from '../services/elevenlabs';
 
 interface Turn {
   role: 'user' | 'assistant';
@@ -103,17 +104,30 @@ export default function VoiceAgent() {
         )}
         {turns.map((t, i) => (
           <div key={i} className={`clara-chat__row clara-chat__row--${t.role}`}>
-            <div
-              className={t.role === 'user' ? 'studio-bubble-user' : 'studio-bubble-assistant'}
-              style={{
-                maxWidth: '82%',
-                padding: '12px 16px',
-                borderRadius: t.role === 'user' ? '18px 18px 4px 18px' : '18px 18px 18px 4px',
-                fontSize: 18,
-                lineHeight: 1.5,
-              }}
-            >
-              {t.content}
+            <div style={{ maxWidth: '82%', display: 'flex', flexDirection: 'column', gap: 6, alignItems: t.role === 'user' ? 'flex-end' : 'flex-start' }}>
+              <div
+                className={t.role === 'user' ? 'studio-bubble-user' : 'studio-bubble-assistant'}
+                style={{
+                  padding: '12px 16px',
+                  borderRadius: t.role === 'user' ? '18px 18px 4px 18px' : '18px 18px 18px 4px',
+                  fontSize: 18,
+                  lineHeight: 1.5,
+                }}
+              >
+                {t.content}
+              </div>
+              {t.role === 'assistant' && (
+                <button
+                  type="button"
+                  className="studio-icon-btn tap-feedback"
+                  onClick={() => { stopSpeaking(); void speak(t.content); }}
+                  aria-label="Listen to Clara"
+                  style={{ padding: '6px 10px', fontSize: 13 }}
+                >
+                  <StudioIcon name="speaker" size={16} />
+                  <span style={{ marginLeft: 6 }}>Listen</span>
+                </button>
+              )}
             </div>
           </div>
         ))}
