@@ -2,6 +2,8 @@ import { useState } from 'react';
 import { useLiveQuery } from 'dexie-react-hooks';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import StudioShell from '../components/StudioShell';
+import RecallLogo from '../components/RecallLogo';
+import StudioIcon, { type IconName } from '../components/StudioIcon';
 import { FLOWERS } from '../flowers';
 import { useAppStore } from '../store/appStore';
 import { db, type Event, type User } from '../db/db';
@@ -16,12 +18,12 @@ const TAB_FLOWERS: Record<Tab, string> = {
   profile: FLOWERS.home,
 };
 
-const TABS: { id: Tab; label: string; icon: string }[] = [
-  { id: 'home',        label: 'Home',    icon: '🏠' },
-  { id: 'events',      label: 'Events',  icon: '📋' },
-  { id: 'medications', label: 'Meds',    icon: '💊' },
-  { id: 'acse',        label: 'ACSE',    icon: '📊' },
-  { id: 'profile',     label: 'Profile', icon: '👤' },
+const TABS: { id: Tab; label: string; icon: IconName }[] = [
+  { id: 'home',        label: 'Home',    icon: 'home' },
+  { id: 'events',      label: 'Events',  icon: 'events' },
+  { id: 'medications', label: 'Meds',    icon: 'meds' },
+  { id: 'acse',        label: 'ACSE',    icon: 'score' },
+  { id: 'profile',     label: 'Profile', icon: 'profile' },
 ];
 
 export default function SupervisorView() {
@@ -32,27 +34,30 @@ export default function SupervisorView() {
     <StudioShell
       flowerSrc={TAB_FLOWERS[activeTab]}
       contentKey={activeTab}
-      dimOverlay={0.76}
+      dimOverlay={0.62}
       header={
         <>
           <div className="studio-header">
-            <span className="studio-header__title">Supervisor</span>
+            <RecallLogo size="sm" />
             <button
               onClick={() => setScreen('login')}
-              style={{ background: 'none', border: 'none', color: 'rgba(255,255,255,0.55)', fontSize: 15, cursor: 'pointer', padding: 4 }}
+              className="studio-icon-btn tap-feedback"
+              aria-label="Log out"
             >
-              Logout
+              <StudioIcon name="logout" size={18} />
             </button>
           </div>
           {supervisorAlerts.length > 0 && (
-            <div className="alert-banner" style={{ position: 'relative', zIndex: 4, borderRadius: 0 }}>
-              <span style={{ fontSize: 18 }}>🚨</span>
+            <div className="alert-banner" style={{ position: 'relative', zIndex: 4, borderRadius: 0, display: 'flex', alignItems: 'center', gap: 10 }}>
+              <StudioIcon name="alert" size={20} />
               <span style={{ flex: 1 }}>{supervisorAlerts[0].message}</span>
               <button
                 onClick={() => clearSupervisorAlert(supervisorAlerts[0].id)}
-                style={{ background: 'none', border: 'none', color: 'white', fontSize: 18, cursor: 'pointer' }}
+                className="studio-icon-btn tap-feedback"
+                aria-label="Dismiss alert"
+                style={{ border: 'none', background: 'rgba(255,255,255,0.15)', color: 'white' }}
               >
-                ✕
+                <StudioIcon name="close" size={16} />
               </button>
             </div>
           )}
@@ -66,7 +71,9 @@ export default function SupervisorView() {
               onClick={() => setActiveTab(tab.id)}
               className={`studio-tab ${activeTab === tab.id ? 'studio-tab--active' : ''}`}
             >
-              <span className="studio-tab__icon">{tab.icon}</span>
+              <span className="studio-tab__icon">
+                <StudioIcon name={tab.icon} size={20} />
+              </span>
               <span className="studio-tab__label">{tab.label}</span>
             </button>
           ))}
@@ -126,8 +133,9 @@ function SupervisorHomeTab({ user }: { user: User | null }) {
           <p className="studio-text-muted" style={{ fontSize: 17, margin: '0 0 12px' }}>Caregiver: {user.caregiverName} ({user.caregiverRelationship})</p>
           <p className="studio-section-title" style={{ marginBottom: 6 }}>Medications</p>
           {user.medications.map((m, i) => (
-            <p key={i} className="studio-text-bright" style={{ fontSize: 17, margin: '0 0 2px' }}>
-              💊 {m.name} {m.dosage} — {m.schedule.join(', ')}
+            <p key={i} className="studio-text-bright" style={{ fontSize: 17, margin: '0 0 2px', display: 'flex', alignItems: 'center', gap: 8 }}>
+              <StudioIcon name="meds" size={16} />
+              {m.name} {m.dosage} — {m.schedule.join(', ')}
             </p>
           ))}
         </div>
@@ -254,7 +262,7 @@ function EventsTab({ user }: { user: User | null }) {
         className={`studio-btn tap-feedback ${showForm ? '' : 'studio-btn--primary'}`}
         style={{ marginBottom: 12, width: '100%', alignItems: 'center' }}
       >
-        {showForm ? '✕ Cancel' : '+ Add Event'}
+        {showForm ? 'Cancel' : 'Add Event'}
       </button>
 
       {/* Add event form */}
@@ -321,15 +329,19 @@ function EventsTab({ user }: { user: User | null }) {
             <div style={{ display: 'flex', flexDirection: 'column', gap: 6, marginLeft: 8 }}>
               <button
                 onClick={() => handleToggleComplete(e)}
-                style={{ background: e.completed ? '#10B98122' : '#2196F322', border: 'none', borderRadius: 8, padding: '4px 8px', fontSize: 16, cursor: 'pointer' }}
+                className="studio-icon-btn tap-feedback"
+                style={{ background: e.completed ? 'rgba(201,165,92,0.2)' : 'var(--studio-surface-soft)' }}
+                aria-label={e.completed ? 'Mark incomplete' : 'Mark complete'}
               >
-                {e.completed ? '✓' : '○'}
+                <StudioIcon name={e.completed ? 'check' : 'circle'} size={16} />
               </button>
               <button
                 onClick={() => e.id && handleDelete(e.id)}
-                style={{ background: '#EF444422', border: 'none', borderRadius: 8, padding: '4px 8px', fontSize: 14, cursor: 'pointer', color: '#EF4444' }}
+                className="studio-icon-btn tap-feedback"
+                style={{ color: '#c45c5c' }}
+                aria-label="Delete event"
               >
-                ✕
+                <StudioIcon name="close" size={16} />
               </button>
             </div>
           </div>
@@ -360,8 +372,9 @@ function MedicationsTab({ user }: { user: User | null }) {
       {sorted.map((log) => (
         <div key={log.id} className="card" style={{ padding: '14px 16px', marginBottom: 10 }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
-            <p className="studio-text-bright" style={{ fontSize: 18, fontWeight: 600, margin: 0 }}>
-              💊 {log.medicationName}
+            <p className="studio-text-bright" style={{ fontSize: 18, fontWeight: 600, margin: 0, display: 'flex', alignItems: 'center', gap: 8 }}>
+              <StudioIcon name="meds" size={18} />
+              {log.medicationName}
             </p>
             <span
               style={{
@@ -382,8 +395,9 @@ function MedicationsTab({ user }: { user: User | null }) {
           </p>
           <p className="studio-text-muted" style={{ fontSize: 15, margin: 0 }}>{log.visionDescription}</p>
           {!log.confirmed && (
-            <p style={{ fontSize: 14, color: '#EF4444', margin: '6px 0 0', fontWeight: 600 }}>
-              ⚠️ Unconfirmed — caregiver follow-up needed
+            <p className="studio-text-muted" style={{ fontSize: 14, color: '#c45c5c', margin: '6px 0 0', fontWeight: 600, display: 'flex', alignItems: 'center', gap: 6 }}>
+              <StudioIcon name="warning" size={14} />
+              Unconfirmed — caregiver follow-up needed
             </p>
           )}
         </div>
@@ -566,7 +580,10 @@ function ProfileTab() {
           </p>
           {user.medications.map((m, i) => (
             <div key={i} className="card" style={{ marginBottom: 12, padding: '10px 12px' }}>
-              <p className="studio-text-bright" style={{ fontSize: 17, fontWeight: 600, margin: '0 0 2px' }}>💊 {m.name}</p>
+              <p className="studio-text-bright" style={{ fontSize: 17, fontWeight: 600, margin: '0 0 2px', display: 'flex', alignItems: 'center', gap: 8 }}>
+                <StudioIcon name="meds" size={16} />
+                {m.name}
+              </p>
               <p className="studio-text-muted" style={{ fontSize: 15, margin: 0 }}>{m.dosage} · {m.schedule.join(', ')}</p>
             </div>
           ))}

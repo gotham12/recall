@@ -109,7 +109,7 @@ export default function BreathingCircle({ onComplete, cycles = 3 }: BreathingCir
               color: phase === 'done' ? '#10B981' : '#2196F3',
             }}
           >
-            {phase === 'done' ? '✓' : secondsLeft}
+            {phase === 'done' ? 'Done' : secondsLeft}
           </div>
         </div>
       </div>

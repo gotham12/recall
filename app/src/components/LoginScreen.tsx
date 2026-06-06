@@ -3,6 +3,7 @@ import { useGSAP } from '@gsap/react';
 import gsap from 'gsap';
 import FlowerStage from './FlowerStage';
 import AnimatedPanel from './AnimatedPanel';
+import RecallLogo from './RecallLogo';
 import { FLOWERS } from '../flowers';
 import { useAppStore } from '../store/appStore';
 import { db } from '../db/db';
@@ -91,7 +92,7 @@ export default function LoginScreen() {
       <FlowerStage src={flowerSrc} glowIntensity={0.9} variant="hero" />
 
       <div className="login-top">
-        <h1 className="login-title">Recall</h1>
+        <RecallLogo size="lg" />
         <p className="login-subtitle">Cognitive care, gently guided</p>
       </div>
 

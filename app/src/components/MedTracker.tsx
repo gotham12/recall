@@ -4,6 +4,7 @@ import { useACSE } from '../hooks/useACSE';
 import { verifyMedication } from '../services/vision';
 import { speak } from '../services/elevenlabs';
 import { db, type Medication } from '../db/db';
+import StudioIcon from './StudioIcon';
 
 const COOLDOWN_HOURS = 6;
 const MAX_RETRIES = 3;
@@ -223,8 +224,9 @@ export default function MedTracker() {
             <div key={i} className="card" style={{ padding: '20px' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                 <div>
-                  <p style={{ fontSize: 24, fontWeight: 600, color: '#ffffff', margin: '0 0 4px' }}>
-                    💊 {med.name}
+                  <p className="studio-text-bright" style={{ fontSize: 24, fontWeight: 600, margin: '0 0 4px', display: 'flex', alignItems: 'center', gap: 8 }}>
+                    <StudioIcon name="meds" size={22} />
+                    {med.name}
                   </p>
                   <p style={{ fontSize: 18, color: 'rgba(255,255,255,0.85)', margin: '0 0 4px' }}>
                     {med.dosage}
@@ -258,7 +260,9 @@ export default function MedTracker() {
 
       {phase === 'cooldown' && (
         <div className="card animate-fadeIn" style={{ padding: '28px 24px', textAlign: 'center', margin: '20px 0' }}>
-          <div style={{ fontSize: 48, marginBottom: 16 }}>⏰</div>
+          <div className="event-icon-badge" style={{ width: 56, height: 56, margin: '0 auto 16px' }}>
+            <StudioIcon name="calendar" size={28} />
+          </div>
           <p style={{ fontSize: 22, color: '#ffffff', marginBottom: 20 }}>{cooldownMsg}</p>
           <button className="btn-electric" onClick={reset}>Got it</button>
         </div>
@@ -286,8 +290,9 @@ export default function MedTracker() {
               Attempt {retries + 1} of {MAX_RETRIES}
             </p>
           )}
-          <button className="btn-electric tap-feedback" onClick={captureAndVerify}>
-            📸 Capture &amp; Verify
+          <button className="btn-electric tap-feedback" onClick={captureAndVerify} style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 8 }}>
+            <StudioIcon name="check" size={20} />
+            Capture &amp; Verify
           </button>
           <button onClick={reset} style={{ background: 'none', border: 'none', color: 'rgba(255,255,255,0.85)', fontSize: 18, cursor: 'pointer', padding: 8 }}>
             Cancel
@@ -304,7 +309,9 @@ export default function MedTracker() {
 
       {phase === 'countdown' && (
         <div className="card animate-fadeIn" style={{ padding: '32px 24px', textAlign: 'center', margin: '20px 0' }}>
-          <div style={{ fontSize: 48, marginBottom: 12 }}>✅</div>
+          <div className="event-icon-badge" style={{ width: 56, height: 56, margin: '0 auto 12px' }}>
+            <StudioIcon name="success" size={28} />
+          </div>
           <p className="studio-text-bright" style={{ fontSize: 22, fontWeight: 600, marginBottom: 8 }}>{visionMsg}</p>
           <p style={{ fontSize: 20, color: '#ffffff', marginBottom: 20 }}>
             Please take your medication now.
@@ -332,7 +339,9 @@ export default function MedTracker() {
 
       {phase === 'confirmed' && (
         <div className="card animate-fadeIn" style={{ padding: '32px 24px', textAlign: 'center', margin: '20px 0' }}>
-          <div style={{ fontSize: 56, marginBottom: 16 }}>🎉</div>
+          <div className="event-icon-badge" style={{ width: 64, height: 64, margin: '0 auto 16px' }}>
+            <StudioIcon name="success" size={32} />
+          </div>
           <p className="studio-text-bright" style={{ fontSize: 24, fontWeight: 600, marginBottom: 8 }}>
             {selectedMed?.name} recorded!
           </p>
@@ -345,7 +354,9 @@ export default function MedTracker() {
 
       {phase === 'rejected' && (
         <div className="card animate-fadeIn" style={{ padding: '28px 24px', textAlign: 'center', margin: '20px 0' }}>
-          <div style={{ fontSize: 48, marginBottom: 16 }}>⚠️</div>
+          <div className="event-icon-badge" style={{ width: 56, height: 56, margin: '0 auto 16px' }}>
+            <StudioIcon name="warning" size={28} />
+          </div>
           <p style={{ fontSize: 22, color: '#F59E0B', fontWeight: 600, marginBottom: 8 }}>
             Could Not Verify
           </p>

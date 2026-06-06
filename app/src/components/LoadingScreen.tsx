@@ -3,6 +3,7 @@ import { useGSAP } from '@gsap/react';
 import gsap from 'gsap';
 import { useAppStore } from '../store/appStore';
 import FlowerStage from './FlowerStage';
+import RecallLogo from './RecallLogo';
 import { FLOWERS } from '../flowers';
 import { duration, EASE } from '../lib/motion';
 
@@ -56,9 +57,9 @@ export default function LoadingScreen() {
       <div
         ref={contentRef}
         className="login-top splash-wordmark"
-        style={{ background: 'linear-gradient(180deg, rgba(0,0,0,0.85) 0%, transparent 100%)' }}
+        style={{ background: 'linear-gradient(180deg, rgba(248,244,236,0.92) 0%, transparent 100%)' }}
       >
-        <h1 className="login-title" style={{ fontSize: 34, letterSpacing: '0.3em' }}>Recall</h1>
+        <RecallLogo size="lg" />
         <p className="splash-tagline">Cognitive Care</p>
       </div>
     </div>

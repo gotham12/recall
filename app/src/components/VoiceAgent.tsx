@@ -1,10 +1,10 @@
-import { useState, useRef, useCallback } from 'react';
+import { useState, useRef, useCallback, FormEvent } from 'react';
 import { useVoice } from '../hooks/useVoice';
 import { useACSE } from '../hooks/useACSE';
 import { claraChat } from '../services/groq';
-import { speak, stopSpeaking } from '../services/elevenlabs';
 import { useAppStore } from '../store/appStore';
 import { db } from '../db/db';
+import StudioIcon from './StudioIcon';
 
 interface Turn {
   role: 'user' | 'assistant';
@@ -14,17 +14,58 @@ interface Turn {
 export default function VoiceAgent() {
   const user = useAppStore((s) => s.user);
   const [turns, setTurns] = useState<Turn[]>([]);
-  const [status, setStatus] = useState<'idle' | 'listening' | 'thinking' | 'speaking'>('idle');
+  const [input, setInput] = useState('');
+  const [status, setStatus] = useState<'idle' | 'listening' | 'thinking'>('idle');
   const { startListening } = useVoice();
   const { checkRepeatQuestion, recordActivity } = useACSE();
   const historyRef = useRef<{ role: 'user' | 'assistant'; content: string }[]>([]);
+  const inputRef = useRef<HTMLInputElement>(null);
+
+  const sendMessage = useCallback(async (text: string) => {
+    const trimmed = text.trim();
+    if (!trimmed || status === 'thinking') return;
+
+    checkRepeatQuestion(trimmed);
+    recordActivity();
+    setStatus('thinking');
+    setTurns((prev) => [...prev, { role: 'user', content: trimmed }]);
+    setInput('');
+
+    try {
+      const ctx = await buildContext(user?.id ?? 1);
+      const response = await claraChat(
+        trimmed,
+        historyRef.current,
+        user?.name ?? 'Margaret',
+        ctx
+      );
+
+      historyRef.current = [
+        ...historyRef.current,
+        { role: 'user' as const, content: trimmed },
+        { role: 'assistant' as const, content: response },
+      ].slice(-20);
+
+      setTurns((prev) => [...prev, { role: 'assistant', content: response }]);
+    } catch (err) {
+      console.error(err);
+      setTurns((prev) => [
+        ...prev,
+        { role: 'assistant', content: "I'm having trouble right now. Please try again in a moment." },
+      ]);
+    } finally {
+      setStatus('idle');
+      inputRef.current?.focus();
+    }
+  }, [status, checkRepeatQuestion, recordActivity, user]);
+
+  const handleSubmit = (e: FormEvent) => {
+    e.preventDefault();
+    void sendMessage(input);
+  };
 
   const handleMicTap = useCallback(async () => {
-    if (status !== 'idle') {
-      stopSpeaking();
-      setStatus('idle');
-      return;
-    }
+    if (status !== 'idle') return;
 
     try {
       setStatus('listening');
@@ -33,49 +74,35 @@ export default function VoiceAgent() {
         setStatus('idle');
         return;
       }
-
-      checkRepeatQuestion(transcript);
-      recordActivity();
-      setStatus('thinking');
-      setTurns((prev) => [...prev, { role: 'user', content: transcript }]);
-
-      const ctx = await buildContext(user?.id ?? 1);
-      const response = await claraChat(transcript, historyRef.current, user?.name ?? 'Margaret', ctx);
-
-      historyRef.current = [
-        ...historyRef.current,
-        { role: 'user' as const, content: transcript },
-        { role: 'assistant' as const, content: response },
-      ].slice(-20);
-
-      setTurns((prev) => [...prev, { role: 'assistant', content: response }]);
-      setStatus('speaking');
-      await speak(response);
       setStatus('idle');
+      await sendMessage(transcript);
     } catch (err) {
       console.error(err);
       setStatus('idle');
     }
-  }, [status, startListening, checkRepeatQuestion, recordActivity, user]);
+  }, [status, startListening, sendMessage]);
 
-  const micLabel =
+  const statusLabel =
     status === 'listening' ? 'Listening…' :
-    status === 'thinking'  ? 'Thinking…' :
-    status === 'speaking'  ? 'Speaking — tap to stop' :
-    'Tap to talk with Clara';
+    status === 'thinking' ? 'Clara is thinking…' :
+    'Type a question for Clara';
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
-      <div className="studio-scroll" style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+    <div className="clara-chat">
+      <div className="studio-scroll clara-chat__messages">
         {turns.length === 0 && (
-          <div style={{ textAlign: 'center', marginTop: 32 }}>
-            <div style={{ fontSize: 44, marginBottom: 12 }}>💬</div>
+          <div className="clara-chat__empty">
+            <div className="clara-chat__empty-icon">
+              <StudioIcon name="chat" size={36} />
+            </div>
             <p className="studio-text-bright" style={{ fontSize: 20 }}>Hi, I'm Clara.</p>
-            <p className="studio-text-muted" style={{ fontSize: 17 }}>Tap the microphone when you're ready to talk.</p>
+            <p className="studio-text-muted" style={{ fontSize: 17 }}>
+              Type your question below — no need to speak.
+            </p>
           </div>
         )}
         {turns.map((t, i) => (
-          <div key={i} style={{ display: 'flex', justifyContent: t.role === 'user' ? 'flex-end' : 'flex-start' }}>
+          <div key={i} className={`clara-chat__row clara-chat__row--${t.role}`}>
             <div
               className={t.role === 'user' ? 'studio-bubble-user' : 'studio-bubble-assistant'}
               style={{
@@ -90,17 +117,47 @@ export default function VoiceAgent() {
             </div>
           </div>
         ))}
+        {status === 'thinking' && (
+          <div className="clara-chat__row clara-chat__row--assistant">
+            <div className="studio-bubble-assistant clara-chat__thinking">
+              <StudioIcon name="thinking" size={20} />
+            </div>
+          </div>
+        )}
       </div>
 
-      <div className="studio-mic-bar">
-        <p className="studio-text-muted" style={{ fontSize: 16, margin: 0 }}>{micLabel}</p>
-        <button
-          onClick={handleMicTap}
-          className={`studio-mic-btn tap-feedback ${status === 'listening' ? 'mic-listening studio-mic-btn--active' : ''}`}
-        >
-          {status === 'thinking' ? '⋯' : status === 'speaking' ? '🔊' : '🎙️'}
-        </button>
-      </div>
+      <form className="clara-chat__composer" onSubmit={handleSubmit}>
+        <p className="studio-text-muted clara-chat__status">{statusLabel}</p>
+        <div className="clara-chat__input-row">
+          <input
+            ref={inputRef}
+            type="text"
+            value={input}
+            onChange={(e) => setInput(e.target.value)}
+            placeholder="Ask Clara anything…"
+            className="studio-input clara-chat__input"
+            disabled={status === 'thinking' || status === 'listening'}
+            autoComplete="off"
+          />
+          <button
+            type="submit"
+            className="clara-chat__send tap-feedback"
+            disabled={!input.trim() || status !== 'idle'}
+            aria-label="Send message"
+          >
+            <StudioIcon name="send" size={20} />
+          </button>
+          <button
+            type="button"
+            onClick={() => void handleMicTap()}
+            className={`clara-chat__mic tap-feedback ${status === 'listening' ? 'clara-chat__mic--active mic-listening' : ''}`}
+            disabled={status === 'thinking'}
+            aria-label="Speak to Clara"
+          >
+            <StudioIcon name="mic" size={20} />
+          </button>
+        </div>
+      </form>
     </div>
   );
 }

@@ -5,6 +5,8 @@ import VoiceAgent from '../components/VoiceAgent';
 import MedTracker from '../components/MedTracker';
 import ACSEDashboard from '../components/ACSEDashboard';
 import StudioShell from '../components/StudioShell';
+import RecallLogo from '../components/RecallLogo';
+import StudioIcon, { type IconName } from '../components/StudioIcon';
 import { useACSE } from '../hooks/useACSE';
 import { useAppStore } from '../store/appStore';
 import { db, type Event } from '../db/db';
@@ -20,13 +22,20 @@ const TAB_FLOWERS: Record<Tab, string> = {
   stability: FLOWERS.supervisor,
 };
 
-const TABS: { id: Tab; label: string; icon: string }[] = [
-  { id: 'home',      label: 'Home',    icon: '🏠' },
-  { id: 'voice',     label: 'Clara',   icon: '🎙️' },
-  { id: 'meds',      label: 'Meds',    icon: '💊' },
-  { id: 'events',    label: 'Today',   icon: '📋' },
-  { id: 'stability', label: 'Score',   icon: '📊' },
+const TABS: { id: Tab; label: string; icon: IconName }[] = [
+  { id: 'home',      label: 'Home',    icon: 'home' },
+  { id: 'voice',     label: 'Clara',   icon: 'clara' },
+  { id: 'meds',      label: 'Meds',    icon: 'meds' },
+  { id: 'events',    label: 'Today',   icon: 'events' },
+  { id: 'stability', label: 'Score',   icon: 'score' },
 ];
+
+function eventIcon(type: Event['type']): IconName {
+  if (type === 'user_action') return 'success';
+  if (type === 'planned') return 'calendar';
+  if (type === 'caregiver_input') return 'user';
+  return 'warning';
+}
 
 export default function PatientView() {
   const [activeTab, setActiveTab] = useState<Tab>('home');
@@ -49,14 +58,15 @@ export default function PatientView() {
       contentKey={activeTab}
       header={
         <div className="studio-header">
-          <span className="studio-header__title">Recall</span>
+          <RecallLogo size="sm" />
           <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
             <span className="studio-header__meta">Hi, {user?.name?.split(' ')[0]}</span>
             <button
               onClick={() => setScreen('login')}
-              style={{ background: 'none', border: 'none', color: 'rgba(255,255,255,0.45)', fontSize: 14, cursor: 'pointer', padding: 4 }}
+              className="studio-icon-btn tap-feedback"
+              aria-label="Log out"
             >
-              ⎋
+              <StudioIcon name="logout" size={18} />
             </button>
           </div>
         </div>
@@ -69,7 +79,9 @@ export default function PatientView() {
               onClick={() => handleTabChange(tab.id)}
               className={`studio-tab ${activeTab === tab.id ? 'studio-tab--active' : ''}`}
             >
-              <span className="studio-tab__icon">{tab.icon}</span>
+              <span className="studio-tab__icon">
+                <StudioIcon name={tab.icon} size={20} />
+              </span>
               <span className="studio-tab__label">{tab.label}</span>
             </button>
           ))}
@@ -85,7 +97,6 @@ export default function PatientView() {
   );
 }
 
-// ── Home Tab ──────────────────────────────────────────────────────────────────
 function HomeTab({ events }: { events: Event[] }) {
   const now = new Date();
   const upcoming = events
@@ -95,7 +106,6 @@ function HomeTab({ events }: { events: Event[] }) {
 
   return (
     <div style={{ flex: 1, overflowY: 'auto' }}>
-      {/* State Reconstruction Card */}
       <div style={{ paddingTop: 16 }}>
         <StateReconCard />
       </div>
@@ -106,9 +116,9 @@ function HomeTab({ events }: { events: Event[] }) {
           <p className="studio-text-muted" style={{ fontSize: 18 }}>Nothing scheduled — enjoy your day.</p>
         ) : (
           upcoming.map((e) => (
-            <div key={e.id} className="card" style={{ padding: '14px 16px', marginBottom: 10, display: 'flex', gap: 12 }}>
-              <span style={{ fontSize: 22 }}>
-                {e.type === 'planned' ? '📅' : e.type === 'system_alert' ? '⚠️' : '✅'}
+            <div key={e.id} className="card" style={{ padding: '14px 16px', marginBottom: 10, display: 'flex', gap: 12, alignItems: 'center' }}>
+              <span className="event-icon-badge">
+                <StudioIcon name={eventIcon(e.type)} size={20} />
               </span>
               <div>
                 <p className="studio-text-bright" style={{ fontSize: 18, fontWeight: 600, margin: '0 0 2px' }}>
@@ -126,7 +136,6 @@ function HomeTab({ events }: { events: Event[] }) {
   );
 }
 
-// ── Events Tab ────────────────────────────────────────────────────────────────
 function EventsTab({ events }: { events: Event[] }) {
   const sorted = [...events].sort(
     (a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()
@@ -139,11 +148,6 @@ function EventsTab({ events }: { events: Event[] }) {
         <p className="studio-text-muted" style={{ fontSize: 18 }}>No events yet today.</p>
       )}
       {sorted.map((e) => {
-        const icon =
-          e.type === 'user_action' ? '✅' :
-          e.type === 'planned'     ? '📅' :
-          e.type === 'caregiver_input' ? '👤' :
-          '⚠️';
         const timeStr = new Date(e.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
 
         return (
@@ -157,22 +161,10 @@ function EventsTab({ events }: { events: Event[] }) {
             }}
           >
             <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 0 }}>
-              <div
-                style={{
-                  width: 40,
-                  height: 40,
-                  borderRadius: '50%',
-                  background: e.completed ? 'rgba(255,255,255,0.12)' : 'rgba(255,255,255,0.06)',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  fontSize: 20,
-                  flexShrink: 0,
-                }}
-              >
-                {icon}
+              <div className="event-icon-badge">
+                <StudioIcon name={eventIcon(e.type)} size={20} />
               </div>
-              <div style={{ width: 2, flex: 1, background: 'rgba(255,255,255,0.15)', minHeight: 16 }} />
+              <div style={{ width: 2, flex: 1, background: 'rgba(62,48,38,0.15)', minHeight: 16 }} />
             </div>
             <div style={{ paddingTop: 6, flex: 1 }}>
               <p className="studio-text-bright" style={{ fontSize: 18, fontWeight: 600, margin: '0 0 2px' }}>
