@@ -5,14 +5,17 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, user-scalable=no" />
     <meta name="apple-mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-status-bar-style" content="default" />
-    <meta name="theme-color" content="#000000" />
+    <meta name="theme-color" content="#F8F4EF" />
     <script>
       (function () {
         try {
           var t = localStorage.getItem('recall-theme');
-          if (t === 'light') {
+          var m = document.querySelector('meta[name="theme-color"]');
+          if (t === 'dark') {
+            document.documentElement.dataset.theme = 'dark';
+            if (m) m.setAttribute('content', '#000000');
+          } else {
             document.documentElement.dataset.theme = 'light';
-            var m = document.querySelector('meta[name="theme-color"]');
             if (m) m.setAttribute('content', '#F8F4EF');
           }
         } catch (e) {}

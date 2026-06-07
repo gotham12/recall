@@ -22,7 +22,7 @@ function flowerPath(file: string, theme: ThemeMode): string {
   return `${base}${folder}/${file}`;
 }
 
-export function getFlowers(theme: ThemeMode = 'dark'): Record<FlowerKey, string> {
+export function getFlowers(theme: ThemeMode = 'light'): Record<FlowerKey, string> {
   return Object.fromEntries(
     Object.entries(FLOWER_FILES).map(([key, file]) => [key, flowerPath(file, theme)])
   ) as Record<FlowerKey, string>;

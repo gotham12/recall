@@ -41,6 +41,7 @@ export const useAppStore = create<AppState>((set, get) => ({
   comfortModeActive: false,
   supervisorAlerts: [],
   isZooming: false,
+  theme: getStoredTheme(),
 
   setScreen: (screen) => set({ screen }),
   setUser: (user) => set({ user }),
