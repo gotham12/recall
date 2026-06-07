@@ -64,20 +64,21 @@ export default function SupervisorView() {
         </>
       }
       footer={
-        <div className="studio-tab-bar tab-bar">
+        <nav className="studio-tab-bar tab-bar" aria-label="Supervisor navigation">
           {TABS.map((tab) => (
             <button
               key={tab.id}
               onClick={() => setActiveTab(tab.id)}
-              className={`studio-tab ${activeTab === tab.id ? 'studio-tab--active' : ''}`}
+              className={`studio-tab tap-feedback ${activeTab === tab.id ? 'studio-tab--active' : ''}`}
+              aria-current={activeTab === tab.id ? 'page' : undefined}
             >
               <span className="studio-tab__icon">
-                <StudioIcon name={tab.icon} size={20} />
+                <StudioIcon name={tab.icon} size={22} />
               </span>
               <span className="studio-tab__label">{tab.label}</span>
             </button>
           ))}
-        </div>
+        </nav>
       }
     >
       {activeTab === 'home'        && <SupervisorHomeTab user={user} />}
@@ -102,38 +103,36 @@ function SupervisorHomeTab({ user }: { user: User | null }) {
   ) ?? 0;
 
   return (
-    <div style={{ flex: 1, overflowY: 'auto', padding: 16 }}>
-      <div className="card" style={{ padding: 24, marginBottom: 20, textAlign: 'center' }}>
-        <p className="studio-section-title" style={{ marginBottom: 8 }}>Patient Care</p>
-        <p className="studio-text-bright" style={{ fontSize: 24, margin: 0 }}>
-          {user?.name ?? 'Patient'}
-        </p>
+    <div className="supervisor-home studio-scroll">
+      <div className="card supervisor-home__hero">
+        <p className="studio-section-title">Patient care</p>
+        <p className="supervisor-home__name">{user?.name ?? 'Patient'}</p>
       </div>
 
-      {/* Stats row */}
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 12, marginBottom: 20 }}>
+      <div className="stat-grid">
         {[
-          { label: 'ACSE', value: acseScore, unit: '/100' },
-          { label: 'Events', value: eventCount, unit: ' today' },
-          { label: 'Med Logs', value: medCount, unit: ' total' },
+          { label: 'ACSE', value: acseScore },
+          { label: 'Events', value: eventCount },
+          { label: 'Med logs', value: medCount },
         ].map((stat) => (
-          <div key={stat.label} className="card" style={{ padding: '16px 12px', textAlign: 'center' }}>
+          <div key={stat.label} className="card stat-grid__item">
             <p className="studio-stat-value">{stat.value}</p>
             <p className="studio-stat-label">{stat.label}</p>
           </div>
         ))}
       </div>
 
-      {/* Patient info */}
       {user && (
-        <div className="card" style={{ padding: 20 }}>
-          <p className="studio-section-title">Patient Profile</p>
-          <p className="studio-text-bright" style={{ fontSize: 22, fontWeight: 600, margin: '0 0 4px' }}>{user.name}</p>
-          <p className="studio-text-muted" style={{ fontSize: 17, margin: '0 0 2px' }}>Age {user.age} · {user.city}</p>
-          <p className="studio-text-muted" style={{ fontSize: 17, margin: '0 0 12px' }}>Caregiver: {user.caregiverName} ({user.caregiverRelationship})</p>
-          <p className="studio-section-title" style={{ marginBottom: 6 }}>Medications</p>
+        <div className="card supervisor-profile">
+          <p className="studio-section-title">Patient profile</p>
+          <p className="supervisor-profile__name">{user.name}</p>
+          <p className="supervisor-profile__meta">Age {user.age} · {user.city}</p>
+          <p className="supervisor-profile__meta">
+            Caregiver: {user.caregiverName} ({user.caregiverRelationship})
+          </p>
+          <p className="studio-section-title supervisor-profile__meds-title">Medications</p>
           {user.medications.map((m, i) => (
-            <p key={i} className="studio-text-bright" style={{ fontSize: 17, margin: '0 0 2px', display: 'flex', alignItems: 'center', gap: 8 }}>
+            <p key={i} className="supervisor-profile__med">
               <StudioIcon name="meds" size={16} />
               {m.name} {m.dosage} — {m.schedule.join(', ')}
             </p>

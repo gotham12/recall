@@ -4,6 +4,7 @@ import { useACSE } from '../hooks/useACSE';
 import { verifyMedication } from '../services/vision';
 import { speak } from '../services/elevenlabs';
 import { db, type Medication } from '../db/db';
+import { isMedicationDueSoon } from '../lib/schedule';
 import StudioIcon from './StudioIcon';
 
 const COOLDOWN_HOURS = 6;
@@ -257,30 +258,36 @@ export default function MedTracker() {
               No medications configured. Ask your caregiver to set them up.
             </p>
           )}
-          {medications.map((med, i) => (
-            <div key={i} className="card med-tracker__card">
-              <div className="med-tracker__card-row">
-                <div>
-                  <p className="studio-text-bright med-tracker__med-name">
-                    <StudioIcon name="meds" size={24} />
-                    {med.name}
-                  </p>
-                  <p className="studio-text-muted" style={{ fontSize: 18, margin: '0 0 4px' }}>
-                    {med.dosage}
-                  </p>
-                  <p className="studio-text-muted" style={{ fontSize: 16, margin: 0 }}>
-                    {med.schedule.join(' & ')}
-                  </p>
+          {medications.map((med, i) => {
+            const dueSoon = isMedicationDueSoon(med.schedule);
+            return (
+              <div key={i} className={`card med-tracker__card ${dueSoon ? 'med-tracker__card--due' : ''}`}>
+                <div className="med-tracker__card-row">
+                  <div className="med-tracker__card-info">
+                    <div className="med-tracker__card-head">
+                      <p className="studio-text-bright med-tracker__med-name">
+                        <StudioIcon name="meds" size={24} />
+                        {med.name}
+                      </p>
+                      {dueSoon && <span className="med-tracker__due-badge">Due now</span>}
+                    </div>
+                    <p className="med-tracker__dosage">{med.dosage}</p>
+                    <div className="med-tracker__schedule">
+                      {med.schedule.map((time) => (
+                        <span key={time} className="schedule-chip">{time}</span>
+                      ))}
+                    </div>
+                  </div>
+                  <button
+                    className="btn-electric tap-feedback med-tracker__take-btn"
+                    onClick={() => startCamera(med)}
+                  >
+                    Take Now
+                  </button>
                 </div>
-                <button
-                  className="btn-electric tap-feedback med-tracker__take-btn"
-                  onClick={() => startCamera(med)}
-                >
-                  Take Now
-                </button>
               </div>
-            </div>
-          ))}
+            );
+          })}
         </div>
       )}
 

@@ -1,23 +1,21 @@
+import type { CSSProperties } from 'react';
 import { useAppStore } from '../store/appStore';
 import StudioIcon, { type IconName } from './StudioIcon';
 
 export default function ACSEDashboard() {
   const { acseScore, deductAcse, setAcseScore } = useAppStore();
 
-  const scoreColor =
-    acseScore >= 75 ? 'rgba(255,255,255,0.95)' :
-    acseScore >= 50 ? 'rgba(255,255,255,0.85)' :
-    'rgba(255,200,200,0.95)';
-
-  const label =
-    acseScore >= 75 ? 'Stable' :
-    acseScore >= 50 ? 'Moderate — monitor closely' :
-    'Low — comfort mode may activate';
-
   const moodIcon: IconName =
     acseScore >= 75 ? 'stable' :
     acseScore >= 50 ? 'moderate' :
     'low';
+
+  const status =
+    acseScore >= 75
+      ? { label: 'Stable', desc: 'You are doing well today. Keep your gentle routine.' }
+      : acseScore >= 50
+        ? { label: 'Moderate', desc: 'Take things slowly. Clara is here if you need reassurance.' }
+        : { label: 'Needs support', desc: 'Comfort mode may open to help you feel grounded.' };
 
   const triggers = [
     { label: 'Repeated question', points: 15 },
@@ -27,45 +25,65 @@ export default function ACSEDashboard() {
   ];
 
   return (
-    <div className="studio-scroll">
-      <h2 className="studio-page-title">Cognitive Stability</h2>
+    <div className="acse-dashboard studio-scroll">
+      <h2 className="studio-page-title">How you're doing</h2>
 
-      <div className="card" style={{ padding: 22, marginBottom: 16 }}>
-        <p className="studio-section-title">ACSE Score</p>
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 14 }}>
-          <p className="studio-stat-value" style={{ fontSize: 52, color: scoreColor }}>{acseScore}</p>
-          <span className="event-icon-badge" style={{ width: 52, height: 52 }}>
+      <div className="card acse-dashboard__hero">
+        <div className="acse-dashboard__score-ring" style={{ '--score': acseScore } as CSSProperties}>
+          <div className="acse-dashboard__score-inner">
+            <span className="acse-dashboard__score-value">{acseScore}</span>
+            <span className="acse-dashboard__score-of">of 100</span>
+          </div>
+        </div>
+        <div className="acse-dashboard__status">
+          <span className="event-icon-badge acse-dashboard__mood">
             <StudioIcon name={moodIcon} size={28} />
           </span>
+          <div>
+            <p className="acse-dashboard__status-label">{status.label}</p>
+            <p className="acse-dashboard__status-desc">{status.desc}</p>
+          </div>
         </div>
-        <div className="studio-progress-track">
-          <div style={{ width: `${acseScore}%`, height: '100%', background: 'rgba(255,255,255,0.75)', borderRadius: 8, transition: 'width 0.5s ease' }} />
+        <div className="studio-progress-track acse-dashboard__track">
+          <div className="acse-dashboard__track-fill" style={{ width: `${acseScore}%` }} />
         </div>
-        <p className="studio-text-bright" style={{ fontSize: 16, margin: '10px 0 0' }}>{label}</p>
       </div>
 
-      <div className="card" style={{ padding: 20, marginBottom: 16 }}>
+      <div className="card acse-dashboard__tips">
+        <p className="studio-section-title">Gentle reminders</p>
+        <ul className="acse-dashboard__tip-list">
+          <li>Take medications when prompted</li>
+          <li>Ask Clara if you feel unsure</li>
+          <li>Pause and breathe if things feel overwhelming</li>
+        </ul>
+      </div>
+
+      <div className="card acse-dashboard__demo">
         <p className="studio-section-title">Demo signals</p>
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+        <div className="acse-dashboard__triggers">
           {triggers.map((t) => (
             <button
               key={t.label}
-              className="studio-btn tap-feedback"
+              type="button"
+              className="acse-trigger tap-feedback"
               onClick={() => deductAcse(t.points, t.label)}
-              style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', padding: '12px 14px' }}
             >
-              <span className="studio-text-bright" style={{ fontSize: 16 }}>{t.label}</span>
-              <span className="studio-text-muted" style={{ fontSize: 16 }}>−{t.points}</span>
+              <span>{t.label}</span>
+              <span className="acse-trigger__points">−{t.points}</span>
             </button>
           ))}
-          <button className="studio-btn studio-btn--primary tap-feedback" onClick={() => setAcseScore(100)}>
+          <button
+            type="button"
+            className="studio-btn studio-btn--primary tap-feedback"
+            onClick={() => setAcseScore(100)}
+          >
             Reset to 100
           </button>
         </div>
       </div>
 
-      <p className="studio-text-muted" style={{ fontSize: 15, textAlign: 'center' }}>
-        Comfort Mode activates when score drops below 50.
+      <p className="acse-dashboard__footnote">
+        Comfort mode opens automatically below 50.
       </p>
     </div>
   );

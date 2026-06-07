@@ -11,6 +11,7 @@ import { db, type User } from '../db/db';
 import { seedIfEmpty } from '../db/seed';
 import { duration, EASE } from '../lib/motion';
 import { checkSupervisorAuth } from '../lib/auth';
+import StudioIcon from './StudioIcon';
 
 type Role = 'patient' | 'supervisor' | null;
 
@@ -94,6 +95,12 @@ export default function LoginScreen() {
     enterApp('supervisor');
   };
 
+  const loginStep =
+    role === null ? 1 :
+    role === 'patient' && !selectedPatient ? 2 :
+    role === 'patient' && selectedPatient ? 3 :
+    2;
+
   return (
     <div ref={screenRef} className="studio-screen login-screen">
       <FlowerStage src={flowerSrc} glowIntensity={0.9} variant="hero" />
@@ -104,22 +111,35 @@ export default function LoginScreen() {
       </div>
 
       <div ref={panelRef} className="login-panel">
+        {role !== null && (
+          <div className="login-steps" aria-label={`Step ${loginStep} of 3`}>
+            {[1, 2, 3].map((step) => (
+              <span
+                key={step}
+                className={`login-steps__dot ${loginStep >= step ? 'login-steps__dot--active' : ''}`}
+              />
+            ))}
+          </div>
+        )}
+
         {role === null && (
           <AnimatedPanel panelKey="landing" stagger>
             <p className="login-eyebrow">Sign in</p>
             <p className="login-greeting" style={{ marginBottom: 0 }}>Who is using Recall?</p>
             <div className="login-actions login-actions--role-select">
               <button
-                className="studio-btn studio-btn--primary tap-feedback"
+                className="studio-btn studio-btn--primary tap-feedback login-role-btn"
                 onClick={() => { swapFlower(FLOWERS.patient); setRole('patient'); setSelectedPatient(null); }}
               >
+                <span className="login-role-btn__icon"><StudioIcon name="user" size={22} /></span>
                 <span className="studio-btn__label">Patient</span>
                 <span className="studio-btn__hint">Daily care</span>
               </button>
               <button
-                className="studio-btn studio-btn--ghost tap-feedback"
+                className="studio-btn studio-btn--ghost tap-feedback login-role-btn"
                 onClick={() => { swapFlower(FLOWERS.supervisor); setRole('supervisor'); }}
               >
+                <span className="login-role-btn__icon"><StudioIcon name="profile" size={22} /></span>
                 <span className="studio-btn__label">Supervisor</span>
                 <span className="studio-btn__hint">Caregiver access</span>
               </button>
@@ -135,14 +155,19 @@ export default function LoginScreen() {
               {patients.map((p) => (
                 <button
                   key={p.id}
-                  className="studio-btn studio-btn--primary tap-feedback"
+                  className="studio-btn studio-btn--primary tap-feedback login-patient-btn"
                   onClick={() => {
                     setSelectedPatient(p);
                     swapFlower(FLOWERS.patient);
                   }}
                 >
-                  <span className="studio-btn__label">{p.name}</span>
-                  <span className="studio-btn__hint">{p.city}</span>
+                  <span className="login-patient-btn__avatar">
+                    {p.name.split(' ').map((n) => n[0]).join('').slice(0, 2)}
+                  </span>
+                  <span className="login-patient-btn__text">
+                    <span className="studio-btn__label">{p.name}</span>
+                    <span className="studio-btn__hint">{p.city}</span>
+                  </span>
                 </button>
               ))}
               {patients.length === 0 && (

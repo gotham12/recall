@@ -50,7 +50,7 @@ function formatTime(ts: string): string {
 
 export default function PatientView() {
   const [activeTab, setActiveTab] = useState<Tab>('home');
-  const { user, setScreen } = useAppStore();
+  const { user, setScreen, acseScore } = useAppStore();
   const { recordNavigation } = useACSE();
 
   const handleTabChange = (tab: Tab) => {
@@ -107,7 +107,13 @@ export default function PatientView() {
       }
     >
       {activeTab === 'home' && (
-        <HomeTab events={events ?? []} onNavigate={handleTabChange} firstName={firstName} />
+        <HomeTab
+          events={events ?? []}
+          onNavigate={handleTabChange}
+          firstName={firstName}
+          acseScore={acseScore}
+          caregiverName={user?.caregiverName}
+        />
       )}
       {activeTab === 'voice' && <VoiceAgent />}
       {activeTab === 'meds' && <MedTracker />}
@@ -121,10 +127,14 @@ function HomeTab({
   events,
   onNavigate,
   firstName,
+  acseScore,
+  caregiverName,
 }: {
   events: Event[];
   onNavigate: (tab: Tab) => void;
   firstName: string;
+  acseScore: number;
+  caregiverName?: string;
 }) {
   const now = new Date();
   const upcoming = events
@@ -142,6 +152,36 @@ function HomeTab({
       </div>
 
       <StateReconCard />
+
+      {acseScore < 75 && (
+        <div className={`wellness-banner ${acseScore < 50 ? 'wellness-banner--low' : ''}`}>
+          <StudioIcon name={acseScore < 50 ? 'alert' : 'moderate'} size={20} />
+          <div>
+            <p className="wellness-banner__title">
+              {acseScore < 50 ? 'Take a moment to rest' : 'Go at your own pace'}
+            </p>
+            <p className="wellness-banner__text">
+              {acseScore < 50
+                ? 'Comfort mode can help you feel grounded.'
+                : 'Tap Score to see how you are doing today.'}
+            </p>
+          </div>
+          <button
+            type="button"
+            className="wellness-banner__action tap-feedback"
+            onClick={() => onNavigate('stability')}
+          >
+            View
+          </button>
+        </div>
+      )}
+
+      {caregiverName && (
+        <a href="tel:+15555550100" className="caregiver-chip tap-feedback">
+          <StudioIcon name="user" size={18} />
+          <span>Call {caregiverName}</span>
+        </a>
+      )}
 
       <section className="home-tab__section">
         <h3 className="studio-section-title">Quick actions</h3>

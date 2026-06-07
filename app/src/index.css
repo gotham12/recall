@@ -1528,3 +1528,387 @@ html, body, #root {
   min-height: 52px;
   font-size: 18px;
 }
+
+/* ── UI round 2: wellness & caregiver ── */
+.wellness-banner {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 16px 18px;
+  margin-bottom: 16px;
+  border-radius: 18px;
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  background: rgba(255, 255, 255, 0.06);
+}
+
+.wellness-banner--low {
+  border-color: rgba(245, 158, 11, 0.35);
+  background: rgba(245, 158, 11, 0.08);
+}
+
+.wellness-banner__title {
+  font-size: 17px;
+  font-weight: 600;
+  color: var(--studio-text-bright);
+  margin: 0 0 4px;
+}
+
+.wellness-banner__text {
+  font-size: 15px;
+  color: var(--studio-text-muted);
+  margin: 0;
+  line-height: 1.45;
+}
+
+.wellness-banner__action {
+  flex-shrink: 0;
+  padding: 10px 16px;
+  border-radius: 12px;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  background: rgba(255, 255, 255, 0.1);
+  color: var(--studio-text-bright);
+  font-size: 15px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.caregiver-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  padding: 14px 18px;
+  margin-bottom: 20px;
+  border-radius: 16px;
+  border: 1px solid var(--studio-border);
+  background: var(--studio-surface);
+  color: var(--studio-text-bright);
+  text-decoration: none;
+  font-size: 17px;
+  font-weight: 500;
+  min-height: 52px;
+}
+
+/* ── ACSE dashboard ── */
+.acse-dashboard {
+  padding-bottom: 24px;
+}
+
+.acse-dashboard__hero {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 20px;
+  padding: 28px 24px;
+  text-align: center;
+}
+
+.acse-dashboard__score-ring {
+  --score: 75;
+  width: 140px;
+  height: 140px;
+  border-radius: 50%;
+  background: conic-gradient(
+    rgba(255, 255, 255, 0.88) calc(var(--score) * 1%),
+    rgba(255, 255, 255, 0.1) 0
+  );
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 0 32px rgba(255, 255, 255, 0.08);
+}
+
+.acse-dashboard__score-inner {
+  width: 112px;
+  height: 112px;
+  border-radius: 50%;
+  background: var(--studio-surface);
+  border: 1px solid var(--studio-border);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+}
+
+.acse-dashboard__score-value {
+  font-size: 40px;
+  font-weight: 300;
+  line-height: 1;
+  color: var(--studio-text-bright);
+}
+
+.acse-dashboard__score-of {
+  font-size: 13px;
+  color: var(--studio-text-muted);
+  margin-top: 4px;
+}
+
+.acse-dashboard__status {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  text-align: left;
+  width: 100%;
+}
+
+.acse-dashboard__mood {
+  flex-shrink: 0;
+}
+
+.acse-dashboard__status-label {
+  font-size: 22px;
+  font-weight: 600;
+  color: var(--studio-text-bright);
+  margin: 0 0 4px;
+}
+
+.acse-dashboard__status-desc {
+  font-size: 16px;
+  color: var(--studio-text-muted);
+  margin: 0;
+  line-height: 1.5;
+}
+
+.acse-dashboard__track {
+  width: 100%;
+  height: 6px;
+}
+
+.acse-dashboard__track-fill {
+  height: 100%;
+  border-radius: 4px;
+  background: rgba(255, 255, 255, 0.75);
+  transition: width 0.4s ease;
+}
+
+.acse-dashboard__tips {
+  padding: 20px;
+  margin-top: 16px;
+}
+
+.acse-dashboard__tip-list {
+  margin: 10px 0 0;
+  padding-left: 20px;
+  color: var(--studio-text-muted);
+  font-size: 17px;
+  line-height: 1.6;
+}
+
+.acse-dashboard__demo {
+  padding: 20px;
+  margin-top: 16px;
+}
+
+.acse-dashboard__triggers {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-top: 12px;
+}
+
+.acse-trigger {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  padding: 14px 18px;
+  border-radius: 14px;
+  border: 1px solid var(--studio-border);
+  background: var(--studio-surface-soft);
+  color: var(--studio-text-bright);
+  font-size: 17px;
+  cursor: pointer;
+  min-height: 52px;
+}
+
+.acse-trigger__points {
+  font-size: 15px;
+  font-weight: 600;
+  color: #F59E0B;
+}
+
+.acse-dashboard__footnote {
+  font-size: 14px;
+  color: var(--studio-text-muted);
+  text-align: center;
+  margin: 16px 0 0;
+}
+
+/* ── Med tracker enhancements ── */
+.med-tracker__card--due {
+  border-color: rgba(255, 255, 255, 0.28);
+  box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.08), 0 8px 24px rgba(0, 0, 0, 0.25);
+}
+
+.med-tracker__card-info {
+  flex: 1;
+  min-width: 0;
+}
+
+.med-tracker__card-head {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.med-tracker__due-badge {
+  font-size: 11px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  padding: 4px 10px;
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.16);
+  color: var(--studio-text-bright);
+  font-weight: 600;
+}
+
+.med-tracker__dosage {
+  font-size: 17px;
+  color: var(--studio-text-muted);
+  margin: 0 0 10px;
+}
+
+.med-tracker__schedule {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.schedule-chip {
+  font-size: 14px;
+  padding: 6px 12px;
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  color: var(--studio-text-muted);
+}
+
+/* ── Login step indicator & avatars ── */
+.login-steps {
+  display: flex;
+  justify-content: center;
+  gap: 8px;
+  margin-bottom: 16px;
+}
+
+.login-steps__dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.18);
+  transition: background 0.25s ease, transform 0.25s ease;
+}
+
+.login-steps__dot--active {
+  background: rgba(255, 255, 255, 0.85);
+  transform: scale(1.15);
+}
+
+.login-role-btn {
+  flex-direction: row !important;
+  align-items: center !important;
+  gap: 14px !important;
+  text-align: left;
+}
+
+.login-role-btn__icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 44px;
+  height: 44px;
+  border-radius: 14px;
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  flex-shrink: 0;
+}
+
+.login-patient-btn {
+  flex-direction: row !important;
+  align-items: center !important;
+  gap: 14px !important;
+  text-align: left;
+}
+
+.login-patient-btn__avatar {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.12);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  font-size: 16px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  flex-shrink: 0;
+}
+
+.login-patient-btn__text {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 2px;
+}
+
+/* ── Supervisor home ── */
+.supervisor-home {
+  padding-bottom: 24px;
+}
+
+.supervisor-home__hero {
+  padding: 24px;
+  text-align: center;
+  margin-bottom: 16px;
+}
+
+.supervisor-home__name {
+  font-size: 26px;
+  font-weight: 600;
+  color: var(--studio-text-bright);
+  margin: 8px 0 0;
+}
+
+.stat-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 12px;
+  margin-bottom: 16px;
+}
+
+.stat-grid__item {
+  padding: 16px 12px;
+  text-align: center;
+}
+
+.supervisor-profile {
+  padding: 20px;
+}
+
+.supervisor-profile__name {
+  font-size: 22px;
+  font-weight: 600;
+  color: var(--studio-text-bright);
+  margin: 0 0 4px;
+}
+
+.supervisor-profile__meta {
+  font-size: 17px;
+  color: var(--studio-text-muted);
+  margin: 0 0 4px;
+}
+
+.supervisor-profile__meds-title {
+  margin-top: 16px;
+  margin-bottom: 8px;
+}
+
+.supervisor-profile__med {
+  font-size: 17px;
+  color: var(--studio-text-bright);
+  margin: 0 0 6px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
