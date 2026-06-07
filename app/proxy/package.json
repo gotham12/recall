@@ -1,0 +1,14 @@
+{
+  "name": "recall-api-proxy",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "deploy": "wrangler deploy",
+    "secret:groq": "wrangler secret put GROQ_API_KEY",
+    "secret:elevenlabs": "wrangler secret put ELEVENLABS_API_KEY",
+    "secret:vision": "wrangler secret put GOOGLE_VISION_KEY"
+  },
+  "devDependencies": {
+    "wrangler": "^3.99.0"
+  }
+}
