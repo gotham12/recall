@@ -1,0 +1,19 @@
+{
+  "name": "Recall — Cognitive Care",
+  "short_name": "Recall",
+  "description": "Gentle cognitive care with Clara, medication tracking, and comfort mode.",
+  "start_url": "/recall/",
+  "scope": "/recall/",
+  "display": "standalone",
+  "background_color": "#000000",
+  "theme_color": "#000000",
+  "orientation": "portrait",
+  "icons": [
+    {
+      "src": "/recall/favicon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}

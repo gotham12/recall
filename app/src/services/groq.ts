@@ -1,4 +1,5 @@
 import { GROQ_API_KEY } from '../env';
+import { proxyPost, usesApiProxy, warnDirectApiKeys } from './apiClient';
 
 const GROQ_BASE = 'https://api.groq.com/openai/v1';
 const MODEL = 'llama-3.1-8b-instant';
@@ -9,10 +10,22 @@ interface Message {
 }
 
 async function groqChat(messages: Message[]): Promise<string> {
+  warnDirectApiKeys();
+
+  if (usesApiProxy()) {
+    const data = await proxyPost<{ content: string }>('/api/groq/chat', {
+      model: MODEL,
+      messages,
+      max_tokens: 256,
+      temperature: 0.7,
+    });
+    return data.content;
+  }
+
   const res = await fetch(`${GROQ_BASE}/chat/completions`, {
     method: 'POST',
     headers: {
-      'Authorization': `Bearer ${GROQ_API_KEY}`,
+      Authorization: `Bearer ${GROQ_API_KEY}`,
       'Content-Type': 'application/json',
     },
     body: JSON.stringify({
@@ -32,7 +45,6 @@ async function groqChat(messages: Message[]): Promise<string> {
   return data.choices?.[0]?.message?.content?.trim() ?? '';
 }
 
-// ── State Reconstruction ──────────────────────────────────────────────────────
 export interface EventContext {
   lastCompleted?: string;
   nextPlanned?: string;
@@ -75,7 +87,6 @@ Write ONLY the sentence. No quotes. No intro. Warm and simple.`;
   }
 }
 
-// ── Clara Conversation ────────────────────────────────────────────────────────
 const CLARA_SYSTEM = `You are Clara, a warm, patient companion for an elderly person with memory loss. Speak simply. Use short sentences. Never use jargon. Repeat important things gently. If the user seems confused or asks the same question twice, respond with extra patience. You have access to the user's name, current time, today's schedule, and recent events. Always be comforting, never clinical. Occasionally use their first name. Always answer in 2-3 sentences max unless asked for more.`;
 
 export async function claraChat(
@@ -103,7 +114,6 @@ export async function claraChat(
   }
 }
 
-// ── Grounding Message (Comfort Mode) ─────────────────────────────────────────
 export async function generateGrounding(
   userName: string,
   city: string,
@@ -124,7 +134,6 @@ Write ONLY the message. No quotes. Warm and simple.`;
   }
 }
 
-// ── Event Narrative (Comfort Mode) ───────────────────────────────────────────
 export async function generateNarrative(
   userName: string,
   events: string[]

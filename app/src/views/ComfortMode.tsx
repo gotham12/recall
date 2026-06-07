@@ -1,10 +1,11 @@
 import { useState, useEffect } from 'react';
 import BreathingCircle from '../components/BreathingCircle';
 import FlowerStage from '../components/FlowerStage';
+import StudioIcon from '../components/StudioIcon';
 import { FLOWERS } from '../flowers';
 import { useAppStore } from '../store/appStore';
 import { generateGrounding, generateNarrative } from '../services/groq';
-import { speak } from '../services/elevenlabs';
+import { speak, stopSpeaking } from '../services/elevenlabs';
 import { db } from '../db/db';
 
 type Phase = 'grounding' | 'breathing' | 'narrative' | 'done';
@@ -15,6 +16,11 @@ export default function ComfortMode() {
   const [groundingText, setGroundingText] = useState('');
   const [narrativeText, setNarrativeText] = useState('');
   const [loading, setLoading] = useState(true);
+
+  const exitComfort = () => {
+    stopSpeaking();
+    deactivateComfortMode();
+  };
 
   useEffect(() => {
     const init = async () => {
@@ -31,7 +37,7 @@ export default function ComfortMode() {
           .sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime())
           .slice(0, 5)
           .map((e) => e.title),
-        upcomingEvents: [],
+        upcomingEvents: [] as string[],
       };
 
       try {
@@ -52,6 +58,8 @@ export default function ComfortMode() {
     };
 
     init();
+
+    return () => stopSpeaking();
   }, [user]);
 
   const handleBreathingComplete = async () => {
@@ -59,29 +67,33 @@ export default function ComfortMode() {
     setPhase('narrative');
   };
 
-  return (
-    <div className="studio-screen" style={{ zIndex: 50 }}>
-      <FlowerStage src={FLOWERS.comfort} glowIntensity={1.1} />
-      <div
-        className="studio-app-scrim"
-        style={{ background: 'rgba(0,0,0,0.62)', zIndex: 2 }}
-      />
+  const skipToNarrative = async () => {
+    stopSpeaking();
+    await speak(narrativeText);
+    setPhase('narrative');
+  };
 
-      <div
-        style={{
-          position: 'relative',
-          zIndex: 5,
-          width: '100%',
-          height: '100%',
-          display: 'flex',
-          flexDirection: 'column',
-          alignItems: 'center',
-          justifyContent: 'center',
-          padding: 'var(--sat) 24px var(--sab)',
-        }}
-      >
+  const caregiverLabel = user?.caregiverName
+    ? `Call ${user.caregiverName}`
+    : 'Call caregiver';
+
+  return (
+    <div className="studio-screen comfort-mode" style={{ zIndex: 50 }}>
+      <FlowerStage src={FLOWERS.comfort} glowIntensity={1.1} variant="app" />
+      <div className="studio-app-scrim comfort-mode__scrim" />
+
+      <div className="comfort-mode__content">
+        <button
+          type="button"
+          className="comfort-mode__close tap-feedback"
+          onClick={exitComfort}
+          aria-label="Exit comfort mode"
+        >
+          <StudioIcon name="close" size={22} />
+        </button>
+
         {phase === 'grounding' && (
-          <div className="animate-fadeIn card" style={{ maxWidth: 400, padding: 28, textAlign: 'center' }}>
+          <div className="animate-fadeIn card comfort-mode__card">
             {loading ? (
               <div>
                 <div className="skeleton" style={{ height: 24, marginBottom: 8, width: '80%', margin: '0 auto 8px' }} />
@@ -89,37 +101,63 @@ export default function ComfortMode() {
               </div>
             ) : (
               <>
-                <p className="studio-text-bright" style={{ fontSize: 22, lineHeight: 1.6, marginBottom: 28 }}>
+                <p className="studio-text-bright comfort-mode__text">
                   {groundingText}
                 </p>
-                <button
-                  className="studio-btn studio-btn--primary tap-feedback"
-                  onClick={() => { speak("Let's do some breathing together."); setPhase('breathing'); }}
-                >
-                  Let's breathe together
-                </button>
+                <div className="comfort-mode__actions">
+                  <button
+                    className="studio-btn studio-btn--primary tap-feedback"
+                    onClick={() => { void speak("Let's do some breathing together."); setPhase('breathing'); }}
+                  >
+                    Let's breathe together
+                  </button>
+                  <button
+                    className="studio-btn studio-btn--ghost tap-feedback"
+                    onClick={() => void skipToNarrative()}
+                  >
+                    Skip to reassurance
+                  </button>
+                </div>
               </>
             )}
           </div>
         )}
 
         {phase === 'breathing' && (
-          <div className="animate-fadeIn card" style={{ maxWidth: 400, width: '100%', padding: 28, textAlign: 'center' }}>
+          <div className="animate-fadeIn card comfort-mode__card">
             <p className="studio-text-bright" style={{ fontSize: 20, marginBottom: 8 }}>
               Breathe with me, {user?.name?.split(' ')[0]}
             </p>
             <BreathingCircle cycles={3} onComplete={handleBreathingComplete} />
+            <button
+              className="studio-btn studio-btn--text tap-feedback"
+              onClick={() => void skipToNarrative()}
+              style={{ marginTop: 12 }}
+            >
+              Skip breathing
+            </button>
           </div>
         )}
 
         {phase === 'narrative' && (
-          <div className="animate-fadeIn card" style={{ maxWidth: 400, padding: 28, textAlign: 'center' }}>
-            <p className="studio-text-bright" style={{ fontSize: 20, lineHeight: 1.6, marginBottom: 28 }}>
+          <div className="animate-fadeIn card comfort-mode__card">
+            <p className="studio-text-bright comfort-mode__text">
               {narrativeText}
             </p>
-            <button className="studio-btn studio-btn--primary tap-feedback" onClick={deactivateComfortMode}>
-              I'm feeling better
-            </button>
+            <div className="comfort-mode__actions">
+              <button className="studio-btn studio-btn--primary tap-feedback" onClick={exitComfort}>
+                I'm feeling better
+              </button>
+              {user?.caregiverName && (
+                <a
+                  href="tel:+15555550100"
+                  className="studio-btn studio-btn--ghost tap-feedback comfort-mode__call"
+                >
+                  <StudioIcon name="user" size={18} />
+                  <span>{caregiverLabel}</span>
+                </a>
+              )}
+            </div>
           </div>
         )}
       </div>

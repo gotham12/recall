@@ -1,4 +1,4 @@
-import { useState, useRef, useCallback } from 'react';
+import { useState, useRef, useCallback, useEffect } from 'react';
 import { useAppStore } from '../store/appStore';
 import { useACSE } from '../hooks/useACSE';
 import { verifyMedication } from '../services/vision';
@@ -9,21 +9,49 @@ import StudioIcon from './StudioIcon';
 const COOLDOWN_HOURS = 6;
 const MAX_RETRIES = 3;
 
+type Phase =
+  | 'list'
+  | 'camera'
+  | 'verifying'
+  | 'countdown'
+  | 'confirmed'
+  | 'rejected'
+  | 'cooldown'
+  | 'manual_confirm';
+
 export default function MedTracker() {
   const user = useAppStore((s) => s.user);
   const [selectedMed, setSelectedMed] = useState<Medication | null>(null);
-  const [phase, setPhase] = useState<
-    'list' | 'camera' | 'verifying' | 'countdown' | 'confirmed' | 'rejected' | 'cooldown'
-  >('list');
+  const [phase, setPhase] = useState<Phase>('list');
   const [retries, setRetries] = useState(0);
   const [countdown, setCountdown] = useState(10);
   const [cooldownMsg, setCooldownMsg] = useState('');
   const [visionMsg, setVisionMsg] = useState('');
   const videoRef = useRef<HTMLVideoElement>(null);
   const streamRef = useRef<MediaStream | null>(null);
+  const countdownTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const { recordMedicationReAttempt } = useACSE();
 
   const medications: Medication[] = user?.medications ?? [];
+
+  const stopCamera = useCallback(() => {
+    streamRef.current?.getTracks().forEach((t) => t.stop());
+    streamRef.current = null;
+  }, []);
+
+  const clearCountdown = useCallback(() => {
+    if (countdownTimerRef.current) {
+      clearInterval(countdownTimerRef.current);
+      countdownTimerRef.current = null;
+    }
+  }, []);
+
+  useEffect(() => {
+    return () => {
+      stopCamera();
+      clearCountdown();
+    };
+  }, [stopCamera, clearCountdown]);
 
   const checkCooldown = useCallback(
     async (medName: string): Promise<boolean> => {
@@ -38,6 +66,71 @@ export default function MedTracker() {
     },
     [user]
   );
+
+  const logMedication = useCallback(async (
+    med: Medication,
+    confidence: 'high' | 'medium' | 'low' | 'manual' | 'unconfirmed',
+    description: string,
+    thumbnail: string
+  ) => {
+    if (!user?.id) return;
+    const ts = new Date().toISOString();
+    await db.medicationLogs.add({
+      userId: user.id,
+      medicationName: med.name,
+      timestamp: ts,
+      visionConfidence: confidence,
+      visionDescription: description,
+      imageThumbnail: thumbnail || undefined,
+      confirmed: confidence !== 'unconfirmed',
+    });
+    await db.events.add({
+      userId: user.id,
+      timestamp: ts,
+      type: 'user_action',
+      title: `${med.name} taken`,
+      description: `${med.name} ${med.dosage} taken. Vision confidence: ${confidence}. ${description}`,
+      completed: true,
+      source: 'system',
+    });
+  }, [user]);
+
+  const escalate = useCallback(async (medName: string) => {
+    if (!user?.id) return;
+    const ts = new Date().toISOString();
+    await db.medicationLogs.add({
+      userId: user.id,
+      medicationName: medName,
+      timestamp: ts,
+      visionConfidence: 'unconfirmed',
+      visionDescription: 'Could not verify after 3 attempts.',
+      confirmed: false,
+    });
+    await db.events.add({
+      userId: user.id,
+      timestamp: ts,
+      type: 'system_alert',
+      title: `${medName} — unconfirmed`,
+      description: `Vision could not confirm ${medName} after ${MAX_RETRIES} attempts.`,
+      completed: false,
+      source: 'system',
+    });
+  }, [user]);
+
+  const startCountdown = useCallback(() => {
+    clearCountdown();
+    let c = 10;
+    setCountdown(c);
+    countdownTimerRef.current = setInterval(() => {
+      c--;
+      setCountdown(c);
+      if (c <= 0) {
+        clearCountdown();
+        setPhase('confirmed');
+        void speak('Thank you. Medication recorded successfully.');
+      }
+    }, 1000);
+  }, [clearCountdown]);
 
   const startCamera = useCallback(async (med: Medication) => {
     setSelectedMed(med);
@@ -72,9 +165,9 @@ export default function MedTracker() {
         await videoRef.current.play();
       }
     } catch {
+      setVisionMsg('Camera access is not available.');
       await speak('Camera access is not available. Please confirm manually.');
-      await logMedication(med, 'manual', 'Camera unavailable — manual confirmation.', '');
-      setPhase('confirmed');
+      setPhase('manual_confirm');
     }
   }, [checkCooldown, recordMedicationReAttempt, user]);
 
@@ -82,7 +175,6 @@ export default function MedTracker() {
     if (!videoRef.current || !selectedMed) return;
     setPhase('verifying');
 
-    // Capture frame
     const canvas = document.createElement('canvas');
     canvas.width = videoRef.current.videoWidth || 320;
     canvas.height = videoRef.current.videoHeight || 240;
@@ -114,7 +206,6 @@ export default function MedTracker() {
           setVisionMsg(`I couldn't see your medication clearly. ${MAX_RETRIES - newRetries} attempt(s) remaining.`);
           await speak(`I couldn't see your medication clearly. Please try again.`);
           setPhase('camera');
-          // Restart camera
           const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' } });
           streamRef.current = stream;
           if (videoRef.current) {
@@ -125,32 +216,23 @@ export default function MedTracker() {
       }
     } catch {
       setVisionMsg('Vision service unavailable. Please confirm manually.');
-      await logMedication(selectedMed, 'manual', 'Vision unavailable — manual confirmation.', '');
-      setPhase('confirmed');
+      await speak('I could not verify automatically. Please confirm if you took your medication.');
+      setPhase('manual_confirm');
     }
-  }, [selectedMed, retries]);
+  }, [selectedMed, retries, stopCamera, logMedication, startCountdown, escalate]);
 
-  const startCountdown = useCallback(() => {
-    let c = 10;
-    setCountdown(c);
-    const timer = setInterval(() => {
-      c--;
-      setCountdown(c);
-      if (c <= 0) {
-        clearInterval(timer);
-        setPhase('confirmed');
-        speak('Thank you. Medication recorded successfully.');
-      }
-    }, 1000);
-  }, []);
-
-  const stopCamera = () => {
-    streamRef.current?.getTracks().forEach((t) => t.stop());
-    streamRef.current = null;
-  };
+  const confirmManually = useCallback(async () => {
+    if (!selectedMed) return;
+    await logMedication(selectedMed, 'manual', 'Patient confirmed manually.', '');
+    setVisionMsg('Recorded with manual confirmation.');
+    setPhase('countdown');
+    startCountdown();
+    await speak('Thank you. Please take your medication now.');
+  }, [selectedMed, logMedication, startCountdown]);
 
   const reset = () => {
     stopCamera();
+    clearCountdown();
     setPhase('list');
     setSelectedMed(null);
     setRetries(0);
@@ -158,97 +240,41 @@ export default function MedTracker() {
     setCooldownMsg('');
   };
 
-  const logMedication = async (
-    med: Medication,
-    confidence: 'high' | 'medium' | 'low' | 'manual' | 'unconfirmed',
-    description: string,
-    thumbnail: string
-  ) => {
-    if (!user?.id) return;
-    const ts = new Date().toISOString();
-    await db.medicationLogs.add({
-      userId: user.id,
-      medicationName: med.name,
-      timestamp: ts,
-      visionConfidence: confidence,
-      visionDescription: description,
-      imageThumbnail: thumbnail || undefined,
-      confirmed: confidence !== 'unconfirmed',
-    });
-    await db.events.add({
-      userId: user.id,
-      timestamp: ts,
-      type: 'user_action',
-      title: `${med.name} taken`,
-      description: `${med.name} ${med.dosage} taken. Vision confidence: ${confidence}. ${description}`,
-      completed: true,
-      source: 'system',
-    });
-  };
-
-  const escalate = async (medName: string) => {
-    if (!user?.id) return;
-    const ts = new Date().toISOString();
-    await db.medicationLogs.add({
-      userId: user.id,
-      medicationName: medName,
-      timestamp: ts,
-      visionConfidence: 'unconfirmed',
-      visionDescription: 'Could not verify after 3 attempts.',
-      confirmed: false,
-    });
-    await db.events.add({
-      userId: user.id,
-      timestamp: ts,
-      type: 'system_alert',
-      title: `${medName} — unconfirmed`,
-      description: `Vision could not confirm ${medName} after ${MAX_RETRIES} attempts.`,
-      completed: false,
-      source: 'system',
-    });
-  };
+  const btnStyle = {
+    minHeight: 52,
+    padding: '14px 24px',
+    fontSize: 18,
+    fontWeight: 600,
+  } as const;
 
   return (
-    <div style={{ flex: 1, overflowY: 'auto', padding: '16px' }}>
+    <div className="med-tracker studio-scroll">
       {phase === 'list' && (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
-          <h2 style={{ fontSize: 26, color: '#ffffff', margin: '0 0 8px' }}>
-            Your Medications
-          </h2>
+        <div className="med-tracker__list">
+          <h2 className="studio-page-title">Your Medications</h2>
           {medications.length === 0 && (
-            <p style={{ color: 'rgba(255,255,255,0.85)', fontSize: 20 }}>
+            <p className="studio-text-muted" style={{ fontSize: 20 }}>
               No medications configured. Ask your caregiver to set them up.
             </p>
           )}
           {medications.map((med, i) => (
-            <div key={i} className="card" style={{ padding: '20px' }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <div key={i} className="card med-tracker__card">
+              <div className="med-tracker__card-row">
                 <div>
-                  <p className="studio-text-bright" style={{ fontSize: 24, fontWeight: 600, margin: '0 0 4px', display: 'flex', alignItems: 'center', gap: 8 }}>
-                    <StudioIcon name="meds" size={22} />
+                  <p className="studio-text-bright med-tracker__med-name">
+                    <StudioIcon name="meds" size={24} />
                     {med.name}
                   </p>
-                  <p style={{ fontSize: 18, color: 'rgba(255,255,255,0.85)', margin: '0 0 4px' }}>
+                  <p className="studio-text-muted" style={{ fontSize: 18, margin: '0 0 4px' }}>
                     {med.dosage}
                   </p>
-                  <p style={{ fontSize: 16, color: 'rgba(255,255,255,0.9)', margin: 0 }}>
+                  <p className="studio-text-muted" style={{ fontSize: 16, margin: 0 }}>
                     {med.schedule.join(' & ')}
                   </p>
                 </div>
                 <button
-                  className="tap-feedback"
+                  className="btn-electric tap-feedback med-tracker__take-btn"
                   onClick={() => startCamera(med)}
-                  style={{
-                    background: 'rgba(255,255,255,0.14)',
-                    border: '1px solid rgba(255,255,255,0.22)',
-                    color: '#ffffff',
-                    borderRadius: 14,
-                    padding: '12px 16px',
-                    fontSize: 16,
-                    fontWeight: 600,
-                    cursor: 'pointer',
-                    whiteSpace: 'nowrap',
-                  }}
                 >
                   Take Now
                 </button>
@@ -259,30 +285,30 @@ export default function MedTracker() {
       )}
 
       {phase === 'cooldown' && (
-        <div className="card animate-fadeIn" style={{ padding: '28px 24px', textAlign: 'center', margin: '20px 0' }}>
+        <div className="card animate-fadeIn med-tracker__center-card">
           <div className="event-icon-badge" style={{ width: 56, height: 56, margin: '0 auto 16px' }}>
             <StudioIcon name="calendar" size={28} />
           </div>
-          <p style={{ fontSize: 22, color: '#ffffff', marginBottom: 20 }}>{cooldownMsg}</p>
-          <button className="btn-electric" onClick={reset}>Got it</button>
+          <p className="studio-text-bright" style={{ fontSize: 22, marginBottom: 20 }}>{cooldownMsg}</p>
+          <button className="btn-electric tap-feedback" style={btnStyle} onClick={reset}>Got it</button>
         </div>
       )}
 
       {phase === 'camera' && (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
-          <h2 style={{ fontSize: 24, color: '#ffffff', margin: 0 }}>
+        <div className="med-tracker__camera">
+          <h2 className="studio-page-title" style={{ marginBottom: 8 }}>
             Show me: {selectedMed?.name}
           </h2>
-          <p style={{ color: 'rgba(255,255,255,0.85)', fontSize: 18, margin: 0 }}>
+          <p className="studio-text-muted" style={{ fontSize: 18, margin: '0 0 12px' }}>
             Hold your medication in front of the camera.
           </p>
-          <div style={{ borderRadius: 16, overflow: 'hidden', background: '#000', aspectRatio: '4/3' }}>
+          <div className="med-tracker__video-wrap">
             <video
               ref={videoRef}
               autoPlay
               playsInline
               muted
-              style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }}
+              className="med-tracker__video"
             />
           </div>
           {retries > 0 && (
@@ -290,81 +316,91 @@ export default function MedTracker() {
               Attempt {retries + 1} of {MAX_RETRIES}
             </p>
           )}
-          <button className="btn-electric tap-feedback" onClick={captureAndVerify} style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 8 }}>
-            <StudioIcon name="check" size={20} />
+          <button
+            className="btn-electric tap-feedback med-tracker__action-btn"
+            onClick={captureAndVerify}
+            style={btnStyle}
+          >
+            <StudioIcon name="check" size={22} />
             Capture &amp; Verify
           </button>
-          <button onClick={reset} style={{ background: 'none', border: 'none', color: 'rgba(255,255,255,0.85)', fontSize: 18, cursor: 'pointer', padding: 8 }}>
+          <button className="med-tracker__cancel tap-feedback" onClick={reset}>
             Cancel
           </button>
         </div>
       )}
 
       {phase === 'verifying' && (
-        <div className="card animate-fadeIn" style={{ padding: '40px 24px', textAlign: 'center' }}>
+        <div className="card animate-fadeIn med-tracker__center-card">
           <div className="skeleton" style={{ width: 80, height: 80, borderRadius: '50%', margin: '0 auto 20px' }} />
-          <p style={{ fontSize: 22, color: '#ffffff' }}>Verifying your medication...</p>
+          <p className="studio-text-bright" style={{ fontSize: 22 }}>Verifying your medication…</p>
+        </div>
+      )}
+
+      {phase === 'manual_confirm' && (
+        <div className="card animate-fadeIn med-tracker__center-card">
+          <div className="event-icon-badge" style={{ width: 56, height: 56, margin: '0 auto 16px' }}>
+            <StudioIcon name="warning" size={28} />
+          </div>
+          <p className="studio-text-bright" style={{ fontSize: 22, marginBottom: 8 }}>
+            Manual confirmation
+          </p>
+          <p className="studio-text-muted" style={{ fontSize: 18, marginBottom: 24 }}>{visionMsg}</p>
+          <p className="studio-text-bright" style={{ fontSize: 20, marginBottom: 20 }}>
+            Did you take your {selectedMed?.name}?
+          </p>
+          <div className="med-tracker__confirm-actions">
+            <button className="btn-electric tap-feedback" style={btnStyle} onClick={confirmManually}>
+              Yes, I took it
+            </button>
+            <button className="studio-btn studio-btn--ghost tap-feedback" style={btnStyle} onClick={reset}>
+              Not yet
+            </button>
+          </div>
         </div>
       )}
 
       {phase === 'countdown' && (
-        <div className="card animate-fadeIn" style={{ padding: '32px 24px', textAlign: 'center', margin: '20px 0' }}>
+        <div className="card animate-fadeIn med-tracker__center-card">
           <div className="event-icon-badge" style={{ width: 56, height: 56, margin: '0 auto 12px' }}>
             <StudioIcon name="success" size={28} />
           </div>
           <p className="studio-text-bright" style={{ fontSize: 22, fontWeight: 600, marginBottom: 8 }}>{visionMsg}</p>
-          <p style={{ fontSize: 20, color: '#ffffff', marginBottom: 20 }}>
+          <p className="studio-text-bright" style={{ fontSize: 20, marginBottom: 20 }}>
             Please take your medication now.
           </p>
-          <div
-            style={{
-              width: 80,
-              height: 80,
-              borderRadius: '50%',
-              background: 'rgba(255,255,255,0.14)',
-              border: '1px solid rgba(255,255,255,0.22)',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              margin: '0 auto',
-              fontSize: 32,
-              color: 'white',
-              fontWeight: 700,
-            }}
-          >
-            {countdown}
-          </div>
+          <div className="med-tracker__countdown">{countdown}</div>
         </div>
       )}
 
       {phase === 'confirmed' && (
-        <div className="card animate-fadeIn" style={{ padding: '32px 24px', textAlign: 'center', margin: '20px 0' }}>
+        <div className="card animate-fadeIn med-tracker__center-card">
           <div className="event-icon-badge" style={{ width: 64, height: 64, margin: '0 auto 16px' }}>
             <StudioIcon name="success" size={32} />
           </div>
           <p className="studio-text-bright" style={{ fontSize: 24, fontWeight: 600, marginBottom: 8 }}>
             {selectedMed?.name} recorded!
           </p>
-          <p style={{ fontSize: 20, color: 'rgba(255,255,255,0.85)', marginBottom: 24 }}>
+          <p className="studio-text-muted" style={{ fontSize: 20, marginBottom: 24 }}>
             Great job taking care of yourself.
           </p>
-          <button className="btn-electric tap-feedback" onClick={reset}>Done</button>
+          <button className="btn-electric tap-feedback" style={btnStyle} onClick={reset}>Done</button>
         </div>
       )}
 
       {phase === 'rejected' && (
-        <div className="card animate-fadeIn" style={{ padding: '28px 24px', textAlign: 'center', margin: '20px 0' }}>
+        <div className="card animate-fadeIn med-tracker__center-card">
           <div className="event-icon-badge" style={{ width: 56, height: 56, margin: '0 auto 16px' }}>
             <StudioIcon name="warning" size={28} />
           </div>
           <p style={{ fontSize: 22, color: '#F59E0B', fontWeight: 600, marginBottom: 8 }}>
             Could Not Verify
           </p>
-          <p style={{ fontSize: 20, color: '#ffffff', marginBottom: 24 }}>{visionMsg}</p>
-          <p style={{ fontSize: 18, color: 'rgba(255,255,255,0.85)', marginBottom: 24 }}>
+          <p className="studio-text-bright" style={{ fontSize: 20, marginBottom: 24 }}>{visionMsg}</p>
+          <p className="studio-text-muted" style={{ fontSize: 18, marginBottom: 24 }}>
             Your caregiver has been notified.
           </p>
-          <button className="btn-electric tap-feedback" onClick={reset}>OK</button>
+          <button className="btn-electric tap-feedback" style={btnStyle} onClick={reset}>OK</button>
         </div>
       )}
     </div>

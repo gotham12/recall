@@ -30,6 +30,17 @@ export default function FlowerStage({
 
   const targetOpacity = variant === 'app' ? 0.78 : 1;
 
+  const pauseAnimations = () => {
+    breatheTween.current?.pause();
+    glowTween.current?.pause();
+  };
+
+  const resumeAnimations = () => {
+    if (document.hidden) return;
+    breatheTween.current?.resume();
+    glowTween.current?.resume();
+  };
+
   useGSAP(
     () => {
       if (!layerARef.current || !frameRef.current) return;
@@ -77,6 +88,15 @@ export default function FlowerStage({
     },
     { scope: rootRef, dependencies: [variant, glowIntensity] }
   );
+
+  useEffect(() => {
+    const onVisibility = () => {
+      if (document.hidden) pauseAnimations();
+      else resumeAnimations();
+    };
+    document.addEventListener('visibilitychange', onVisibility);
+    return () => document.removeEventListener('visibilitychange', onVisibility);
+  }, []);
 
   useEffect(() => {
     if (src === displayedSrc.current) return;
@@ -144,7 +164,7 @@ export default function FlowerStage({
           style={{ opacity: 0.3 * glowIntensity }}
         />
         <div className="flower-glow flower-glow--inner" style={{ opacity: 0.18 * glowIntensity }} />
-        <SmokeVapour intensity={glowIntensity * 0.65} />
+        {variant === 'hero' && <SmokeVapour intensity={glowIntensity * 0.65} />}
         <div className="flower-images">
           <img
             ref={layerARef}

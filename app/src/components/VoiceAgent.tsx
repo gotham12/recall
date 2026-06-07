@@ -1,4 +1,4 @@
-import { useState, useRef, useCallback, FormEvent } from 'react';
+import { useState, useRef, useCallback, FormEvent, useEffect } from 'react';
 import { useVoice } from '../hooks/useVoice';
 import { useACSE } from '../hooks/useACSE';
 import { claraChat } from '../services/groq';
@@ -12,15 +12,22 @@ interface Turn {
   content: string;
 }
 
+const VOICE_PREF_KEY = 'recall_clara_voice';
+
 export default function VoiceAgent() {
   const user = useAppStore((s) => s.user);
   const [turns, setTurns] = useState<Turn[]>([]);
   const [input, setInput] = useState('');
   const [status, setStatus] = useState<'idle' | 'listening' | 'thinking'>('idle');
+  const [voiceOn, setVoiceOn] = useState(() => localStorage.getItem(VOICE_PREF_KEY) !== 'off');
   const { startListening } = useVoice();
   const { checkRepeatQuestion, recordActivity } = useACSE();
   const historyRef = useRef<{ role: 'user' | 'assistant'; content: string }[]>([]);
   const inputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    localStorage.setItem(VOICE_PREF_KEY, voiceOn ? 'on' : 'off');
+  }, [voiceOn]);
 
   const sendMessage = useCallback(async (text: string) => {
     const trimmed = text.trim();
@@ -32,9 +39,11 @@ export default function VoiceAgent() {
     setTurns((prev) => [...prev, { role: 'user', content: trimmed }]);
     setInput('');
 
+    let response = "I'm having trouble right now. Please try again in a moment.";
+
     try {
       const ctx = await buildContext(user?.id ?? 1);
-      const response = await claraChat(
+      response = await claraChat(
         trimmed,
         historyRef.current,
         user?.name ?? 'Margaret',
@@ -46,19 +55,18 @@ export default function VoiceAgent() {
         { role: 'user' as const, content: trimmed },
         { role: 'assistant' as const, content: response },
       ].slice(-20);
-
-      setTurns((prev) => [...prev, { role: 'assistant', content: response }]);
     } catch (err) {
       console.error(err);
-      setTurns((prev) => [
-        ...prev,
-        { role: 'assistant', content: "I'm having trouble right now. Please try again in a moment." },
-      ]);
-    } finally {
-      setStatus('idle');
-      inputRef.current?.focus();
     }
-  }, [status, checkRepeatQuestion, recordActivity, user]);
+
+    setTurns((prev) => [...prev, { role: 'assistant', content: response }]);
+    setStatus('idle');
+    inputRef.current?.focus();
+
+    if (voiceOn) {
+      void speak(response);
+    }
+  }, [status, checkRepeatQuestion, recordActivity, user, voiceOn]);
 
   const handleSubmit = (e: FormEvent) => {
     e.preventDefault();
@@ -83,14 +91,20 @@ export default function VoiceAgent() {
     }
   }, [status, startListening, sendMessage]);
 
+  const toggleVoice = () => {
+    if (voiceOn) stopSpeaking();
+    setVoiceOn((v) => !v);
+  };
+
   const statusLabel =
     status === 'listening' ? 'Listening…' :
     status === 'thinking' ? 'Clara is thinking…' :
-    'Type a question for Clara';
+    voiceOn ? 'Ask Clara by voice or type below' :
+    'Type or tap the mic to ask Clara';
 
   return (
     <div className="clara-chat">
-      <div className="studio-scroll clara-chat__messages">
+      <div className="studio-scroll clara-chat__messages clara-chat__messages--selectable">
         {turns.length === 0 && (
           <div className="clara-chat__empty">
             <div className="clara-chat__empty-icon">
@@ -98,7 +112,7 @@ export default function VoiceAgent() {
             </div>
             <p className="studio-text-bright" style={{ fontSize: 20 }}>Hi, I'm Clara.</p>
             <p className="studio-text-muted" style={{ fontSize: 17 }}>
-              Type your question below — no need to speak.
+              Ask me anything — I'll read my answers aloud.
             </p>
           </div>
         )}
@@ -121,11 +135,11 @@ export default function VoiceAgent() {
                   type="button"
                   className="studio-icon-btn tap-feedback"
                   onClick={() => { stopSpeaking(); void speak(t.content); }}
-                  aria-label="Listen to Clara"
+                  aria-label="Listen to Clara again"
                   style={{ padding: '6px 10px', fontSize: 13 }}
                 >
                   <StudioIcon name="speaker" size={16} />
-                  <span style={{ marginLeft: 6 }}>Listen</span>
+                  <span style={{ marginLeft: 6 }}>Listen again</span>
                 </button>
               )}
             </div>
@@ -135,13 +149,25 @@ export default function VoiceAgent() {
           <div className="clara-chat__row clara-chat__row--assistant">
             <div className="studio-bubble-assistant clara-chat__thinking">
               <StudioIcon name="thinking" size={20} />
+              <span className="studio-text-muted" style={{ marginLeft: 8, fontSize: 15 }}>Thinking…</span>
             </div>
           </div>
         )}
       </div>
 
       <form className="clara-chat__composer" onSubmit={handleSubmit}>
-        <p className="studio-text-muted clara-chat__status">{statusLabel}</p>
+        <div className="clara-chat__toolbar">
+          <p className="studio-text-muted clara-chat__status">{statusLabel}</p>
+          <button
+            type="button"
+            className={`clara-chat__voice-toggle tap-feedback ${voiceOn ? 'clara-chat__voice-toggle--on' : ''}`}
+            onClick={toggleVoice}
+            aria-pressed={voiceOn}
+          >
+            <StudioIcon name={voiceOn ? 'speaker' : 'speaker'} size={16} />
+            <span>{voiceOn ? 'Voice on' : 'Voice off'}</span>
+          </button>
+        </div>
         <div className="clara-chat__input-row">
           <input
             ref={inputRef}

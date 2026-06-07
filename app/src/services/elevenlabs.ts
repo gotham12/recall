@@ -1,13 +1,14 @@
 import { ELEVENLABS_API_KEY } from '../env';
+import { proxyPostBlob, usesApiProxy, warnDirectApiKeys } from './apiClient';
 
-const VOICE_ID = 'EXAVITQu4vr4xnSDxMaL'; // Sarah — warm, clear female voice
+const VOICE_ID = 'EXAVITQu4vr4xnSDxMaL';
 const ELEVENLABS_BASE = 'https://api.elevenlabs.io/v1';
 const MODEL_ID = 'eleven_flash_v2_5';
 
 let currentAudio: HTMLAudioElement | null = null;
 
 export function isElevenLabsConfigured(): boolean {
-  return Boolean(ELEVENLABS_API_KEY?.trim());
+  return usesApiProxy() || Boolean(ELEVENLABS_API_KEY?.trim());
 }
 
 export function stopSpeaking(): void {
@@ -39,15 +40,14 @@ export async function speak(text: string): Promise<void> {
 }
 
 async function speakElevenLabs(text: string): Promise<void> {
-  const res = await fetch(`${ELEVENLABS_BASE}/text-to-speech/${VOICE_ID}`, {
-    method: 'POST',
-    headers: {
-      'xi-api-key': ELEVENLABS_API_KEY,
-      'Content-Type': 'application/json',
-      Accept: 'audio/mpeg',
-    },
-    body: JSON.stringify({
+  warnDirectApiKeys();
+
+  let blob: Blob;
+
+  if (usesApiProxy()) {
+    blob = await proxyPostBlob('/api/elevenlabs/tts', {
       text,
+      voiceId: VOICE_ID,
       model_id: MODEL_ID,
       voice_settings: {
         stability: 0.55,
@@ -55,18 +55,35 @@ async function speakElevenLabs(text: string): Promise<void> {
         style: 0.25,
         use_speaker_boost: true,
       },
-    }),
-  });
+    });
+  } else {
+    const res = await fetch(`${ELEVENLABS_BASE}/text-to-speech/${VOICE_ID}`, {
+      method: 'POST',
+      headers: {
+        'xi-api-key': ELEVENLABS_API_KEY,
+        'Content-Type': 'application/json',
+        Accept: 'audio/mpeg',
+      },
+      body: JSON.stringify({
+        text,
+        model_id: MODEL_ID,
+        voice_settings: {
+          stability: 0.55,
+          similarity_boost: 0.8,
+          style: 0.25,
+          use_speaker_boost: true,
+        },
+      }),
+    });
 
-  if (!res.ok) {
-    const detail = await res.text().catch(() => '');
-    throw new Error(`ElevenLabs ${res.status}${detail ? `: ${detail.slice(0, 120)}` : ''}`);
+    if (!res.ok) {
+      const detail = await res.text().catch(() => '');
+      throw new Error(`ElevenLabs ${res.status}${detail ? `: ${detail.slice(0, 120)}` : ''}`);
+    }
+    blob = await res.blob();
   }
 
-  const blob = await res.blob();
-  if (!blob.size) {
-    throw new Error('ElevenLabs returned empty audio');
-  }
+  if (!blob.size) throw new Error('ElevenLabs returned empty audio');
 
   const url = URL.createObjectURL(blob);
 
