@@ -41,11 +41,13 @@ export default function SupervisorView() {
         <>
           <div className="studio-header">
             <RecallLogo size="sm" />
-            <button
-              onClick={() => setScreen('login')}
-              className="studio-icon-btn tap-feedback"
-              aria-label="Log out"
-            >
+            <div className="studio-header__actions">
+              <ThemeToggle />
+              <button
+                onClick={() => setScreen('login')}
+                className="studio-icon-btn tap-feedback"
+                aria-label="Log out"
+              >
                 <StudioIcon name="logout" size={18} />
               </button>
             </div>
