@@ -65,7 +65,7 @@ export default {
           },
           body: JSON.stringify({
             text: body.text,
-            model_id: body.model_id || 'eleven_flash_v2_5',
+            model_id: body.model_id || 'eleven_turbo_v2_5',
             voice_settings: body.voice_settings,
           }),
         });
