@@ -5,7 +5,7 @@ import { claraChat } from '../services/groq';
 import { useAppStore } from '../store/appStore';
 import { db } from '../db/db';
 import StudioIcon from './StudioIcon';
-import { speak, stopSpeaking } from '../services/elevenlabs';
+import { speak, stopSpeaking, unlockAudioPlayback } from '../services/elevenlabs';
 
 interface Turn {
   role: 'user' | 'assistant';
@@ -20,6 +20,7 @@ export default function VoiceAgent() {
   const [input, setInput] = useState('');
   const [status, setStatus] = useState<'idle' | 'listening' | 'thinking'>('idle');
   const [voiceOn, setVoiceOn] = useState(() => localStorage.getItem(VOICE_PREF_KEY) !== 'off');
+  const [speaking, setSpeaking] = useState(false);
   const { startListening } = useVoice();
   const { checkRepeatQuestion, recordActivity } = useACSE();
   const historyRef = useRef<{ role: 'user' | 'assistant'; content: string }[]>([]);
@@ -97,6 +98,7 @@ export default function VoiceAgent() {
   };
 
   const statusLabel =
+    speaking ? 'Clara is speaking…' :
     status === 'listening' ? 'Listening…' :
     status === 'thinking' ? 'Clara is thinking…' :
     voiceOn ? 'Ask Clara by voice or type below' :
@@ -134,7 +136,12 @@ export default function VoiceAgent() {
                 <button
                   type="button"
                   className="studio-icon-btn tap-feedback"
-                  onClick={() => { stopSpeaking(); void speak(t.content); }}
+                  onClick={() => {
+                    unlockAudioPlayback();
+                    stopSpeaking();
+                    setSpeaking(true);
+                    void speak(t.content).finally(() => setSpeaking(false));
+                  }}
                   aria-label="Listen to Clara again"
                   style={{ padding: '6px 10px', fontSize: 13 }}
                 >
