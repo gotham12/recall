@@ -9,9 +9,10 @@ import RecallLogo from '../components/RecallLogo';
 import StudioIcon, { type IconName } from '../components/StudioIcon';
 import { useACSE } from '../hooks/useACSE';
 import { useAppStore } from '../store/appStore';
-import { db, type Event } from '../db/db';
+import { db, type Event, type Medication } from '../db/db';
 import { getFlowers, type FlowerKey } from '../flowers';
 import ThemeToggle from '../components/ThemeToggle';
+import { isMedicationDueSoon } from '../lib/schedule';
 
 type Tab = 'home' | 'voice' | 'meds' | 'events' | 'stability';
 
@@ -116,6 +117,7 @@ export default function PatientView() {
           firstName={firstName}
           acseScore={acseScore}
           caregiverName={user?.caregiverName}
+          medications={user?.medications ?? []}
         />
       )}
       {activeTab === 'voice' && <VoiceAgent />}
@@ -132,14 +134,17 @@ function HomeTab({
   firstName,
   acseScore,
   caregiverName,
+  medications,
 }: {
   events: Event[];
   onNavigate: (tab: Tab) => void;
   firstName: string;
   acseScore: number;
   caregiverName?: string;
+  medications: Medication[];
 }) {
   const now = new Date();
+  const dueMeds = medications.filter((m) => isMedicationDueSoon(m.schedule));
   const upcoming = events
     .filter((e) => !e.completed && new Date(e.timestamp) > now)
     .sort((a, b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime())
@@ -155,6 +160,27 @@ function HomeTab({
       </div>
 
       <StateReconCard />
+
+      {dueMeds.length > 0 && (
+        <button
+          type="button"
+          className="med-due-banner tap-feedback"
+          onClick={() => onNavigate('meds')}
+        >
+          <StudioIcon name="meds" size={22} />
+          <div className="med-due-banner__body">
+            <p className="med-due-banner__title">
+              {dueMeds.length === 1
+                ? `Time for ${dueMeds[0].name}`
+                : `${dueMeds.length} medications due now`}
+            </p>
+            <p className="med-due-banner__text">
+              {dueMeds.map((m) => `${m.name} (${m.dosage})`).join(' · ')}
+            </p>
+          </div>
+          <span className="med-due-banner__action">Take</span>
+        </button>
+      )}
 
       {acseScore < 75 && (
         <div className={`wellness-banner ${acseScore < 50 ? 'wellness-banner--low' : ''}`}>

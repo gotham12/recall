@@ -2,6 +2,7 @@ import { create } from 'zustand';
 import type { User } from '../db/db';
 import { db } from '../db/db';
 import { getStoredTheme, persistTheme, type ThemeMode } from '../lib/theme';
+import { preloadFlowers } from '../flowers';
 
 export type AppScreen = 'loading' | 'login' | 'patient' | 'supervisor';
 
@@ -121,12 +122,14 @@ export const useAppStore = create<AppState>((set, get) => ({
 
   setTheme: (theme) => {
     persistTheme(theme);
+    preloadFlowers(theme);
     set({ theme });
   },
 
   toggleTheme: () => {
     const next = get().theme === 'dark' ? 'light' : 'dark';
     persistTheme(next);
+    preloadFlowers(next);
     set({ theme: next });
   },
 }));

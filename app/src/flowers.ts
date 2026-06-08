@@ -28,3 +28,19 @@ export function getFlowers(theme: ThemeMode = 'light'): Record<FlowerKey, string
   ) as Record<FlowerKey, string>;
 }
 
+/** Warm the browser cache for flower backgrounds (current theme + opposite). */
+export function preloadFlowers(theme: ThemeMode): void {
+  for (const url of Object.values(getFlowers(theme))) {
+    const img = new Image();
+    img.src = url;
+  }
+
+  const opposite: ThemeMode = theme === 'light' ? 'dark' : 'light';
+  window.setTimeout(() => {
+    for (const url of Object.values(getFlowers(opposite))) {
+      const img = new Image();
+      img.src = url;
+    }
+  }, 400);
+}
+

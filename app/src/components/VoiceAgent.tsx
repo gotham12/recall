@@ -11,28 +11,43 @@ type VoiceState = 'idle' | 'listening' | 'thinking' | 'speaking';
 export default function VoiceAgent() {
   const user = useAppStore((s) => s.user);
   const [state, setState] = useState<VoiceState>('idle');
+  const [inSession, setInSession] = useState(false);
   const [subtitle, setSubtitle] = useState('');
   const [error, setError] = useState('');
   const { startListening, stopListening } = useVoice();
   const { checkRepeatQuestion, recordActivity } = useACSE();
   const historyRef = useRef<{ role: 'user' | 'assistant'; content: string }[]>([]);
-  const activeRef = useRef(false);
+  const sessionActiveRef = useRef(false);
 
   useEffect(() => {
     unlockAudioPlayback();
     setSubtitle('Tap the circle to talk with Clara');
     return () => {
-      activeRef.current = false;
+      sessionActiveRef.current = false;
       stopSpeaking();
       stopListening();
     };
   }, [stopListening]);
 
+  const stopSession = useCallback(() => {
+    sessionActiveRef.current = false;
+    setInSession(false);
+    stopSpeaking();
+    stopListening();
+    setState('idle');
+    setSubtitle('Tap the circle to talk with Clara');
+    setError('');
+  }, [stopListening]);
+
   const processUtterance = useCallback(async (text: string) => {
     const trimmed = text.trim();
     if (!trimmed) {
-      setState('idle');
-      setSubtitle('Tap the circle to talk with Clara');
+      if (sessionActiveRef.current) {
+        setSubtitle("I didn't catch that — go ahead when you're ready");
+      } else {
+        setState('idle');
+        setSubtitle('Tap the circle to talk with Clara');
+      }
       return;
     }
 
@@ -55,7 +70,11 @@ export default function VoiceAgent() {
     } catch (err) {
       console.error(err);
       setError('Connection issue — tap to try again');
+      sessionActiveRef.current = false;
+      setInSession(false);
     }
+
+    if (!sessionActiveRef.current) return;
 
     setSubtitle(response);
     setState('speaking');
@@ -65,52 +84,57 @@ export default function VoiceAgent() {
     } catch (err) {
       console.error(err);
       setError('Voice unavailable — check your connection');
+      sessionActiveRef.current = false;
+      setInSession(false);
     }
 
-    if (!activeRef.current) return;
-    setState('idle');
-    setSubtitle('Tap to continue talking');
+    if (!sessionActiveRef.current) {
+      setState('idle');
+      setSubtitle('Tap the circle to talk with Clara');
+    }
   }, [checkRepeatQuestion, recordActivity, user]);
 
-  const handleOrbTap = useCallback(async () => {
+  const runListeningTurn = useCallback(async () => {
+    while (sessionActiveRef.current) {
+      try {
+        setState('listening');
+        setSubtitle('Listening… speak now');
+        setError('');
+        const transcript = await startListening();
+        if (!sessionActiveRef.current) break;
+        await processUtterance(transcript);
+      } catch (err) {
+        console.error(err);
+        if (!sessionActiveRef.current) break;
+        const msg = err instanceof Error ? err.message : 'Could not hear you';
+        setError(msg.includes('denied') ? 'Allow microphone access to talk to Clara' : msg);
+        setSubtitle('Tap to try again');
+        sessionActiveRef.current = false;
+        setInSession(false);
+        setState('idle');
+        break;
+      }
+    }
+  }, [startListening, processUtterance]);
+
+  const handleOrbTap = useCallback(() => {
     unlockAudioPlayback();
-    activeRef.current = true;
+
+    if (state === 'speaking' || state === 'listening' || state === 'thinking' || inSession) {
+      stopSession();
+      return;
+    }
+
+    sessionActiveRef.current = true;
+    setInSession(true);
     setError('');
-
-    if (state === 'speaking') {
-      stopSpeaking();
-      setState('idle');
-      setSubtitle('Tap the circle to talk with Clara');
-      return;
-    }
-
-    if (state === 'listening') {
-      stopListening();
-      setState('idle');
-      setSubtitle('Tap the circle to talk with Clara');
-      return;
-    }
-
-    if (state === 'thinking') return;
-
-    try {
-      setState('listening');
-      setSubtitle('Listening… speak now');
-      const transcript = await startListening();
-      await processUtterance(transcript);
-    } catch (err) {
-      console.error(err);
-      setState('idle');
-      const msg = err instanceof Error ? err.message : 'Could not hear you';
-      setError(msg.includes('denied') ? 'Allow microphone access to talk to Clara' : msg);
-      setSubtitle('Tap to try again');
-    }
-  }, [state, startListening, stopListening, processUtterance]);
+    void runListeningTurn();
+  }, [state, inSession, stopSession, runListeningTurn]);
 
   const stateLabel =
     state === 'listening' ? 'Listening' :
     state === 'thinking'  ? 'Thinking' :
-    state === 'speaking'  ? 'Speaking' : 'Ready';
+    state === 'speaking'  ? 'Speaking' : inSession ? 'Ready' : 'Ready';
 
   return (
     <div className="clara-voice">
@@ -123,8 +147,12 @@ export default function VoiceAgent() {
         <button
           type="button"
           className={`clara-voice__orb tap-feedback clara-voice__orb--${state}`}
-          onClick={() => void handleOrbTap()}
-          aria-label={state === 'speaking' ? 'Stop Clara' : state === 'listening' ? 'Stop listening' : 'Talk to Clara'}
+          onClick={handleOrbTap}
+          aria-label={
+            inSession ? 'End conversation with Clara' :
+            state === 'speaking' ? 'Stop Clara' :
+            state === 'listening' ? 'Stop listening' : 'Talk to Clara'
+          }
         >
           <span className="clara-voice__ring clara-voice__ring--1" />
           <span className="clara-voice__ring clara-voice__ring--2" />
@@ -156,7 +184,11 @@ export default function VoiceAgent() {
       </div>
 
       <p className="clara-voice__hint">
-        {state === 'speaking' ? 'Tap to interrupt' : 'Voice only — just talk naturally'}
+        {inSession
+          ? 'Tap to end conversation'
+          : state === 'speaking'
+            ? 'Tap to interrupt'
+            : 'Tap once — Clara keeps listening'}
       </p>
     </div>
   );

@@ -1688,6 +1688,52 @@ html, body, #root {
   background: rgba(245, 158, 11, 0.08);
 }
 
+.med-due-banner {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  width: 100%;
+  margin-bottom: 20px;
+  padding: 18px 20px;
+  border-radius: 18px;
+  border: 1px solid rgba(33, 150, 243, 0.35);
+  background: var(--studio-surface);
+  color: inherit;
+  text-align: left;
+  cursor: pointer;
+  box-shadow: 0 4px 20px var(--studio-shadow);
+}
+
+.med-due-banner__body {
+  flex: 1;
+  min-width: 0;
+}
+
+.med-due-banner__title {
+  font-size: 18px;
+  font-weight: 600;
+  color: var(--studio-text-bright);
+  margin: 0 0 4px;
+}
+
+.med-due-banner__text {
+  font-size: 15px;
+  color: var(--studio-text-muted);
+  margin: 0;
+  line-height: 1.4;
+}
+
+.med-due-banner__action {
+  flex-shrink: 0;
+  padding: 10px 16px;
+  border-radius: 12px;
+  background: var(--studio-btn-primary-bg);
+  border: 1px solid var(--studio-btn-primary-border);
+  color: var(--studio-text-bright);
+  font-size: 15px;
+  font-weight: 600;
+}
+
 .wellness-banner__title {
   font-size: 17px;
   font-weight: 600;
