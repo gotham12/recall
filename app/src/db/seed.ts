@@ -18,7 +18,7 @@ export async function seedIfEmpty(): Promise<void> {
       city: 'Shrewsbury, MA',
       caregiverName: 'Susan',
       caregiverRelationship: 'daughter',
-      familyPhotoUrl: undefined,
+      familyPhotoUrl: 'https://images.unsplash.com/photo-1559839734-2b71ea197ec2?w=400&h=400&fit=crop',
       calmingMusicUrl: undefined,
       medications: [
         { name: 'Metformin', dosage: '500mg', schedule: ['8:00 AM'] },
@@ -99,7 +99,7 @@ export async function seedIfEmpty(): Promise<void> {
       city: 'Worcester, MA',
       caregiverName: 'James',
       caregiverRelationship: 'son',
-      familyPhotoUrl: undefined,
+      familyPhotoUrl: 'https://images.unsplash.com/photo-1566616213894-2d3e1baee564?w=400&h=400&fit=crop',
       calmingMusicUrl: undefined,
       medications: [
         { name: 'Amlodipine', dosage: '5mg', schedule: ['7:00 AM'] },

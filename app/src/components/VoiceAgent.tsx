@@ -1,69 +1,52 @@
-import { useState, useRef, useCallback, FormEvent, useEffect } from 'react';
+import { useState, useRef, useCallback, useEffect } from 'react';
 import { useVoice } from '../hooks/useVoice';
 import { useACSE } from '../hooks/useACSE';
 import { claraChat } from '../services/groq';
 import { useAppStore } from '../store/appStore';
 import { db } from '../db/db';
-import StudioIcon from './StudioIcon';
 import { speak, stopSpeaking, unlockAudioPlayback } from '../services/elevenlabs';
 
-interface Turn {
-  role: 'user' | 'assistant';
-  content: string;
-}
-
-const VOICE_PREF_KEY = 'recall_clara_voice';
-
-const SUGGESTIONS = [
-  'What should I do next?',
-  'How am I doing today?',
-  'Tell me about my medications',
-];
+type VoiceState = 'idle' | 'listening' | 'thinking' | 'speaking';
 
 export default function VoiceAgent() {
   const user = useAppStore((s) => s.user);
-  const [turns, setTurns] = useState<Turn[]>([]);
-  const [input, setInput] = useState('');
-  const [status, setStatus] = useState<'idle' | 'listening' | 'thinking'>('idle');
-  const [voiceOn, setVoiceOn] = useState(() => localStorage.getItem(VOICE_PREF_KEY) !== 'off');
-  const [speaking, setSpeaking] = useState(false);
-  const { startListening } = useVoice();
+  const [state, setState] = useState<VoiceState>('idle');
+  const [subtitle, setSubtitle] = useState('');
+  const [error, setError] = useState('');
+  const { startListening, stopListening } = useVoice();
   const { checkRepeatQuestion, recordActivity } = useACSE();
   const historyRef = useRef<{ role: 'user' | 'assistant'; content: string }[]>([]);
-  const inputRef = useRef<HTMLInputElement>(null);
-  const messagesRef = useRef<HTMLDivElement>(null);
+  const activeRef = useRef(false);
 
   useEffect(() => {
-    localStorage.setItem(VOICE_PREF_KEY, voiceOn ? 'on' : 'off');
-  }, [voiceOn]);
+    unlockAudioPlayback();
+    setSubtitle('Tap the circle to talk with Clara');
+    return () => {
+      activeRef.current = false;
+      stopSpeaking();
+      stopListening();
+    };
+  }, [stopListening]);
 
-  useEffect(() => {
-    const el = messagesRef.current;
-    if (!el) return;
-    el.scrollTop = el.scrollHeight;
-  }, [turns, status, speaking]);
-
-  const sendMessage = useCallback(async (text: string) => {
+  const processUtterance = useCallback(async (text: string) => {
     const trimmed = text.trim();
-    if (!trimmed || status === 'thinking') return;
+    if (!trimmed) {
+      setState('idle');
+      setSubtitle('Tap the circle to talk with Clara');
+      return;
+    }
 
     checkRepeatQuestion(trimmed);
     recordActivity();
-    setStatus('thinking');
-    setTurns((prev) => [...prev, { role: 'user', content: trimmed }]);
-    setInput('');
+    setError('');
+    setState('thinking');
+    setSubtitle('Clara is thinking…');
 
-    let response = "I'm having trouble right now. Please try again in a moment.";
+    let response = "I'm here with you. Could you say that again?";
 
     try {
       const ctx = await buildContext(user?.id ?? 1);
-      response = await claraChat(
-        trimmed,
-        historyRef.current,
-        user?.name ?? 'Margaret',
-        ctx
-      );
-
+      response = await claraChat(trimmed, historyRef.current, user?.name ?? 'Margaret', ctx);
       historyRef.current = [
         ...historyRef.current,
         { role: 'user' as const, content: trimmed },
@@ -71,170 +54,110 @@ export default function VoiceAgent() {
       ].slice(-20);
     } catch (err) {
       console.error(err);
+      setError('Connection issue — tap to try again');
     }
 
-    setTurns((prev) => [...prev, { role: 'assistant', content: response }]);
-    setStatus('idle');
-    inputRef.current?.focus();
-
-    if (voiceOn) {
-      setSpeaking(true);
-      try {
-        await speak(response);
-      } finally {
-        setSpeaking(false);
-      }
-    }
-  }, [status, checkRepeatQuestion, recordActivity, user, voiceOn]);
-
-  const handleSubmit = (e: FormEvent) => {
-    e.preventDefault();
-    unlockAudioPlayback();
-    void sendMessage(input);
-  };
-
-  const handleMicTap = useCallback(async () => {
-    if (status !== 'idle') return;
-    unlockAudioPlayback();
+    setSubtitle(response);
+    setState('speaking');
 
     try {
-      setStatus('listening');
-      const transcript = await startListening();
-      if (!transcript.trim()) {
-        setStatus('idle');
-        return;
-      }
-      setStatus('idle');
-      await sendMessage(transcript);
+      await speak(response);
     } catch (err) {
       console.error(err);
-      setStatus('idle');
+      setError('Voice unavailable — check your connection');
     }
-  }, [status, startListening, sendMessage]);
 
-  const toggleVoice = () => {
-    if (voiceOn) stopSpeaking();
-    setVoiceOn((v) => !v);
-  };
+    if (!activeRef.current) return;
+    setState('idle');
+    setSubtitle('Tap to continue talking');
+  }, [checkRepeatQuestion, recordActivity, user]);
 
-  const statusLabel =
-    speaking ? 'Clara is speaking…' :
-    status === 'listening' ? 'Listening…' :
-    status === 'thinking' ? 'Clara is thinking…' :
-    voiceOn ? 'Ask Clara by voice or type below' :
-    'Type or tap the mic to ask Clara';
+  const handleOrbTap = useCallback(async () => {
+    unlockAudioPlayback();
+    activeRef.current = true;
+    setError('');
+
+    if (state === 'speaking') {
+      stopSpeaking();
+      setState('idle');
+      setSubtitle('Tap the circle to talk with Clara');
+      return;
+    }
+
+    if (state === 'listening') {
+      stopListening();
+      setState('idle');
+      setSubtitle('Tap the circle to talk with Clara');
+      return;
+    }
+
+    if (state === 'thinking') return;
+
+    try {
+      setState('listening');
+      setSubtitle('Listening… speak now');
+      const transcript = await startListening();
+      await processUtterance(transcript);
+    } catch (err) {
+      console.error(err);
+      setState('idle');
+      const msg = err instanceof Error ? err.message : 'Could not hear you';
+      setError(msg.includes('denied') ? 'Allow microphone access to talk to Clara' : msg);
+      setSubtitle('Tap to try again');
+    }
+  }, [state, startListening, stopListening, processUtterance]);
+
+  const stateLabel =
+    state === 'listening' ? 'Listening' :
+    state === 'thinking'  ? 'Thinking' :
+    state === 'speaking'  ? 'Speaking' : 'Ready';
 
   return (
-    <div className="clara-chat">
-      <div
-        ref={messagesRef}
-        className="studio-scroll clara-chat__messages clara-chat__messages--selectable"
-      >
-        {turns.length === 0 && (
-          <div className="clara-chat__empty">
-            <div className="clara-chat__empty-icon">
-              <StudioIcon name="chat" size={36} />
-            </div>
-            <p className="clara-chat__empty-title">Hi, I'm Clara</p>
-            <p className="clara-chat__empty-sub">
-              Ask me anything — I'll read my answers aloud.
-            </p>
-            <div className="clara-suggestions">
-              {SUGGESTIONS.map((s) => (
-                <button
-                  key={s}
-                  type="button"
-                  className="clara-suggestion tap-feedback"
-                  onClick={() => {
-                    unlockAudioPlayback();
-                    void sendMessage(s);
-                  }}
-                  disabled={status !== 'idle'}
-                >
-                  {s}
-                </button>
-              ))}
-            </div>
-          </div>
-        )}
-        {turns.map((t, i) => (
-          <div key={i} className={`clara-chat__row clara-chat__row--${t.role}`}>
-            <div className="clara-chat__bubble-wrap">
-              <div className={`clara-chat__bubble clara-chat__bubble--${t.role}`}>
-                {t.content}
-              </div>
-              {t.role === 'assistant' && (
-                <button
-                  type="button"
-                  className="clara-chat__listen tap-feedback"
-                  onClick={() => {
-                    unlockAudioPlayback();
-                    stopSpeaking();
-                    setSpeaking(true);
-                    void speak(t.content).finally(() => setSpeaking(false));
-                  }}
-                  aria-label="Listen to Clara again"
-                >
-                  <StudioIcon name="speaker" size={16} />
-                  <span>Listen again</span>
-                </button>
-              )}
-            </div>
-          </div>
-        ))}
-        {status === 'thinking' && (
-          <div className="clara-chat__row clara-chat__row--assistant">
-            <div className="studio-bubble-assistant clara-chat__thinking">
-              <StudioIcon name="thinking" size={20} />
-              <span>Thinking…</span>
-            </div>
-          </div>
-        )}
+    <div className="clara-voice">
+      <div className="clara-voice__header">
+        <p className="clara-voice__name">Clara</p>
+        <p className="clara-voice__mode">Voice companion</p>
       </div>
 
-      <form className="clara-chat__composer" onSubmit={handleSubmit}>
-        <div className="clara-chat__toolbar">
-          <p className="studio-text-muted clara-chat__status">{statusLabel}</p>
-          <button
-            type="button"
-            className={`clara-chat__voice-toggle tap-feedback ${voiceOn ? 'clara-chat__voice-toggle--on' : ''}`}
-            onClick={toggleVoice}
-            aria-pressed={voiceOn}
-          >
-            <StudioIcon name="speaker" size={16} />
-            <span>{voiceOn ? 'Voice on' : 'Voice off'}</span>
-          </button>
-        </div>
-        <div className="clara-chat__input-row">
-          <input
-            ref={inputRef}
-            type="text"
-            value={input}
-            onChange={(e) => setInput(e.target.value)}
-            placeholder="Ask Clara anything…"
-            className="studio-input clara-chat__input"
-            disabled={status === 'thinking' || status === 'listening'}
-            autoComplete="off"
-          />
-          <button
-            type="submit"
-            className="clara-chat__send tap-feedback"
-            disabled={!input.trim() || status !== 'idle'}
-            aria-label="Send message"
-          >
-            <StudioIcon name="send" size={20} />
-          </button>
-          <button
-            type="button"
-            onClick={() => void handleMicTap()}
-            className={`clara-chat__mic tap-feedback ${status === 'listening' ? 'clara-chat__mic--active mic-listening' : ''}`}
-            disabled={status === 'thinking'}
-            aria-label="Speak to Clara"
-          >
-            <StudioIcon name="mic" size={20} />
-          </button>
-        </div>
-      </form>
+      <div className="clara-voice__stage">
+        <button
+          type="button"
+          className={`clara-voice__orb tap-feedback clara-voice__orb--${state}`}
+          onClick={() => void handleOrbTap()}
+          aria-label={state === 'speaking' ? 'Stop Clara' : state === 'listening' ? 'Stop listening' : 'Talk to Clara'}
+        >
+          <span className="clara-voice__ring clara-voice__ring--1" />
+          <span className="clara-voice__ring clara-voice__ring--2" />
+          <span className="clara-voice__ring clara-voice__ring--3" />
+          <span className="clara-voice__core">
+            {state === 'thinking' && <span className="clara-voice__dots"><i /><i /><i /></span>}
+            {state === 'listening' && (
+              <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
+                <rect x="9" y="2" width="6" height="11" rx="3"/><path d="M5 10a7 7 0 0014 0M12 19v3"/>
+              </svg>
+            )}
+            {state === 'speaking' && (
+              <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
+                <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><path d="M19.07 4.93a10 10 0 010 14.14M15.54 8.46a5 5 0 010 7.07"/>
+              </svg>
+            )}
+            {state === 'idle' && (
+              <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
+                <rect x="9" y="2" width="6" height="11" rx="3"/><path d="M5 10a7 7 0 0014 0M12 19v3M8 22h8"/>
+              </svg>
+            )}
+          </span>
+        </button>
+        <p className={`clara-voice__state clara-voice__state--${state}`}>{stateLabel}</p>
+      </div>
+
+      <div className="clara-voice__caption" aria-live="polite">
+        {error ? <p className="clara-voice__error">{error}</p> : <p>{subtitle}</p>}
+      </div>
+
+      <p className="clara-voice__hint">
+        {state === 'speaking' ? 'Tap to interrupt' : 'Voice only — just talk naturally'}
+      </p>
     </div>
   );
 }
@@ -242,17 +165,14 @@ export default function VoiceAgent() {
 async function buildContext(userId: number) {
   const now = new Date();
   const events = await db.events.where('userId').equals(userId).toArray();
-
   const completed = events
     .filter((e) => e.completed && new Date(e.timestamp) <= now)
     .sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime())
     .slice(0, 5);
-
   const upcoming = events
     .filter((e) => !e.completed && new Date(e.timestamp) > now)
     .sort((a, b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime())
     .slice(0, 3);
-
   return {
     recentEvents: completed.map(
       (e) => `${e.title} at ${new Date(e.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`

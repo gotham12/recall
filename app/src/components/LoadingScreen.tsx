@@ -4,6 +4,7 @@ import gsap from 'gsap';
 import { useAppStore } from '../store/appStore';
 import FlowerStage from './FlowerStage';
 import RecallLogo from './RecallLogo';
+import ThemeToggle from './ThemeToggle';
 import { getFlowers } from '../flowers';
 import { duration, EASE } from '../lib/motion';
 
@@ -56,6 +57,9 @@ export default function LoadingScreen() {
   return (
     <div ref={screenRef} className="studio-screen splash-screen">
       <FlowerStage src={flowers.splash} glowIntensity={1.2} variant="hero" />
+      <div className="login-theme-toggle splash-theme-toggle">
+        <ThemeToggle />
+      </div>
       <div
         ref={contentRef}
         className="login-top splash-wordmark"

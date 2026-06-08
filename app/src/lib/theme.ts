@@ -4,7 +4,7 @@ const STORAGE_KEY = 'recall-theme';
 
 export const THEME_COLORS: Record<ThemeMode, string> = {
   dark: '#000000',
-  light: '#F8F4EF',
+  light: '#FFF9F5',
 };
 
 export function getStoredTheme(): ThemeMode {

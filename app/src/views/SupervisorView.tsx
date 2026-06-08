@@ -6,16 +6,19 @@ import RecallLogo from '../components/RecallLogo';
 import StudioIcon, { type IconName } from '../components/StudioIcon';
 import { getFlowers, type FlowerKey } from '../flowers';
 import ThemeToggle from '../components/ThemeToggle';
+import VitalsDashboard from '../components/VitalsDashboard';
+import { addMedication, removeMedication, replaceMedication } from '../lib/medications';
+import type { Medication } from '../db/db';
 import { useAppStore } from '../store/appStore';
 import { db, type Event, type User } from '../db/db';
 
-type Tab = 'home' | 'events' | 'medications' | 'acse' | 'profile';
+type Tab = 'home' | 'events' | 'medications' | 'stats' | 'profile';
 
 const TAB_FLOWER_KEYS: Record<Tab, FlowerKey> = {
   home: 'supervisorApp',
   events: 'landing',
   medications: 'patientEnter',
-  acse: 'supervisor',
+  stats: 'supervisor',
   profile: 'home',
 };
 
@@ -23,7 +26,7 @@ const TABS: { id: Tab; label: string; icon: IconName }[] = [
   { id: 'home',        label: 'Home',    icon: 'home' },
   { id: 'events',      label: 'Events',  icon: 'events' },
   { id: 'medications', label: 'Meds',    icon: 'meds' },
-  { id: 'acse',        label: 'ACSE',    icon: 'score' },
+  { id: 'stats',       label: 'Stats',   icon: 'score' },
   { id: 'profile',     label: 'Profile', icon: 'profile' },
 ];
 
@@ -89,7 +92,7 @@ export default function SupervisorView() {
       {activeTab === 'home'        && <SupervisorHomeTab user={user} />}
       {activeTab === 'events'      && <EventsTab user={user} />}
       {activeTab === 'medications' && <MedicationsTab user={user} />}
-      {activeTab === 'acse'        && <AcseTab user={user} />}
+      {activeTab === 'stats'       && <StatsTab user={user} />}
       {activeTab === 'profile'     && <ProfileTab />}
     </StudioShell>
   );
@@ -98,6 +101,10 @@ export default function SupervisorView() {
 // ── Supervisor Home ───────────────────────────────────────────────────────────
 function SupervisorHomeTab({ user }: { user: User | null }) {
   const { acseScore } = useAppStore();
+  const [quickTitle, setQuickTitle] = useState('');
+  const [quickTime, setQuickTime] = useState('');
+  const [saved, setSaved] = useState(false);
+
   const eventCount = useLiveQuery<number>(
     () => user?.id ? db.events.where('userId').equals(user.id).count() : Promise.resolve(0),
     [user?.id]
@@ -107,11 +114,50 @@ function SupervisorHomeTab({ user }: { user: User | null }) {
     [user?.id]
   ) ?? 0;
 
+  const handleQuickEvent = async () => {
+    if (!user?.id || !quickTitle.trim()) return;
+    const ts = quickTime ? new Date(quickTime).toISOString() : new Date().toISOString();
+    await db.events.add({
+      userId: user.id,
+      timestamp: ts,
+      type: 'planned',
+      title: quickTitle.trim(),
+      description: quickTitle.trim(),
+      completed: false,
+      source: 'caregiver',
+    });
+    setQuickTitle('');
+    setQuickTime('');
+    setSaved(true);
+    setTimeout(() => setSaved(false), 2000);
+  };
+
   return (
     <div className="supervisor-home studio-scroll">
       <div className="card supervisor-home__hero">
         <p className="studio-section-title">Patient care</p>
         <p className="supervisor-home__name">{user?.name ?? 'Patient'}</p>
+      </div>
+
+      <div className="card quick-event-card">
+        <p className="studio-section-title">Add event now</p>
+        <input
+          value={quickTitle}
+          onChange={(e) => setQuickTitle(e.target.value)}
+          placeholder="Event title, e.g. Doctor visit"
+          className="studio-input"
+          style={{ marginBottom: 8 }}
+        />
+        <input
+          type="datetime-local"
+          value={quickTime}
+          onChange={(e) => setQuickTime(e.target.value)}
+          className="studio-input"
+          style={{ marginBottom: 10 }}
+        />
+        <button className="studio-btn studio-btn--primary tap-feedback" style={{ width: '100%' }} onClick={handleQuickEvent}>
+          {saved ? 'Event added ✓' : 'Save Event'}
+        </button>
       </div>
 
       <div className="stat-grid">
@@ -135,13 +181,6 @@ function SupervisorHomeTab({ user }: { user: User | null }) {
           <p className="supervisor-profile__meta">
             Caregiver: {user.caregiverName} ({user.caregiverRelationship})
           </p>
-          <p className="studio-section-title supervisor-profile__meds-title">Medications</p>
-          {user.medications.map((m, i) => (
-            <p key={i} className="supervisor-profile__med">
-              <StudioIcon name="meds" size={16} />
-              {m.name} {m.dosage} — {m.schedule.join(', ')}
-            </p>
-          ))}
         </div>
       )}
     </div>
@@ -355,63 +394,125 @@ function EventsTab({ user }: { user: User | null }) {
   );
 }
 
-// ── Medications Tab ───────────────────────────────────────────────────────────
+// ── Medications Tab (supervisor CRUD) ─────────────────────────────────────────
 function MedicationsTab({ user }: { user: User | null }) {
+  const { setUser } = useAppStore();
+  const [editingIdx, setEditingIdx] = useState<number | null>(null);
+  const [form, setForm] = useState<Medication>({ name: '', dosage: '', schedule: ['8:00 AM'] });
+  const [showAdd, setShowAdd] = useState(false);
+
   const logs = useLiveQuery<import('../db/db').MedicationLog[]>(
     () => user?.id ? db.medicationLogs.where('userId').equals(user.id).sortBy('timestamp') : Promise.resolve([]),
     [user?.id]
   ) ?? [];
 
-  const sorted = [...logs].reverse();
+  const sortedLogs = [...logs].reverse().slice(0, 8);
 
-  const confidenceColor = (c: string) =>
-    c === 'high' ? '#10B981' : c === 'medium' ? '#F59E0B' : c === 'manual' ? '#8B5CF6' : '#EF4444';
+  const initials = user?.name?.split(' ').map((n) => n[0]).join('').slice(0, 2) ?? '?';
+
+  const resetForm = () => {
+    setForm({ name: '', dosage: '', schedule: ['8:00 AM'] });
+    setEditingIdx(null);
+    setShowAdd(false);
+  };
+
+  const handleSaveNew = async () => {
+    if (!user?.id || !form.name.trim()) return;
+    const updated = await addMedication(user.id, { ...form, name: form.name.trim() });
+    if (updated) setUser(updated);
+    resetForm();
+  };
+
+  const handleSaveEdit = async () => {
+    if (!user?.id || editingIdx === null || !form.name.trim()) return;
+    const updated = await replaceMedication(user.id, editingIdx, { ...form, name: form.name.trim() });
+    if (updated) setUser(updated);
+    resetForm();
+  };
+
+  const handleDelete = async (idx: number) => {
+    if (!user?.id) return;
+    const updated = await removeMedication(user.id, idx);
+    if (updated) setUser(updated);
+    if (editingIdx === idx) resetForm();
+  };
+
+  const startEdit = (idx: number) => {
+    if (!user) return;
+    setEditingIdx(idx);
+    setShowAdd(false);
+    setForm({ ...user.medications[idx] });
+  };
+
+  if (!user) return null;
 
   return (
-    <div style={{ flex: 1, overflowY: 'auto', padding: 16 }}>
-      <h2 className="studio-page-title">Medication History</h2>
-      {sorted.length === 0 && (
-        <p className="studio-text-muted" style={{ fontSize: 17 }}>No medication logs yet.</p>
-      )}
-      {sorted.map((log) => (
-        <div key={log.id} className="card" style={{ padding: '14px 16px', marginBottom: 10 }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
-            <p className="studio-text-bright" style={{ fontSize: 18, fontWeight: 600, margin: 0, display: 'flex', alignItems: 'center', gap: 8 }}>
-              <StudioIcon name="meds" size={18} />
-              {log.medicationName}
-            </p>
-            <span
-              style={{
-                background: `${confidenceColor(log.visionConfidence)}22`,
-                color: confidenceColor(log.visionConfidence),
-                fontSize: 13,
-                fontWeight: 600,
-                padding: '3px 10px',
-                borderRadius: 20,
-                textTransform: 'uppercase',
-              }}
-            >
-              {log.visionConfidence}
-            </span>
+    <div className="supervisor-meds studio-scroll">
+      <div className="card supervisor-meds__patient">
+        {user.familyPhotoUrl ? (
+          <img src={user.familyPhotoUrl} alt={user.name} className="supervisor-meds__photo" />
+        ) : (
+          <div className="supervisor-meds__photo supervisor-meds__photo--placeholder">{initials}</div>
+        )}
+        <div>
+          <p className="supervisor-meds__name">{user.name}</p>
+          <p className="studio-text-muted">Age {user.age} · {user.city}</p>
+          <p className="studio-text-muted">{user.medications.length} active medications</p>
+        </div>
+      </div>
+
+      <div className="supervisor-meds__toolbar">
+        <h2 className="studio-page-title" style={{ margin: 0 }}>Medication plan</h2>
+        <button className="studio-btn studio-btn--primary tap-feedback" onClick={() => { setShowAdd(true); setEditingIdx(null); setForm({ name: '', dosage: '', schedule: ['8:00 AM'] }); }}>
+          + Add med
+        </button>
+      </div>
+
+      {(showAdd || editingIdx !== null) && (
+        <div className="card supervisor-meds__form animate-fadeIn">
+          <p className="studio-section-title">{editingIdx !== null ? 'Edit medication' : 'New medication'}</p>
+          <input className="studio-input" placeholder="Name" value={form.name} onChange={(e) => setForm((p) => ({ ...p, name: e.target.value }))} style={{ marginBottom: 8 }} />
+          <input className="studio-input" placeholder="Dosage, e.g. 10mg" value={form.dosage} onChange={(e) => setForm((p) => ({ ...p, dosage: e.target.value }))} style={{ marginBottom: 8 }} />
+          <input className="studio-input" placeholder="Schedule, e.g. 8:00 AM, 8:00 PM" value={form.schedule.join(', ')} onChange={(e) => setForm((p) => ({ ...p, schedule: e.target.value.split(',').map((s) => s.trim()).filter(Boolean) }))} style={{ marginBottom: 10 }} />
+          <div style={{ display: 'flex', gap: 8 }}>
+            <button className="studio-btn studio-btn--primary tap-feedback" style={{ flex: 1 }} onClick={editingIdx !== null ? handleSaveEdit : handleSaveNew}>
+              Save
+            </button>
+            <button className="studio-btn tap-feedback" onClick={resetForm}>Cancel</button>
           </div>
-          <p className="studio-text-muted" style={{ fontSize: 14, margin: '0 0 4px' }}>
-            {new Date(log.timestamp).toLocaleString([], { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}
+        </div>
+      )}
+
+      {user.medications.map((m, i) => (
+        <div key={`${m.name}-${i}`} className="card supervisor-meds__item">
+          <div className="supervisor-meds__item-main">
+            <p className="supervisor-meds__item-name"><StudioIcon name="meds" size={18} /> {m.name}</p>
+            <p className="studio-text-muted">{m.dosage}</p>
+            <p className="studio-text-muted">{m.schedule.join(' · ')}</p>
+          </div>
+          <div className="supervisor-meds__item-actions">
+            <button className="studio-icon-btn tap-feedback" aria-label="Edit" onClick={() => startEdit(i)}><StudioIcon name="refresh" size={16} /></button>
+            <button className="studio-icon-btn tap-feedback" aria-label="Delete" style={{ color: 'var(--cheer-coral)' }} onClick={() => handleDelete(i)}><StudioIcon name="close" size={16} /></button>
+          </div>
+        </div>
+      ))}
+
+      <h3 className="studio-section-title" style={{ marginTop: 20 }}>Recent intake logs</h3>
+      {sortedLogs.length === 0 && <p className="studio-text-muted">No logs yet.</p>}
+      {sortedLogs.map((log) => (
+        <div key={log.id} className="card" style={{ padding: '12px 14px', marginBottom: 8 }}>
+          <p className="studio-text-bright" style={{ margin: 0, fontWeight: 600 }}>{log.medicationName}</p>
+          <p className="studio-text-muted" style={{ margin: '4px 0 0', fontSize: 14 }}>
+            {new Date(log.timestamp).toLocaleString()} · {log.visionConfidence}
           </p>
-          <p className="studio-text-muted" style={{ fontSize: 15, margin: 0 }}>{log.visionDescription}</p>
-          {!log.confirmed && (
-            <p className="studio-text-muted" style={{ fontSize: 14, color: '#c45c5c', margin: '6px 0 0', fontWeight: 600, display: 'flex', alignItems: 'center', gap: 6 }}>
-              <StudioIcon name="warning" size={14} />
-              Unconfirmed — caregiver follow-up needed
-            </p>
-          )}
         </div>
       ))}
     </div>
   );
 }
 
-// ── ACSE Tab ──────────────────────────────────────────────────────────────────
-function AcseTab({ user }: { user: User | null }) {
+// ── Stats Tab (vitals + ACSE) ─────────────────────────────────────────────────
+function StatsTab({ user }: { user: User | null }) {
   const { acseScore } = useAppStore();
   const scoreHistory = useLiveQuery<import('../db/db').AcseScore[]>(
     () =>
@@ -441,7 +542,9 @@ function AcseTab({ user }: { user: User | null }) {
 
   return (
     <div style={{ flex: 1, overflowY: 'auto', padding: 16 }}>
-      <h2 className="studio-page-title">ACSE — Last 24 Hours</h2>
+      <VitalsDashboard patientName={user?.name} />
+
+      <h2 className="studio-page-title" style={{ marginTop: 8 }}>ACSE — Cognitive Score</h2>
 
       {/* Current score */}
       <div className="card" style={{ padding: 20, marginBottom: 16, textAlign: 'center' }}>
@@ -592,7 +695,7 @@ function ProfileTab() {
             </div>
           ))}
           <p className="studio-text-muted" style={{ fontSize: 14, margin: '8px 0 0' }}>
-            Edit medications in Supervisor setup (re-seed the app to change them).
+            Add, edit, or remove medications in the Meds tab.
           </p>
         </div>
       )}
