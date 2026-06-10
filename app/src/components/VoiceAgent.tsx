@@ -3,31 +3,43 @@ import { useVoice } from '../hooks/useVoice';
 import { useACSE } from '../hooks/useACSE';
 import { claraChat } from '../services/groq';
 import { useAppStore } from '../store/appStore';
-import { db } from '../db/db';
+import { detectLoneliness } from '../lib/memoryRecap';
+import { CLARA_PORTRAIT, CLARA_TAGLINE } from '../lib/clara';
+import { db, type User } from '../db/db';
 import { speak, stopSpeaking, unlockAudioPlayback } from '../services/elevenlabs';
+import StudioIcon from './StudioIcon';
 
 type VoiceState = 'idle' | 'listening' | 'thinking' | 'speaking';
 
+const SUGGESTIONS = [
+  { label: 'What did I do today?', icon: 'calendar' as const },
+  { label: 'Who is my caregiver?', icon: 'user' as const },
+  { label: 'I feel lonely', icon: 'heart' as const },
+];
+
 export default function VoiceAgent() {
   const user = useAppStore((s) => s.user);
+  const triggerMemoryRecap = useAppStore((s) => s.triggerMemoryRecap);
   const [state, setState] = useState<VoiceState>('idle');
   const [inSession, setInSession] = useState(false);
-  const [subtitle, setSubtitle] = useState('');
+  const [claraLine, setClaraLine] = useState('');
   const [error, setError] = useState('');
-  const { startListening, stopListening, transcript: liveTranscript } = useVoice();
+  const { startListening, stopListening } = useVoice();
   const { checkRepeatQuestion, recordActivity } = useACSE();
   const historyRef = useRef<{ role: 'user' | 'assistant'; content: string }[]>([]);
   const sessionActiveRef = useRef(false);
 
+  const firstName = user?.name?.split(' ')[0] ?? 'friend';
+
   useEffect(() => {
     unlockAudioPlayback();
-    setSubtitle('Tap the circle to talk with Clara');
+    setClaraLine(`Hello, ${firstName}. I'm Clara — tap the microphone when you'd like to chat.`);
     return () => {
       sessionActiveRef.current = false;
       stopSpeaking();
       stopListening();
     };
-  }, [stopListening]);
+  }, [stopListening, firstName]);
 
   const stopSession = useCallback(() => {
     sessionActiveRef.current = false;
@@ -35,32 +47,34 @@ export default function VoiceAgent() {
     stopSpeaking();
     stopListening();
     setState('idle');
-    setSubtitle('Tap the circle to talk with Clara');
+    setClaraLine(`I'm still here, ${firstName}. Tap the mic whenever you're ready.`);
     setError('');
-  }, [stopListening]);
+  }, [stopListening, firstName]);
 
   const processUtterance = useCallback(async (text: string) => {
     const trimmed = text.trim();
     if (!trimmed) {
       if (sessionActiveRef.current) {
-        setSubtitle("I didn't catch that — go ahead when you're ready");
-      } else {
-        setState('idle');
-        setSubtitle('Tap the circle to talk with Clara');
+        setClaraLine("Take your time — I'm listening whenever you're ready.");
       }
       return;
     }
 
     checkRepeatQuestion(trimmed);
     recordActivity();
+
+    if (detectLoneliness(trimmed)) {
+      triggerMemoryRecap('loneliness');
+    }
+
     setError('');
     setState('thinking');
-    setSubtitle('Clara is thinking…');
+    setClaraLine('…');
 
-    let response = "I'm here with you. Could you say that again?";
+    let response = "I'm here with you. Could you say that once more?";
 
     try {
-      const ctx = await buildContext(user?.id ?? 1);
+      const ctx = await buildContext(user);
       response = await claraChat(trimmed, historyRef.current, user?.name ?? 'Margaret', ctx);
       historyRef.current = [
         ...historyRef.current,
@@ -69,41 +83,43 @@ export default function VoiceAgent() {
       ].slice(-20);
     } catch (err) {
       console.error(err);
-      setError('Connection issue — tap to try again');
+      setError('Connection issue — tap the mic to try again');
       sessionActiveRef.current = false;
       setInSession(false);
+      setState('idle');
+      return;
     }
 
     if (!sessionActiveRef.current) return;
 
-    setSubtitle(response);
+    setClaraLine(response);
     setState('speaking');
 
     try {
       await speak(response);
     } catch (err) {
       console.error(err);
-      setError('Voice unavailable — check your connection');
+      setError('Voice unavailable — you can still read my reply above.');
       sessionActiveRef.current = false;
       setInSession(false);
+      setState('idle');
+      return;
     }
 
-    // Brief pause so Clara's voice isn't picked up by the mic
     if (sessionActiveRef.current) {
       await new Promise((r) => setTimeout(r, 600));
     }
 
     if (!sessionActiveRef.current) {
       setState('idle');
-      setSubtitle('Tap the circle to talk with Clara');
     }
-  }, [checkRepeatQuestion, recordActivity, user]);
+  }, [checkRepeatQuestion, recordActivity, triggerMemoryRecap, user]);
 
   const runListeningTurn = useCallback(async () => {
     while (sessionActiveRef.current) {
       try {
         setState('listening');
-        setSubtitle('Listening… speak now');
+        setClaraLine("I'm listening…");
         setError('');
         const transcript = await startListening();
         if (!sessionActiveRef.current) break;
@@ -113,21 +129,20 @@ export default function VoiceAgent() {
         if (!sessionActiveRef.current) break;
         const msg = err instanceof Error ? err.message : 'Could not hear you';
         if (msg.includes('denied') || msg.includes('not-allowed')) {
-          setError('Allow microphone access to talk to Clara');
-          setSubtitle('Tap to try again');
+          setError('Please allow microphone access in your browser settings.');
+          setClaraLine('Once the mic is allowed, tap below and we can talk.');
           sessionActiveRef.current = false;
           setInSession(false);
           setState('idle');
           break;
         }
-        // Soft retry for transient errors (no-speech handled in useVoice)
-        setSubtitle("I didn't catch that — try speaking again");
-        await new Promise((r) => setTimeout(r, 400));
+        setClaraLine("I didn't quite catch that — go ahead when you're ready.");
+        await new Promise((r) => setTimeout(r, 500));
       }
     }
   }, [startListening, processUtterance]);
 
-  const handleOrbTap = useCallback(() => {
+  const handleMicTap = useCallback(() => {
     unlockAudioPlayback();
 
     if (state === 'speaking' || state === 'listening' || state === 'thinking' || inSession) {
@@ -141,96 +156,112 @@ export default function VoiceAgent() {
     void runListeningTurn();
   }, [state, inSession, stopSession, runListeningTurn]);
 
-  const stateLabel =
+  const handleChip = (q: string) => {
+    unlockAudioPlayback();
+    sessionActiveRef.current = true;
+    setInSession(true);
+    setError('');
+    void processUtterance(q);
+  };
+
+  const statusLabel =
     state === 'listening' ? 'Listening' :
-    state === 'thinking'  ? 'Thinking' :
-    state === 'speaking'  ? 'Speaking' : inSession ? 'Ready' : 'Ready';
+    state === 'thinking' ? 'Thinking' :
+    state === 'speaking' ? 'Speaking' : inSession ? 'In conversation' : 'Ready';
 
   return (
-    <div className="clara-voice">
-      <div className="clara-voice__header">
-        <p className="clara-voice__name">Clara</p>
-        <p className="clara-voice__mode">Voice companion</p>
+    <div className="clara-room">
+      <div className="clara-room__backdrop" aria-hidden>
+        <div className="clara-room__glow clara-room__glow--1" />
+        <div className="clara-room__glow clara-room__glow--2" />
+        <div className="clara-room__glow clara-room__glow--3" />
       </div>
 
-      <div className="clara-voice__stage">
-        <button
-          type="button"
-          className={`clara-voice__orb tap-feedback clara-voice__orb--${state}`}
-          onClick={handleOrbTap}
-          aria-label={
-            inSession ? 'End conversation with Clara' :
-            state === 'speaking' ? 'Stop Clara' :
-            state === 'listening' ? 'Stop listening' : 'Talk to Clara'
-          }
-        >
-          <span className="clara-voice__ring clara-voice__ring--1" />
-          <span className="clara-voice__ring clara-voice__ring--2" />
-          <span className="clara-voice__ring clara-voice__ring--3" />
-          <span className="clara-voice__core">
-            {state === 'thinking' && <span className="clara-voice__dots"><i /><i /><i /></span>}
-            {state === 'listening' && (
-              <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
-                <rect x="9" y="2" width="6" height="11" rx="3"/><path d="M5 10a7 7 0 0014 0M12 19v3"/>
-              </svg>
-            )}
-            {state === 'speaking' && (
-              <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
-                <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><path d="M19.07 4.93a10 10 0 010 14.14M15.54 8.46a5 5 0 010 7.07"/>
-              </svg>
-            )}
-            {state === 'idle' && (
-              <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
-                <rect x="9" y="2" width="6" height="11" rx="3"/><path d="M5 10a7 7 0 0014 0M12 19v3M8 22h8"/>
-              </svg>
-            )}
-          </span>
-        </button>
-        <p className={`clara-voice__state clara-voice__state--${state}`}>{stateLabel}</p>
-      </div>
+      <div className="clara-room__inner studio-scroll">
+        <header className="clara-room__header">
+          <div className="clara-room__portrait-wrap">
+            <img
+              src={CLARA_PORTRAIT}
+              alt="Clara, your companion"
+              className={`clara-room__portrait clara-room__portrait--${state}`}
+            />
+            <span className={`clara-room__live clara-room__live--${state}`} aria-hidden />
+          </div>
+          <div className="clara-room__intro">
+            <h1 className="clara-room__name">Clara</h1>
+            <p className="clara-room__tagline">{CLARA_TAGLINE}</p>
+            <span className={`clara-room__badge clara-room__badge--${state}`}>{statusLabel}</span>
+          </div>
+        </header>
 
-      <div className="clara-voice__caption" aria-live="polite">
-        {error ? <p className="clara-voice__error">{error}</p> : <p>{subtitle}</p>}
-        {state === 'listening' && liveTranscript && (
-          <p className="clara-voice__heard">You said: &ldquo;{liveTranscript}&rdquo;</p>
-        )}
-      </div>
+        <div className={`clara-room__speech clara-room__speech--${state}`} aria-live="polite">
+          {state === 'listening' && (
+            <div className="clara-room__wave" aria-hidden>
+              {[0, 1, 2, 3, 4].map((i) => (
+                <span key={i} className="clara-room__wave-bar" style={{ animationDelay: `${i * 0.1}s` }} />
+              ))}
+            </div>
+          )}
+          {state === 'thinking' && (
+            <div className="clara-room__thinking" aria-hidden>
+              <span /><span /><span />
+            </div>
+          )}
+          {error ? (
+            <p className="clara-room__error">{error}</p>
+          ) : (
+            <p className="clara-room__line">{claraLine}</p>
+          )}
+        </div>
 
-      <p className="clara-voice__hint">
-        {inSession
-          ? 'Tap to end conversation'
-          : state === 'speaking'
-            ? 'Tap to interrupt'
-            : 'Tap once — speak in full sentences, pause when done'}
-      </p>
-
-      {!inSession && state === 'idle' && (
-        <div className="clara-chips">
-          <p className="clara-chips__label">Try asking:</p>
-          {['What did I do today?', 'Who is my caregiver?', 'What medication is due?'].map((q) => (
-            <button
-              key={q}
-              type="button"
-              className="clara-chip tap-feedback"
-              onClick={() => {
-                sessionActiveRef.current = true;
-                setInSession(true);
-                void processUtterance(q);
-              }}
-            >
-              {q}
-            </button>
-          ))}
-          <p className="clara-chips__note">
-            Tap a chip twice, ask &ldquo;where am I?&rdquo;, or say the same thing to Clara twice — ACSE drops and Comfort Mode opens
+        <div className="clara-room__controls">
+          <button
+            type="button"
+            className={`clara-room__mic tap-feedback clara-room__mic--${state}`}
+            onClick={handleMicTap}
+            aria-label={
+              inSession ? 'End conversation' :
+              state === 'speaking' ? 'Stop Clara' : 'Talk to Clara'
+            }
+          >
+            <span className="clara-room__mic-ring" />
+            <span className="clara-room__mic-ring clara-room__mic-ring--2" />
+            <StudioIcon name="clara" size={32} />
+          </button>
+          <p className="clara-room__mic-hint">
+            {inSession
+              ? 'Tap to end'
+              : state === 'speaking'
+                ? 'Tap to interrupt'
+                : 'Tap to talk — pause when finished'}
           </p>
         </div>
-      )}
+
+        {!inSession && state === 'idle' && (
+          <section className="clara-room__suggestions">
+            <p className="clara-room__suggestions-label">Quick things to say</p>
+            <div className="clara-room__chips">
+              {SUGGESTIONS.map((s) => (
+                <button
+                  key={s.label}
+                  type="button"
+                  className="clara-room__chip tap-feedback"
+                  onClick={() => handleChip(s.label)}
+                >
+                  <StudioIcon name={s.icon} size={18} />
+                  {s.label}
+                </button>
+              ))}
+            </div>
+          </section>
+        )}
+      </div>
     </div>
   );
 }
 
-async function buildContext(userId: number) {
+async function buildContext(user: User | null) {
+  const userId = user?.id ?? 1;
   const now = new Date();
   const events = await db.events.where('userId').equals(userId).toArray();
   const completed = events
@@ -248,5 +279,7 @@ async function buildContext(userId: number) {
     upcomingEvents: upcoming.map(
       (e) => `${e.title} at ${new Date(e.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`
     ),
+    caregiverName: user?.caregiverName,
+    city: user?.city,
   };
 }

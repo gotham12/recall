@@ -17,8 +17,8 @@ async function groqChat(messages: Message[]): Promise<string> {
       const data = await proxyPost<{ content: string }>('/api/groq/chat', {
         model: MODEL,
         messages,
-        max_tokens: 256,
-        temperature: 0.7,
+        max_tokens: 200,
+        temperature: 0.65,
       });
       return data.content;
     } catch (err) {
@@ -36,8 +36,8 @@ async function groqChat(messages: Message[]): Promise<string> {
     body: JSON.stringify({
       model: MODEL,
       messages,
-      max_tokens: 256,
-      temperature: 0.7,
+      max_tokens: 200,
+      temperature: 0.65,
     }),
   });
 
@@ -92,31 +92,73 @@ Write ONLY the sentence. No quotes. No intro. Warm and simple.`;
   }
 }
 
-const CLARA_SYSTEM = `You are Clara, a warm, patient companion for an elderly person with memory loss. Speak simply. Use short sentences. Never use jargon. Repeat important things gently. If the user seems confused or asks the same question twice, respond with extra patience. You have access to the user's name, current time, today's schedule, and recent events. Always be comforting, never clinical. Occasionally use their first name. Always answer in 2-3 sentences max unless asked for more.`;
+const CLARA_SYSTEM = `You are Clara, a warm, trusted friend who speaks with an elderly person who sometimes forgets. Rules:
+- Sound like a real person on a phone call, not an AI or nurse.
+- Use plain words. Short sentences. No lists, bullets, or medical jargon.
+- 1–3 sentences unless they ask for more detail.
+- Use their first name naturally once per reply, not every sentence.
+- Ground answers in today's schedule and recent events when relevant.
+- If they seem confused, lost, or repeat themselves: slow down, reassure, and anchor them in time and place.
+- If they express loneliness: validate the feeling, remind them their family loves them, and suggest looking at family photos together.
+- Never say you are an AI, language model, or assistant.
+- Never quote or repeat back exactly what they just said.
+- End with gentle warmth, not a question every time.`;
+
+export interface ClaraContext extends EventContext {
+  caregiverName?: string;
+  city?: string;
+}
 
 export async function claraChat(
   userMessage: string,
   history: Message[],
   userName: string,
-  ctx: EventContext
+  ctx: ClaraContext
 ): Promise<string> {
   const now = new Date();
   const timeStr = now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-  const dayStr = now.toLocaleDateString([], { weekday: 'long' });
+  const dayStr = now.toLocaleDateString([], { weekday: 'long', month: 'long', day: 'numeric' });
+  const firstName = userName.split(' ')[0];
 
-  const contextNote = `[Context: User is ${userName}. Time is ${timeStr} on ${dayStr}. Recent events: ${ctx.recentEvents.slice(0, 5).join('; ') || 'none'}. Upcoming: ${ctx.upcomingEvents.slice(0, 3).join('; ') || 'none'}.]`;
+  const contextNote = `[Live context for ${firstName}:
+- Time: ${timeStr}, ${dayStr}
+- Home: ${ctx.city ?? 'their home'}
+- Caregiver: ${ctx.caregiverName ?? 'their family'} (checks in regularly)
+- Done today: ${ctx.recentEvents.slice(0, 4).join('; ') || 'a calm morning so far'}
+- Coming up: ${ctx.upcomingEvents.slice(0, 3).join('; ') || 'nothing urgent on the schedule'}]`;
 
   const messages: Message[] = [
-    { role: 'system', content: CLARA_SYSTEM + '\n' + contextNote },
-    ...history.slice(-10),
+    { role: 'system', content: CLARA_SYSTEM + '\n\n' + contextNote },
+    ...history
+      .filter((m) => m.role === 'user' || m.role === 'assistant')
+      .slice(-8)
+      .map((m) => ({ role: m.role, content: m.content })),
     { role: 'user', content: userMessage },
   ];
 
   try {
-    return await groqChat(messages);
+    const raw = await groqChat(messages);
+    return sanitizeClaraReply(raw, firstName);
   } catch {
-    return `I'm here with you, ${userName}. It's ${timeStr} right now. How can I help?`;
+    return `I'm right here with you, ${firstName}. It's ${timeStr} — a good time to take things slowly.`;
   }
+}
+
+function sanitizeClaraReply(text: string, firstName: string): string {
+  let reply = text
+    .replace(/^["']|["']$/g, '')
+    .replace(/\*\*/g, '')
+    .replace(/^Clara:\s*/i, '')
+    .trim();
+  if (!reply) {
+    return `I'm here, ${firstName}. Tell me what's on your mind.`;
+  }
+  if (reply.length > 420) {
+    const cut = reply.slice(0, 400);
+    const lastStop = Math.max(cut.lastIndexOf('.'), cut.lastIndexOf('!'), cut.lastIndexOf('?'));
+    reply = lastStop > 80 ? cut.slice(0, lastStop + 1) : cut + '…';
+  }
+  return reply;
 }
 
 export async function generateGrounding(

@@ -25,6 +25,8 @@ import EmergencySOS from '../components/EmergencySOS';
 import SettingsSheet from '../components/SettingsSheet';
 import CaregiverMirror from '../components/CaregiverMirror';
 import GoldenPathDemo from '../components/GoldenPathDemo';
+import MemoryPhotoRecap from '../components/MemoryPhotoRecap';
+import { CLARA_PORTRAIT } from '../lib/clara';
 
 type Tab = 'home' | 'voice' | 'meds' | 'events' | 'stability';
 
@@ -68,7 +70,7 @@ export default function PatientView() {
   const [moreOpen, setMoreOpen] = useState(false);
   const logoTaps = useRef(0);
   const logoTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const { user, acseScore, theme, demoMode, setDemoMode, comfortModeActive } = useAppStore();
+  const { user, acseScore, theme, demoMode, setDemoMode, comfortModeActive, triggerMemoryRecap } = useAppStore();
   const flowers = getFlowers(theme);
   const { recordNavigation, recordActivity } = useACSE();
 
@@ -162,6 +164,7 @@ export default function PatientView() {
           medications={user?.medications ?? []}
           moreOpen={moreOpen}
           onToggleMore={() => setMoreOpen((v) => !v)}
+          onMemoryRecap={() => triggerMemoryRecap('manual')}
         />
       )}
       {activeTab === 'voice' && <VoiceAgent />}
@@ -177,6 +180,7 @@ export default function PatientView() {
           onClose={() => setDemoMode(false)}
         />
       )}
+      <MemoryPhotoRecap />
     </StudioShell>
   );
 }
@@ -191,6 +195,7 @@ function HomeTab({
   medications,
   moreOpen,
   onToggleMore,
+  onMemoryRecap,
 }: {
   events: Event[];
   onNavigate: (tab: Tab) => void;
@@ -201,6 +206,7 @@ function HomeTab({
   medications: Medication[];
   moreOpen: boolean;
   onToggleMore: () => void;
+  onMemoryRecap: () => void;
 }) {
   const now = new Date();
   const dueMeds = medications.filter((m) => isMedicationDueSoon(m.schedule));
@@ -231,10 +237,23 @@ function HomeTab({
         className="clara-hero-cta tap-feedback"
         onClick={() => onNavigate('voice')}
       >
-        <StudioIcon name="clara" size={28} />
+        <img src={CLARA_PORTRAIT} alt="" className="clara-hero-cta__avatar" />
         <div>
           <p className="clara-hero-cta__title">Talk to Clara</p>
-          <p className="clara-hero-cta__sub">Your voice companion — tap to speak</p>
+          <p className="clara-hero-cta__sub">Your caring companion — tap to speak</p>
+        </div>
+        <span className="clara-hero-cta__arrow"><StudioIcon name="clara" size={22} /></span>
+      </button>
+
+      <button
+        type="button"
+        className="memory-recap-cta tap-feedback"
+        onClick={onMemoryRecap}
+      >
+        <StudioIcon name="heart" size={26} />
+        <div>
+          <p className="memory-recap-cta__title">Family Memory Recap</p>
+          <p className="memory-recap-cta__sub">Shuffle through photos of Susan, Robert &amp; cherished moments</p>
         </div>
       </button>
 

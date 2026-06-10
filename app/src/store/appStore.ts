@@ -37,6 +37,8 @@ interface AppState {
   demoMode: boolean;
   warmthReceived: boolean;
   acseSignalLog: AcseSignalEvent[];
+  memoryRecapActive: boolean;
+  memoryRecapReason: 'manual' | 'loneliness' | null;
 
   setScreen: (screen: AppScreen) => void;
   setUser: (user: User) => void;
@@ -56,6 +58,8 @@ interface AppState {
   setWarmthReceived: (v: boolean) => void;
   applyRemoteAcse: (score: number) => void;
   applyRemoteComfort: (active: boolean) => void;
+  triggerMemoryRecap: (reason?: 'manual' | 'loneliness') => void;
+  dismissMemoryRecap: () => void;
 }
 
 export const useAppStore = create<AppState>((set, get) => ({
@@ -69,6 +73,8 @@ export const useAppStore = create<AppState>((set, get) => ({
   demoMode: false,
   warmthReceived: false,
   acseSignalLog: [],
+  memoryRecapActive: false,
+  memoryRecapReason: null,
 
   setScreen: (screen) => set({ screen }),
   setUser: (user) => set({ user }),
@@ -261,6 +267,8 @@ export const useAppStore = create<AppState>((set, get) => ({
       demoMode: false,
       warmthReceived: false,
       acseSignalLog: [],
+      memoryRecapActive: false,
+      memoryRecapReason: null,
     }),
 
   setDemoMode: (v) => set({ demoMode: v }),
@@ -273,5 +281,13 @@ export const useAppStore = create<AppState>((set, get) => ({
     if (active && get().acseScore >= 50) {
       set({ acseScore: 45 });
     }
+  },
+
+  triggerMemoryRecap: (reason = 'manual') => {
+    set({ memoryRecapActive: true, memoryRecapReason: reason });
+  },
+
+  dismissMemoryRecap: () => {
+    set({ memoryRecapActive: false, memoryRecapReason: null });
   },
 }));
