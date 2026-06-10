@@ -92,9 +92,9 @@ export default function ACSEDashboard() {
       )}
 
       <div className="card acse-dashboard__tip">
-        <p className="studio-section-title">How Comfort Mode triggers</p>
+        <p className="studio-section-title">How ACSE tracks your stability</p>
         <p className="studio-text-muted" style={{ fontSize: 15, margin: 0, lineHeight: 1.55 }}>
-          Ask Clara the same question twice within 5 minutes, switch tabs rapidly, or miss a medication window — ACSE drops and Comfort Mode opens automatically below 50.
+          ACSE watches real behavioral signals — not just tab switching. Repeating questions to Clara, similar topic loops, disorientation phrases (&ldquo;where am I?&rdquo;), missed medications, long silence, or medication re-dosing all lower your score. During the sundowning window (4–8 PM), signals weigh more heavily. Calm engagement gradually restores points.
         </p>
       </div>
 

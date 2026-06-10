@@ -12,8 +12,15 @@ import type { Medication } from '../db/db';
 import StormRadar from '../components/StormRadar';
 import CareJournal from '../components/CareJournal';
 import DataExportPanel from '../components/DataExportPanel';
+import CareCommandCenter from '../components/supervisor/CareCommandCenter';
+import ACSESignalAudit from '../components/supervisor/ACSESignalAudit';
+import CareSettingsPanel from '../components/supervisor/CareSettingsPanel';
+import LiveActivityFeed from '../components/supervisor/LiveActivityFeed';
+import MedicationAdherence from '../components/supervisor/MedicationAdherence';
+import SupervisorCareKit from '../components/supervisor/SupervisorCareKit';
+import WeeklyInsights from '../components/supervisor/WeeklyInsights';
+import AlertHistory from '../components/supervisor/AlertHistory';
 import { logout } from '../lib/session';
-import { sendPresencePulse } from '../lib/presence';
 import { useAppStore } from '../store/appStore';
 import { db, type Event, type User } from '../db/db';
 
@@ -104,11 +111,10 @@ export default function SupervisorView() {
 
 // ── Supervisor Home ───────────────────────────────────────────────────────────
 function SupervisorHomeTab({ user }: { user: User | null }) {
-  const { acseScore, addSupervisorAlert } = useAppStore();
+  const { acseScore } = useAppStore();
   const [quickTitle, setQuickTitle] = useState('');
   const [quickTime, setQuickTime] = useState('');
   const [saved, setSaved] = useState(false);
-  const [pulseSent, setPulseSent] = useState(false);
 
   const eventCount = useLiveQuery<number>(
     () => user?.id ? db.events.where('userId').equals(user.id).count() : Promise.resolve(0),
@@ -139,37 +145,9 @@ function SupervisorHomeTab({ user }: { user: User | null }) {
 
   return (
     <div className="supervisor-home studio-scroll">
-      <div className="card supervisor-home__hero">
-        <p className="studio-section-title">Patient care</p>
-        <p className="supervisor-home__name">{user?.name ?? 'Patient'}</p>
-      </div>
+      <CareCommandCenter />
 
-      {user?.id && (
-        <div className="card presence-bridge">
-          <p className="presence-bridge__eyebrow">Presence Bridge™</p>
-          <p className="presence-bridge__text">
-            Send a warmth pulse — {user.name.split(' ')[0]} will see you are thinking of them.
-          </p>
-          <button
-            type="button"
-            className="btn-warmth tap-feedback"
-            onClick={() => {
-              sendPresencePulse(user.id!, user.caregiverName);
-              addSupervisorAlert({
-                message: `Warmth pulse sent to ${user.name.split(' ')[0]}`,
-                timestamp: new Date().toISOString(),
-                type: 'general',
-                persist: false,
-              });
-              setPulseSent(true);
-              setTimeout(() => setPulseSent(false), 3000);
-            }}
-          >
-            <StudioIcon name="heart" size={20} />
-            {pulseSent ? 'Sent with love ✓' : 'Send Warmth'}
-          </button>
-        </div>
-      )}
+      <LiveActivityFeed limit={6} />
 
       <StormRadar userId={user?.id} />
 
@@ -533,6 +511,8 @@ function MedicationsTab({ user }: { user: User | null }) {
         </div>
       ))}
 
+      <MedicationAdherence />
+
       <h3 className="studio-section-title" style={{ marginTop: 20 }}>Recent intake logs</h3>
       {sortedLogs.length === 0 && <p className="studio-text-muted">No logs yet.</p>}
       {sortedLogs.map((log) => (
@@ -579,6 +559,9 @@ function StatsTab({ user }: { user: User | null }) {
   return (
     <div className="stats-tab studio-scroll">
       <VitalsDashboard patientName={user?.name} />
+
+      <ACSESignalAudit />
+      <WeeklyInsights />
 
       <h2 className="studio-page-title" style={{ marginTop: 8 }}>ACSE — Cognitive Score</h2>
 
@@ -717,6 +700,9 @@ function ProfileTab() {
         <Field label="Calming Music URL" value={form.calmingMusicUrl} onChange={(v) => setForm((p) => ({ ...p, calmingMusicUrl: v }))} />
       </div>
 
+      <CareSettingsPanel />
+      <SupervisorCareKit />
+      <AlertHistory />
       <DataExportPanel />
 
       {user?.medications && (

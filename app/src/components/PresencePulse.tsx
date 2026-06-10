@@ -9,10 +9,15 @@ export default function PresencePulseBanner() {
   const warmthReceived = useAppStore((s) => s.warmthReceived);
   const [pulse, setPulse] = useState<Pulse | null>(null);
 
+  const recoverAcse = useAppStore((s) => s.recoverAcse);
+
   useEffect(() => {
     if (!user?.id) return;
-    return subscribePresence(user.id, (p) => setPulse(p));
-  }, [user?.id]);
+    return subscribePresence(user.id, (p) => {
+      setPulse(p);
+      recoverAcse(5, 'Caregiver warmth received — social co-regulation');
+    });
+  }, [user?.id, recoverAcse]);
 
   useEffect(() => {
     if (!pulse) return;

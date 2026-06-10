@@ -1,4 +1,4 @@
-import { useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useLiveQuery } from 'dexie-react-hooks';
 import StateReconCard from '../components/StateReconCard';
 import VoiceAgent from '../components/VoiceAgent';
@@ -70,7 +70,13 @@ export default function PatientView() {
   const logoTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const { user, acseScore, theme, demoMode, setDemoMode, comfortModeActive } = useAppStore();
   const flowers = getFlowers(theme);
-  const { recordNavigation } = useACSE();
+  const { recordNavigation, recordActivity } = useACSE();
+
+  useEffect(() => {
+    const onInteract = () => recordActivity();
+    window.addEventListener('pointerdown', onInteract);
+    return () => window.removeEventListener('pointerdown', onInteract);
+  }, [recordActivity]);
 
   const handleTabChange = (tab: Tab) => {
     recordNavigation();

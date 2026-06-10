@@ -4,6 +4,8 @@ import { db } from '../db/db';
 import { getStoredTheme, persistTheme, type ThemeMode } from '../lib/theme';
 import { preloadFlowers } from '../flowers';
 import { publishSync } from '../lib/syncBridge';
+import { loadCareSettings } from '../lib/careSettings';
+import type { AcseSignalId } from '../lib/acseEngine';
 
 export type AppScreen = 'loading' | 'login' | 'patient' | 'supervisor';
 
@@ -12,6 +14,16 @@ interface SupervisorAlert {
   message: string;
   timestamp: string;
   type: 'comfort_mode' | 'medication_unconfirmed' | 'general' | 'sos' | 'presence';
+}
+
+export interface AcseSignalEvent {
+  id: string;
+  signalId: AcseSignalId | 'manual';
+  points: number;
+  reason: string;
+  neurology?: string;
+  timestamp: string;
+  scoreAfter: number;
 }
 
 interface AppState {
@@ -24,11 +36,13 @@ interface AppState {
   theme: ThemeMode;
   demoMode: boolean;
   warmthReceived: boolean;
+  acseSignalLog: AcseSignalEvent[];
 
   setScreen: (screen: AppScreen) => void;
   setUser: (user: User) => void;
   setAcseScore: (score: number) => void;
-  deductAcse: (points: number, reason: string) => void;
+  deductAcse: (points: number, reason: string, signalId?: AcseSignalId, neurology?: string) => void;
+  recoverAcse: (points: number, reason: string) => void;
   activateComfortMode: () => void;
   deactivateComfortMode: () => void;
   previewComfortMode: () => void;
@@ -54,6 +68,7 @@ export const useAppStore = create<AppState>((set, get) => ({
   theme: getStoredTheme(),
   demoMode: false,
   warmthReceived: false,
+  acseSignalLog: [],
 
   setScreen: (screen) => set({ screen }),
   setUser: (user) => set({ user }),
@@ -70,12 +85,26 @@ export const useAppStore = create<AppState>((set, get) => ({
     }
   },
 
-  deductAcse: (points, reason) => {
+  deductAcse: (points, reason, signalId, neurology) => {
     const current = get().acseScore;
     const next = Math.max(0, current - points);
-    set({ acseScore: next });
+    const threshold = loadCareSettings(get().user?.id).comfortThreshold;
+    const event: AcseSignalEvent = {
+      id: `${Date.now()}-${Math.random()}`,
+      signalId: signalId ?? 'manual',
+      points: -points,
+      reason,
+      neurology,
+      timestamp: new Date().toISOString(),
+      scoreAfter: next,
+    };
 
-    if (next < 50 && !get().comfortModeActive) {
+    set((state) => ({
+      acseScore: next,
+      acseSignalLog: [event, ...state.acseSignalLog].slice(0, 50),
+    }));
+
+    if (next < threshold && !get().comfortModeActive) {
       get().activateComfortMode();
     }
 
@@ -84,10 +113,41 @@ export const useAppStore = create<AppState>((set, get) => ({
       db.acseScores.add({
         userId: user.id,
         score: next,
-        timestamp: new Date().toISOString(),
+        timestamp: event.timestamp,
         reason,
       }).catch(console.error);
       publishSync(user.id, { type: 'acse', score: next, reason, at: Date.now() });
+    }
+  },
+
+  recoverAcse: (points, reason) => {
+    const current = get().acseScore;
+    const next = Math.min(100, current + points);
+    if (next === current) return;
+
+    const event: AcseSignalEvent = {
+      id: `${Date.now()}-${Math.random()}`,
+      signalId: 'recovery',
+      points,
+      reason,
+      neurology: 'Sustained engagement supports cognitive reserve',
+      timestamp: new Date().toISOString(),
+      scoreAfter: next,
+    };
+
+    set((state) => ({
+      acseScore: next,
+      acseSignalLog: [event, ...state.acseSignalLog].slice(0, 50),
+    }));
+
+    const user = get().user;
+    if (user?.id) {
+      db.acseScores.add({
+        userId: user.id,
+        score: next,
+        timestamp: event.timestamp,
+        reason,
+      }).catch(console.error);
     }
   },
 
@@ -200,6 +260,7 @@ export const useAppStore = create<AppState>((set, get) => ({
       isZooming: false,
       demoMode: false,
       warmthReceived: false,
+      acseSignalLog: [],
     }),
 
   setDemoMode: (v) => set({ demoMode: v }),

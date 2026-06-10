@@ -14,7 +14,7 @@ export default function VoiceAgent() {
   const [inSession, setInSession] = useState(false);
   const [subtitle, setSubtitle] = useState('');
   const [error, setError] = useState('');
-  const { startListening, stopListening } = useVoice();
+  const { startListening, stopListening, transcript: liveTranscript } = useVoice();
   const { checkRepeatQuestion, recordActivity } = useACSE();
   const historyRef = useRef<{ role: 'user' | 'assistant'; content: string }[]>([]);
   const sessionActiveRef = useRef(false);
@@ -88,6 +88,11 @@ export default function VoiceAgent() {
       setInSession(false);
     }
 
+    // Brief pause so Clara's voice isn't picked up by the mic
+    if (sessionActiveRef.current) {
+      await new Promise((r) => setTimeout(r, 600));
+    }
+
     if (!sessionActiveRef.current) {
       setState('idle');
       setSubtitle('Tap the circle to talk with Clara');
@@ -107,12 +112,17 @@ export default function VoiceAgent() {
         console.error(err);
         if (!sessionActiveRef.current) break;
         const msg = err instanceof Error ? err.message : 'Could not hear you';
-        setError(msg.includes('denied') ? 'Allow microphone access to talk to Clara' : msg);
-        setSubtitle('Tap to try again');
-        sessionActiveRef.current = false;
-        setInSession(false);
-        setState('idle');
-        break;
+        if (msg.includes('denied') || msg.includes('not-allowed')) {
+          setError('Allow microphone access to talk to Clara');
+          setSubtitle('Tap to try again');
+          sessionActiveRef.current = false;
+          setInSession(false);
+          setState('idle');
+          break;
+        }
+        // Soft retry for transient errors (no-speech handled in useVoice)
+        setSubtitle("I didn't catch that — try speaking again");
+        await new Promise((r) => setTimeout(r, 400));
       }
     }
   }, [startListening, processUtterance]);
@@ -181,6 +191,9 @@ export default function VoiceAgent() {
 
       <div className="clara-voice__caption" aria-live="polite">
         {error ? <p className="clara-voice__error">{error}</p> : <p>{subtitle}</p>}
+        {state === 'listening' && liveTranscript && (
+          <p className="clara-voice__heard">You said: &ldquo;{liveTranscript}&rdquo;</p>
+        )}
       </div>
 
       <p className="clara-voice__hint">
@@ -188,7 +201,7 @@ export default function VoiceAgent() {
           ? 'Tap to end conversation'
           : state === 'speaking'
             ? 'Tap to interrupt'
-            : 'Tap once — Clara keeps listening'}
+            : 'Tap once — speak in full sentences, pause when done'}
       </p>
 
       {!inSession && state === 'idle' && (
@@ -208,7 +221,9 @@ export default function VoiceAgent() {
               {q}
             </button>
           ))}
-          <p className="clara-chips__note">Ask the same question twice to trigger Comfort Mode</p>
+          <p className="clara-chips__note">
+            Tap a chip twice, ask &ldquo;where am I?&rdquo;, or say the same thing to Clara twice — ACSE drops and Comfort Mode opens
+          </p>
         </div>
       )}
     </div>
