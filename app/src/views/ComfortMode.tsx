@@ -1,6 +1,8 @@
 import { useState, useEffect } from 'react';
 import BreathingCircle from '../components/BreathingCircle';
 import CalmingMusicPlayer from '../components/CalmingMusicPlayer';
+import RecallCascade from '../components/RecallCascade';
+import CaregiverMirror from '../components/CaregiverMirror';
 import FlowerStage from '../components/FlowerStage';
 import StudioIcon from '../components/StudioIcon';
 import { getFlowers } from '../flowers';
@@ -88,6 +90,9 @@ export default function ComfortMode() {
         variant="app"
       />
       <div className="studio-app-scrim comfort-mode__scrim" />
+
+      <RecallCascade />
+      <CaregiverMirror />
 
       <div className="comfort-mode__content">
         <button

@@ -1,4 +1,4 @@
-import StudioIcon from './StudioIcon';
+import ForgetMeNotMark from './ForgetMeNotMark';
 
 interface RecallLogoProps {
   size?: 'sm' | 'md' | 'lg';
@@ -8,13 +8,13 @@ interface RecallLogoProps {
 
 export default function RecallLogo({ size = 'md', showMark = true, className = '' }: RecallLogoProps) {
   const titleSize = size === 'lg' ? 38 : size === 'sm' ? 18 : 24;
-  const iconSize = size === 'lg' ? 30 : size === 'sm' ? 16 : 22;
+  const iconSize = size === 'lg' ? 44 : size === 'sm' ? 28 : 36;
 
   return (
     <div className={`recall-logo recall-logo--${size} ${className}`}>
       {showMark && (
         <span className="recall-logo__mark" aria-hidden>
-          <StudioIcon name="flower" size={iconSize} strokeWidth={1.6} />
+          <ForgetMeNotMark size={iconSize} />
         </span>
       )}
       <span className="recall-logo__word" style={{ fontSize: titleSize }}>Recall</span>

@@ -165,9 +165,13 @@ export async function generateMemoryAnchors(
   city: string,
   caregiverName: string,
   relationship: string,
-  recentEvents: string[]
+  recentEvents: string[],
+  caregiverNotes: string[] = []
 ): Promise<MemoryAnchor[]> {
-  const prompt = `Create exactly 4 memory anchors for ${userName}, age with dementia, living in ${city}. Caregiver: ${caregiverName} (${relationship}). Recent today: ${recentEvents.slice(0, 4).join('; ') || 'quiet morning at home'}.
+  const notesBlock = caregiverNotes.length
+    ? `Caregiver journal today: ${caregiverNotes.slice(0, 3).join('; ')}.`
+    : '';
+  const prompt = `Create exactly 4 memory anchors for ${userName}, age with dementia, living in ${city}. Caregiver: ${caregiverName} (${relationship}). Recent today: ${recentEvents.slice(0, 4).join('; ') || 'quiet morning at home'}. ${notesBlock}
 
 Each anchor is a grounding touchstone — a person, place, routine, or sensory memory that orients them when confused.
 

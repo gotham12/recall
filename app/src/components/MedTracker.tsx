@@ -249,6 +249,15 @@ export default function MedTracker() {
     setCooldownMsg('');
   };
 
+  const demoVerify = useCallback(async (med: Medication) => {
+    setSelectedMed(med);
+    setVisionMsg(`Demo verified — ${med.name} ${med.dosage}`);
+    await speak(`Confirmed — your ${med.name}. Please take it now.`);
+    await logMedication(med, 'high', 'Demo verification — pill bottle matched.', '');
+    setPhase('countdown');
+    startCountdown();
+  }, [logMedication, startCountdown]);
+
   const btnStyle = {
     minHeight: 52,
     padding: '14px 24px',
@@ -296,6 +305,16 @@ export default function MedTracker() {
               </div>
             );
           })}
+          {medications.length > 0 && (
+            <button
+              type="button"
+              className="med-demo-verify tap-feedback"
+              onClick={() => void demoVerify(medications[0])}
+            >
+              <StudioIcon name="meds" size={18} />
+              Demo verify {medications[0].name} (no camera)
+            </button>
+          )}
         </div>
       )}
 

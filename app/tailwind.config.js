@@ -4,35 +4,45 @@ export default {
   theme: {
     extend: {
       colors: {
+        forgetmenot: {
+          blue: '#4A90D9',
+          light: '#8ECDF5',
+          deep: '#1A4A7A',
+          soft: '#D6EBFA',
+          sky: '#EBF5FF',
+          yellow: '#FFD44D',
+          gold: '#F5A623',
+          green: '#3D8B6E',
+        },
         cream: {
-          50:  '#FFFBF7',
-          100: '#FFF5EE',
-          200: '#FFE8D6',
-          300: '#FFD4B8',
+          50:  '#F5FAFF',
+          100: '#EBF5FF',
+          200: '#D6EBFA',
+          300: '#B8D9F0',
         },
         coral: {
-          400: '#FF7E67',
-          500: '#FF6B4A',
-          600: '#E85A3A',
+          400: '#6BB3E8',
+          500: '#4A90D9',
+          600: '#2E6DB0',
         },
         sage: {
-          400: '#6BBF8A',
-          500: '#4A9B6E',
-          600: '#3D8260',
+          400: '#5CB88A',
+          500: '#3D8B6E',
+          600: '#2D6A4F',
         },
         lavender: {
-          400: '#B8A4E8',
-          500: '#9B82DC',
+          400: '#8BA8E8',
+          500: '#6B8FD4',
         },
         electric: {
-          50:  '#EEF6FF',
-          100: '#DBEEFF',
-          200: '#A8D8FF',
-          300: '#60B3FF',
-          400: '#2196F3',
-          500: '#0E7AE6',
-          600: '#0057CC',
-          700: '#0041A8',
+          50:  '#EBF5FF',
+          100: '#D6EBFA',
+          200: '#8ECDF5',
+          300: '#6BB3E8',
+          400: '#4A90D9',
+          500: '#2E6DB0',
+          600: '#1A4A7A',
+          700: '#0F2847',
         },
       },
       fontFamily: {
@@ -55,11 +65,12 @@ export default {
         'fade-in':      'fadeIn 0.6s ease-out forwards',
         'mic-pulse':    'micPulse 1.5s ease-in-out infinite',
         'slide-up':     'slideUp 0.4s ease-out forwards',
+        'fm-breathe':   'forgetMeNotBreathe 4s ease-in-out infinite',
       },
       keyframes: {
         auroraShift: {
           '0%, 100%': { filter: 'hue-rotate(0deg)' },
-          '50%': { filter: 'hue-rotate(25deg)' },
+          '50%': { filter: 'hue-rotate(15deg)' },
         },
         warmthPulse: {
           '0%, 100%': { transform: 'scale(1)', opacity: '1' },
@@ -77,12 +88,16 @@ export default {
           '100%': { opacity: '1', transform: 'translateY(0)' },
         },
         micPulse: {
-          '0%, 100%': { boxShadow: '0 0 0 0 rgba(255,107,74,0.4)' },
-          '50%':      { boxShadow: '0 0 0 20px rgba(255,107,74,0)' },
+          '0%, 100%': { boxShadow: '0 0 0 0 rgba(74,144,217,0.45)' },
+          '50%':      { boxShadow: '0 0 0 20px rgba(74,144,217,0)' },
         },
         slideUp: {
           '0%':   { opacity: '0', transform: 'translateY(20px)' },
           '100%': { opacity: '1', transform: 'translateY(0)' },
+        },
+        forgetMeNotBreathe: {
+          '0%, 100%': { transform: 'scale(1)' },
+          '50%': { transform: 'scale(1.04)' },
         },
       },
     },

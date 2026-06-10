@@ -4,6 +4,7 @@ import { seedIfEmpty } from './db/seed';
 import { needsConsent } from './lib/settings';
 import { useMedReminders } from './hooks/useMedReminders';
 import { useOnlineStatus } from './hooks/useOnlineStatus';
+import { useSyncBridge } from './hooks/useSyncBridge';
 import LoadingScreen from './components/LoadingScreen';
 import LoginScreen from './components/LoginScreen';
 import PatientView from './views/PatientView';
@@ -18,6 +19,7 @@ export default function App() {
   const online = useOnlineStatus();
 
   useMedReminders();
+  useSyncBridge();
 
   useEffect(() => {
     seedIfEmpty().catch(console.error);

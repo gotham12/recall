@@ -6,6 +6,7 @@ import StudioIcon from './StudioIcon';
 /** Patient-side: shows when caregiver sends warmth across tabs/devices */
 export default function PresencePulseBanner() {
   const user = useAppStore((s) => s.user);
+  const warmthReceived = useAppStore((s) => s.warmthReceived);
   const [pulse, setPulse] = useState<Pulse | null>(null);
 
   useEffect(() => {
@@ -24,15 +25,16 @@ export default function PresencePulseBanner() {
     return () => window.clearTimeout(t);
   }, [pulse]);
 
-  if (!pulse) return null;
+  const name = pulse?.caregiverName ?? user?.caregiverName;
+  if (!pulse && !warmthReceived) return null;
 
   return (
-    <div className="presence-pulse" role="status" aria-live="polite">
+    <div className="presence-pulse presence-pulse--glow" role="status" aria-live="polite">
       <div className="presence-pulse__ring" aria-hidden />
       <div className="presence-pulse__ring presence-pulse__ring--2" aria-hidden />
       <StudioIcon name="heart" size={20} />
       <span>
-        <strong>{pulse.caregiverName}</strong> is thinking of you right now
+        <strong>{name}</strong> is thinking of you right now
       </span>
     </div>
   );

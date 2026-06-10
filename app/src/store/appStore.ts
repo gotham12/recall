@@ -3,6 +3,7 @@ import type { User } from '../db/db';
 import { db } from '../db/db';
 import { getStoredTheme, persistTheme, type ThemeMode } from '../lib/theme';
 import { preloadFlowers } from '../flowers';
+import { publishSync } from '../lib/syncBridge';
 
 export type AppScreen = 'loading' | 'login' | 'patient' | 'supervisor';
 
@@ -21,6 +22,8 @@ interface AppState {
   supervisorAlerts: SupervisorAlert[];
   isZooming: boolean;
   theme: ThemeMode;
+  demoMode: boolean;
+  warmthReceived: boolean;
 
   setScreen: (screen: AppScreen) => void;
   setUser: (user: User) => void;
@@ -28,12 +31,17 @@ interface AppState {
   deductAcse: (points: number, reason: string) => void;
   activateComfortMode: () => void;
   deactivateComfortMode: () => void;
+  previewComfortMode: () => void;
   addSupervisorAlert: (alert: Omit<SupervisorAlert, 'id'> & { persist?: boolean }) => void;
   clearSupervisorAlert: (id: string) => void;
   setIsZooming: (v: boolean) => void;
   setTheme: (theme: ThemeMode) => void;
   toggleTheme: () => void;
   resetSession: () => void;
+  setDemoMode: (v: boolean) => void;
+  setWarmthReceived: (v: boolean) => void;
+  applyRemoteAcse: (score: number) => void;
+  applyRemoteComfort: (active: boolean) => void;
 }
 
 export const useAppStore = create<AppState>((set, get) => ({
@@ -44,6 +52,8 @@ export const useAppStore = create<AppState>((set, get) => ({
   supervisorAlerts: [],
   isZooming: false,
   theme: getStoredTheme(),
+  demoMode: false,
+  warmthReceived: false,
 
   setScreen: (screen) => set({ screen }),
   setUser: (user) => set({ user }),
@@ -77,6 +87,7 @@ export const useAppStore = create<AppState>((set, get) => ({
         timestamp: new Date().toISOString(),
         reason,
       }).catch(console.error);
+      publishSync(user.id, { type: 'acse', score: next, reason, at: Date.now() });
     }
   },
 
@@ -92,6 +103,7 @@ export const useAppStore = create<AppState>((set, get) => ({
     });
 
     if (user?.id) {
+      publishSync(user.id, { type: 'comfort', active: true, at: Date.now() });
       db.events.add({
         userId: user.id,
         timestamp: new Date().toISOString(),
@@ -117,6 +129,16 @@ export const useAppStore = create<AppState>((set, get) => ({
     }
   },
 
+  previewComfortMode: () => {
+    const current = get().acseScore;
+    const drop = current - 45;
+    if (drop > 0) {
+      get().deductAcse(drop, 'Demo — Comfort Mode preview');
+    } else if (!get().comfortModeActive) {
+      get().activateComfortMode();
+    }
+  },
+
   addSupervisorAlert: (alert) => {
     const id = `${Date.now()}-${Math.random()}`;
     set((state) => ({
@@ -124,14 +146,22 @@ export const useAppStore = create<AppState>((set, get) => ({
     }));
 
     const user = get().user;
-    if (alert.persist !== false && user?.id) {
-      db.supervisorAlerts.add({
-        userId: user.id,
+    if (user?.id) {
+      publishSync(user.id, {
+        type: 'alert',
         message: alert.message,
-        timestamp: alert.timestamp,
-        type: alert.type,
-        dismissed: false,
-      }).catch(console.error);
+        alertType: alert.type,
+        at: Date.now(),
+      });
+      if (alert.persist !== false) {
+        db.supervisorAlerts.add({
+          userId: user.id,
+          message: alert.message,
+          timestamp: alert.timestamp,
+          type: alert.type,
+          dismissed: false,
+        }).catch(console.error);
+      }
     }
   },
 
@@ -168,5 +198,19 @@ export const useAppStore = create<AppState>((set, get) => ({
       comfortModeActive: false,
       supervisorAlerts: [],
       isZooming: false,
+      demoMode: false,
+      warmthReceived: false,
     }),
+
+  setDemoMode: (v) => set({ demoMode: v }),
+  setWarmthReceived: (v) => set({ warmthReceived: v }),
+
+  applyRemoteAcse: (score) => set({ acseScore: score }),
+
+  applyRemoteComfort: (active) => {
+    set({ comfortModeActive: active });
+    if (active && get().acseScore >= 50) {
+      set({ acseScore: 45 });
+    }
+  },
 }));

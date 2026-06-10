@@ -190,6 +190,27 @@ export default function VoiceAgent() {
             ? 'Tap to interrupt'
             : 'Tap once — Clara keeps listening'}
       </p>
+
+      {!inSession && state === 'idle' && (
+        <div className="clara-chips">
+          <p className="clara-chips__label">Try asking:</p>
+          {['What did I do today?', 'Who is my caregiver?', 'What medication is due?'].map((q) => (
+            <button
+              key={q}
+              type="button"
+              className="clara-chip tap-feedback"
+              onClick={() => {
+                sessionActiveRef.current = true;
+                setInSession(true);
+                void processUtterance(q);
+              }}
+            >
+              {q}
+            </button>
+          ))}
+          <p className="clara-chips__note">Ask the same question twice to trigger Comfort Mode</p>
+        </div>
+      )}
     </div>
   );
 }

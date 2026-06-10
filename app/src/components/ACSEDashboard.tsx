@@ -5,14 +5,8 @@ import { db, type AcseScore } from '../db/db';
 import CognitiveAurora from './CognitiveAurora';
 import StudioIcon, { type IconName } from './StudioIcon';
 
-const DEMO_TRIGGERS = [
-  { label: 'Repeated question', points: 15 },
-  { label: 'Rapid navigation', points: 10 },
-  { label: 'Medication re-attempt', points: 20 },
-];
-
 export default function ACSEDashboard() {
-  const { acseScore, deductAcse, setAcseScore, user } = useAppStore();
+  const { acseScore, user } = useAppStore();
 
   const recentScores = useLiveQuery<AcseScore[]>(
     () =>
@@ -32,12 +26,7 @@ export default function ACSEDashboard() {
       ? { label: 'Stable', desc: 'You are doing well today. Keep your gentle routine.' }
       : acseScore >= 50
         ? { label: 'Moderate', desc: 'Take things slowly. Clara is here if you need reassurance.' }
-        : { label: 'Needs support', desc: 'Comfort mode opens automatically below 50.' };
-
-  const triggerComfortMode = () => {
-    const drop = Math.max(1, acseScore - 49);
-    deductAcse(drop, 'Demo: Comfort Mode triggered');
-  };
+        : { label: 'Needs support', desc: 'Comfort mode may open to help you feel grounded.' };
 
   const insights = [
     { icon: 'clara' as IconName, text: 'Talking to Clara when confused helps rebuild context.' },
@@ -71,42 +60,6 @@ export default function ACSEDashboard() {
         </div>
       </div>
 
-      {/* Demo panel — for hackathon presentations */}
-      <div className="acse-demo-panel">
-        <p className="acse-demo-panel__title">Demo — trigger Comfort Mode</p>
-        <p className="acse-demo-panel__desc">
-          Comfort Mode opens when ACSE drops below 50. Tap the big button to simulate a cognitive dip and show the grounding flow.
-        </p>
-        <button
-          type="button"
-          className="acse-demo-trigger acse-demo-trigger--hero tap-feedback"
-          onClick={triggerComfortMode}
-          disabled={acseScore < 50}
-        >
-          <span>Activate Comfort Mode now</span>
-          <span className="acse-demo-trigger__pts">{acseScore < 50 ? 'Active' : `→ 49`}</span>
-        </button>
-        {DEMO_TRIGGERS.map((t) => (
-          <button
-            key={t.label}
-            type="button"
-            className="acse-demo-trigger tap-feedback"
-            onClick={() => deductAcse(t.points, t.label)}
-          >
-            <span>{t.label}</span>
-            <span className="acse-demo-trigger__pts">−{t.points}</span>
-          </button>
-        ))}
-        <button
-          type="button"
-          className="studio-btn studio-btn--ghost tap-feedback"
-          style={{ width: '100%', marginTop: 4 }}
-          onClick={() => setAcseScore(100)}
-        >
-          Reset score to 100
-        </button>
-      </div>
-
       <div className="card acse-dashboard__tips">
         <p className="studio-section-title">What helps your stability</p>
         <ul className="acse-dashboard__tip-list">
@@ -137,6 +90,13 @@ export default function ACSEDashboard() {
           ))}
         </div>
       )}
+
+      <div className="card acse-dashboard__tip">
+        <p className="studio-section-title">How Comfort Mode triggers</p>
+        <p className="studio-text-muted" style={{ fontSize: 15, margin: 0, lineHeight: 1.55 }}>
+          Ask Clara the same question twice within 5 minutes, switch tabs rapidly, or miss a medication window — ACSE drops and Comfort Mode opens automatically below 50.
+        </p>
+      </div>
 
       <p className="acse-dashboard__footnote">
         ACSE measures behavioral patterns — not a medical diagnosis. Comfort mode opens below 50.

@@ -4,7 +4,6 @@ import gsap from 'gsap';
 import { useGSAP } from '@gsap/react';
 import App from './App';
 import './index.css';
-import './recall-brand.css';
 import { applyGsapDefaults } from './lib/motion';
 import { initTheme } from './lib/theme';
 import { initSettings } from './lib/settings';

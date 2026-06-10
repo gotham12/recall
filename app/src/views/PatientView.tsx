@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import { useLiveQuery } from 'dexie-react-hooks';
 import StateReconCard from '../components/StateReconCard';
 import VoiceAgent from '../components/VoiceAgent';
@@ -23,6 +23,8 @@ import FamiliarFaces from '../components/FamiliarFaces';
 import SafetyCircle from '../components/SafetyCircle';
 import EmergencySOS from '../components/EmergencySOS';
 import SettingsSheet from '../components/SettingsSheet';
+import CaregiverMirror from '../components/CaregiverMirror';
+import GoldenPathDemo from '../components/GoldenPathDemo';
 
 type Tab = 'home' | 'voice' | 'meds' | 'events' | 'stability';
 
@@ -63,13 +65,26 @@ function formatTime(ts: string): string {
 export default function PatientView() {
   const [activeTab, setActiveTab] = useState<Tab>('home');
   const [settingsOpen, setSettingsOpen] = useState(false);
-  const { user, acseScore, theme } = useAppStore();
+  const [moreOpen, setMoreOpen] = useState(false);
+  const logoTaps = useRef(0);
+  const logoTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const { user, acseScore, theme, demoMode, setDemoMode, comfortModeActive } = useAppStore();
   const flowers = getFlowers(theme);
   const { recordNavigation } = useACSE();
 
   const handleTabChange = (tab: Tab) => {
     recordNavigation();
     setActiveTab(tab);
+  };
+
+  const handleLogoTap = () => {
+    logoTaps.current += 1;
+    if (logoTimer.current) clearTimeout(logoTimer.current);
+    logoTimer.current = setTimeout(() => { logoTaps.current = 0; }, 800);
+    if (logoTaps.current >= 3) {
+      logoTaps.current = 0;
+      setDemoMode(true);
+    }
   };
 
   const events = useLiveQuery<Event[]>(
@@ -86,7 +101,9 @@ export default function PatientView() {
       dimOverlay={0.76}
       header={
         <div className="studio-header">
-          <RecallLogo size="sm" />
+          <button type="button" className="recall-logo-tap tap-feedback" onClick={handleLogoTap} aria-label="Recall">
+            <RecallLogo size="sm" />
+          </button>
           <div className="studio-header__actions">
             <div className="studio-header__greeting">
               <span className="studio-header__greeting-label">{timeGreeting()}</span>
@@ -137,14 +154,23 @@ export default function PatientView() {
           caregiverName={user?.caregiverName}
           caregiverPhone={user?.caregiverPhone}
           medications={user?.medications ?? []}
+          moreOpen={moreOpen}
+          onToggleMore={() => setMoreOpen((v) => !v)}
         />
       )}
       {activeTab === 'voice' && <VoiceAgent />}
       {activeTab === 'meds' && <MedTracker />}
       {activeTab === 'events' && <EventsTab events={events ?? []} />}
       {activeTab === 'stability' && <ACSEDashboard />}
+      {!comfortModeActive && <CaregiverMirror />}
       <EmergencySOS />
       <SettingsSheet open={settingsOpen} onClose={() => setSettingsOpen(false)} />
+      {demoMode && (
+        <GoldenPathDemo
+          onNavigate={(tab) => setActiveTab(tab)}
+          onClose={() => setDemoMode(false)}
+        />
+      )}
     </StudioShell>
   );
 }
@@ -157,6 +183,8 @@ function HomeTab({
   caregiverName,
   caregiverPhone,
   medications,
+  moreOpen,
+  onToggleMore,
 }: {
   events: Event[];
   onNavigate: (tab: Tab) => void;
@@ -165,6 +193,8 @@ function HomeTab({
   caregiverName?: string;
   caregiverPhone?: string;
   medications: Medication[];
+  moreOpen: boolean;
+  onToggleMore: () => void;
 }) {
   const now = new Date();
   const dueMeds = medications.filter((m) => isMedicationDueSoon(m.schedule));
@@ -189,10 +219,18 @@ function HomeTab({
 
       <WhereAmICard />
       <StateReconCard />
-      <RoutineChecklist />
-      <MemoryThreads />
-      <FamiliarFaces />
-      <SafetyCircle />
+
+      <button
+        type="button"
+        className="clara-hero-cta tap-feedback"
+        onClick={() => onNavigate('voice')}
+      >
+        <StudioIcon name="clara" size={28} />
+        <div>
+          <p className="clara-hero-cta__title">Talk to Clara</p>
+          <p className="clara-hero-cta__sub">Your voice companion — tap to speak</p>
+        </div>
+      </button>
 
       {dueMeds.length > 0 && (
         <button
@@ -248,23 +286,19 @@ function HomeTab({
         </a>
       )}
 
-      <section className="home-tab__section">
-        <h3 className="studio-section-title">Quick actions</h3>
-        <div className="quick-actions">
-          <button type="button" className="quick-action tap-feedback" onClick={() => onNavigate('voice')}>
-            <span className="quick-action__icon"><StudioIcon name="clara" size={22} /></span>
-            <span className="quick-action__label">Talk to Clara</span>
-          </button>
-          <button type="button" className="quick-action tap-feedback" onClick={() => onNavigate('meds')}>
-            <span className="quick-action__icon"><StudioIcon name="meds" size={22} /></span>
-            <span className="quick-action__label">Take medication</span>
-          </button>
-          <button type="button" className="quick-action tap-feedback" onClick={() => onNavigate('events')}>
-            <span className="quick-action__icon"><StudioIcon name="events" size={22} /></span>
-            <span className="quick-action__label">Today's story</span>
-          </button>
+      <button type="button" className="home-more-toggle tap-feedback" onClick={onToggleMore} aria-expanded={moreOpen}>
+        <StudioIcon name={moreOpen ? 'close' : 'add'} size={18} />
+        <span>{moreOpen ? 'Hide support tools' : 'More support — threads, routines, faces'}</span>
+      </button>
+
+      {moreOpen && (
+        <div className="home-more-panel animate-fadeIn">
+          <RoutineChecklist />
+          <MemoryThreads />
+          <FamiliarFaces />
+          <SafetyCircle />
         </div>
-      </section>
+      )}
 
       <section className="home-tab__section">
         <h3 className="studio-section-title">Coming up</h3>

@@ -142,7 +142,7 @@ export default function LoginScreen() {
 
       <div className="login-top">
         <RecallLogo size="lg" />
-        <p className="login-subtitle">Memory, medication &amp; moments — woven together</p>
+        <p className="login-subtitle">Forget-me-not memory care — woven together</p>
       </div>
 
       <div ref={panelRef} className="login-panel">

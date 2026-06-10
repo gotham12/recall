@@ -47,19 +47,27 @@ export default function MemoryThreads() {
         return;
       }
 
-      const events = await db.events.where('userId').equals(user.id).toArray();
+      const [events, journal] = await Promise.all([
+        db.events.where('userId').equals(user.id).toArray(),
+        db.careJournal.where('userId').equals(user.id).toArray(),
+      ]);
       const recent = events
         .filter((e) => e.completed)
         .sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime())
         .slice(0, 5)
         .map((e) => e.title);
 
+      const notes = journal
+        .filter((j) => new Date(j.timestamp).toDateString() === today)
+        .map((j) => j.note);
+
       const generated = await generateMemoryAnchors(
         user.name,
         user.city,
         user.caregiverName,
         user.caregiverRelationship,
-        recent
+        recent,
+        notes
       );
 
       await db.memoryAnchors
