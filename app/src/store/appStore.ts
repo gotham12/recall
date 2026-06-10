@@ -4,6 +4,7 @@ import { db } from '../db/db';
 import { getStoredTheme, persistTheme, type ThemeMode } from '../lib/theme';
 import { preloadFlowers } from '../flowers';
 import { publishSync } from '../lib/syncBridge';
+import { stopSpeaking } from '../services/elevenlabs';
 import { loadCareSettings } from '../lib/careSettings';
 import type { AcseSignalId } from '../lib/acseEngine';
 
@@ -284,6 +285,7 @@ export const useAppStore = create<AppState>((set, get) => ({
   },
 
   triggerMemoryRecap: (reason = 'manual') => {
+    stopSpeaking();
     set({ memoryRecapActive: true, memoryRecapReason: reason });
   },
 

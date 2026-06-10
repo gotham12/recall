@@ -64,7 +64,12 @@ export default function VoiceAgent() {
     recordActivity();
 
     if (detectLoneliness(trimmed)) {
+      stopSpeaking();
+      sessionActiveRef.current = false;
+      setInSession(false);
+      setState('idle');
       triggerMemoryRecap('loneliness');
+      return;
     }
 
     setError('');

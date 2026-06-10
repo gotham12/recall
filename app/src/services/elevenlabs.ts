@@ -8,6 +8,12 @@ const MODEL_IDS = ['eleven_turbo_v2_5', 'eleven_flash_v2_5', 'eleven_multilingua
 let currentAudio: HTMLAudioElement | null = null;
 let audioUnlocked = false;
 let voicesReady: Promise<SpeechSynthesisVoice[]> | null = null;
+let speakGeneration = 0;
+
+export interface SpeakOptions {
+  /** Softer, more affectionate delivery for memory recap */
+  warm?: boolean;
+}
 
 export function isElevenLabsConfigured(): boolean {
   return usesApiProxy() || Boolean(ELEVENLABS_API_KEY?.trim());
@@ -46,6 +52,7 @@ export function unlockAudioPlayback(): void {
 }
 
 export function stopSpeaking(): void {
+  speakGeneration += 1;
   if (currentAudio) {
     currentAudio.pause();
     currentAudio.src = '';
@@ -56,22 +63,23 @@ export function stopSpeaking(): void {
   }
 }
 
-export async function speak(text: string): Promise<void> {
+export async function speak(text: string, options?: SpeakOptions): Promise<void> {
   const trimmed = text.trim();
   if (!trimmed) return;
 
   stopSpeaking();
+  const myGen = speakGeneration;
 
   if (usesApiProxy()) {
     try {
-      await speakElevenLabs(trimmed);
+      await speakElevenLabs(trimmed, myGen, options);
       return;
     } catch (err) {
       console.warn('ElevenLabs proxy TTS failed, falling back to browser TTS:', err);
     }
   } else if (isElevenLabsConfigured()) {
     try {
-      await speakElevenLabs(trimmed);
+      await speakElevenLabs(trimmed, myGen, options);
       return;
     } catch (err) {
       console.warn('ElevenLabs TTS failed, falling back to browser TTS:', err);
@@ -80,18 +88,20 @@ export async function speak(text: string): Promise<void> {
     console.warn('ElevenLabs API key missing — using browser TTS');
   }
 
-  await speakBrowser(trimmed);
+  if (myGen !== speakGeneration) return;
+  await speakBrowser(trimmed, myGen, options);
 }
 
-async function speakElevenLabs(text: string): Promise<void> {
+async function speakElevenLabs(text: string, gen: number, options?: SpeakOptions): Promise<void> {
   warnDirectApiKeys();
 
   let lastError: Error | null = null;
 
   for (const modelId of MODEL_IDS) {
     try {
-      const blob = await fetchElevenLabsAudio(text, modelId);
-      await playAudioBlob(blob);
+      const blob = await fetchElevenLabsAudio(text, modelId, options);
+      if (gen !== speakGeneration) return;
+      await playAudioBlob(blob, gen);
       return;
     } catch (err) {
       lastError = err instanceof Error ? err : new Error(String(err));
@@ -101,16 +111,14 @@ async function speakElevenLabs(text: string): Promise<void> {
   throw lastError ?? new Error('ElevenLabs TTS failed');
 }
 
-async function fetchElevenLabsAudio(text: string, modelId: string): Promise<Blob> {
+async function fetchElevenLabsAudio(text: string, modelId: string, options?: SpeakOptions): Promise<Blob> {
+  const warm = options?.warm ?? false;
   const payload = {
     text,
     model_id: modelId,
-    voice_settings: {
-      stability: 0.55,
-      similarity_boost: 0.8,
-      style: 0.25,
-      use_speaker_boost: true,
-    },
+    voice_settings: warm
+      ? { stability: 0.42, similarity_boost: 0.88, style: 0.55, use_speaker_boost: true }
+      : { stability: 0.55, similarity_boost: 0.8, style: 0.25, use_speaker_boost: true },
   };
 
   if (usesApiProxy()) {
@@ -147,26 +155,33 @@ async function fetchElevenLabsAudio(text: string, modelId: string): Promise<Blob
   return blob;
 }
 
-async function playAudioBlob(blob: Blob): Promise<void> {
+async function playAudioBlob(blob: Blob, gen: number): Promise<void> {
+  if (gen !== speakGeneration) return;
+
   const url = URL.createObjectURL(blob);
 
   await new Promise<void>((resolve, reject) => {
+    if (gen !== speakGeneration) {
+      URL.revokeObjectURL(url);
+      resolve();
+      return;
+    }
     const audio = new Audio(url);
     audio.setAttribute('playsinline', 'true');
     currentAudio = audio;
     audio.onended = () => {
       URL.revokeObjectURL(url);
-      currentAudio = null;
+      if (currentAudio === audio) currentAudio = null;
       resolve();
     };
     audio.onerror = () => {
       URL.revokeObjectURL(url);
-      currentAudio = null;
+      if (currentAudio === audio) currentAudio = null;
       reject(new Error('Audio playback failed'));
     };
     audio.play().catch((err) => {
       URL.revokeObjectURL(url);
-      currentAudio = null;
+      if (currentAudio === audio) currentAudio = null;
       reject(err);
     });
   });
@@ -193,16 +208,23 @@ function loadVoices(): Promise<SpeechSynthesisVoice[]> {
   return voicesReady;
 }
 
-async function speakBrowser(text: string): Promise<void> {
+async function speakBrowser(text: string, gen: number, options?: SpeakOptions): Promise<void> {
   if (!('speechSynthesis' in window)) return;
+  if (gen !== speakGeneration) return;
 
   const voices = await loadVoices();
+  if (gen !== speakGeneration) return;
+
   window.speechSynthesis.cancel();
 
   await new Promise<void>((resolve) => {
+    if (gen !== speakGeneration) {
+      resolve();
+      return;
+    }
     const utterance = new SpeechSynthesisUtterance(text);
-    utterance.rate = 0.9;
-    utterance.pitch = 1.05;
+    utterance.rate = options?.warm ? 0.82 : 0.9;
+    utterance.pitch = options?.warm ? 1.12 : 1.05;
     utterance.volume = 1;
     utterance.lang = 'en-US';
 
@@ -220,7 +242,6 @@ async function speakBrowser(text: string): Promise<void> {
 
     window.speechSynthesis.speak(utterance);
 
-    // iOS sometimes never fires onend — don't hang forever
     setTimeout(resolve, Math.min(30000, text.length * 80 + 2000));
   });
 }
