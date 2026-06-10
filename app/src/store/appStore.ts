@@ -290,6 +290,7 @@ export const useAppStore = create<AppState>((set, get) => ({
   },
 
   dismissMemoryRecap: () => {
+    stopSpeaking();
     set({ memoryRecapActive: false, memoryRecapReason: null });
   },
 }));

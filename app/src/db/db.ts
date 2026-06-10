@@ -82,6 +82,8 @@ export interface EmergencyContact {
   isPrimary?: boolean;
 }
 
+export type CognitiveGameId = 'wordle' | 'sudoku' | 'connections';
+
 export interface RoutineTask {
   id?: number;
   userId: number;
@@ -89,6 +91,20 @@ export interface RoutineTask {
   period: 'morning' | 'afternoon' | 'evening';
   sortOrder: number;
   completedAt?: string;
+  gameId?: CognitiveGameId;
+}
+
+export interface SleepLog {
+  id?: number;
+  userId: number;
+  /** Calendar date of the night (YYYY-MM-DD) */
+  date: string;
+  bedTime: string;
+  wakeTime: string;
+  quality: 1 | 2 | 3 | 4 | 5;
+  awakenings: number;
+  notes?: string;
+  loggedBy: 'patient' | 'caregiver';
 }
 
 export interface FamiliarFace {
@@ -120,6 +136,7 @@ class RecallDB extends Dexie {
   routineTasks!: Table<RoutineTask>;
   familiarFaces!: Table<FamiliarFace>;
   careJournal!: Table<CareJournalEntry>;
+  sleepLogs!: Table<SleepLog>;
 
   constructor() {
     super('RecallDB');
@@ -148,6 +165,19 @@ class RecallDB extends Dexie {
       routineTasks: '++id, userId, period',
       familiarFaces: '++id, userId',
       careJournal: '++id, userId, timestamp',
+    });
+    this.version(4).stores({
+      users: '++id, name',
+      events: '++id, userId, timestamp, type, completed',
+      medicationLogs: '++id, userId, medicationName, timestamp',
+      acseScores: '++id, userId, timestamp',
+      supervisorAlerts: '++id, userId, timestamp, dismissed',
+      memoryAnchors: '++id, userId, generatedAt',
+      emergencyContacts: '++id, userId',
+      routineTasks: '++id, userId, period',
+      familiarFaces: '++id, userId',
+      careJournal: '++id, userId, timestamp',
+      sleepLogs: '++id, userId, date',
     });
   }
 }

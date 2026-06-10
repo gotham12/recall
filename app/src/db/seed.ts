@@ -1,4 +1,10 @@
 import { db } from './db';
+import { memoryPhotoUrl } from '../lib/memoryPhotos';
+
+const MARGARET_HERO_PHOTO = memoryPhotoUrl('garden');
+const MARGARET_SUSAN_PHOTO = memoryPhotoUrl('dinner');
+const MARGARET_ROBERT_PHOTO = memoryPhotoUrl('picnic');
+const MARGARET_LILY_PHOTO = memoryPhotoUrl('porch');
 
 function makeTime(base: Date, h: number, m = 0): string {
   const d = new Date(base);
@@ -35,12 +41,44 @@ const DEFAULT_ROUTINES = [
   { label: 'Take morning medication', period: 'morning' as const, sortOrder: 1 },
   { label: 'Eat breakfast', period: 'morning' as const, sortOrder: 2 },
   { label: 'Morning walk or stretch', period: 'morning' as const, sortOrder: 3 },
+  { label: 'Daily Word puzzle', period: 'morning' as const, sortOrder: 4, gameId: 'wordle' as const },
   { label: 'Afternoon rest or activity', period: 'afternoon' as const, sortOrder: 0 },
   { label: 'Hydrate and snack', period: 'afternoon' as const, sortOrder: 1 },
+  { label: 'Sudoku challenge', period: 'afternoon' as const, sortOrder: 2, gameId: 'sudoku' as const },
+  { label: 'Word connections', period: 'afternoon' as const, sortOrder: 3, gameId: 'connections' as const },
   { label: 'Eat dinner', period: 'evening' as const, sortOrder: 0 },
   { label: 'Take evening medication', period: 'evening' as const, sortOrder: 1 },
   { label: 'Prepare for bed', period: 'evening' as const, sortOrder: 2 },
+  { label: 'Log last night\'s sleep', period: 'morning' as const, sortOrder: 5 },
 ];
+
+function seedSleepLogs(userId: number, now: Date): Promise<void> {
+  const logs = [];
+  for (let i = 7; i >= 1; i--) {
+    const night = new Date(now);
+    night.setDate(night.getDate() - i);
+    const date = night.toISOString().slice(0, 10);
+    const bedH = 21 + (i % 3);
+    const wakeH = 6 + (i % 2);
+    const quality = (3 + (i % 3)) as 1 | 2 | 3 | 4 | 5;
+    const awakenings = i % 3;
+    const bed = new Date(night);
+    bed.setHours(bedH, 30, 0, 0);
+    const wake = new Date(night);
+    wake.setDate(wake.getDate() + 1);
+    wake.setHours(wakeH, 15, 0, 0);
+    logs.push({
+      userId,
+      date,
+      bedTime: bed.toISOString(),
+      wakeTime: wake.toISOString(),
+      quality,
+      awakenings,
+      loggedBy: i % 2 === 0 ? 'patient' as const : 'caregiver' as const,
+    });
+  }
+  return db.sleepLogs.bulkAdd(logs).then(() => undefined);
+}
 
 /** Remove legacy Harold demo profile from existing installs */
 export async function purgeHaroldProfile(): Promise<void> {
@@ -50,7 +88,7 @@ export async function purgeHaroldProfile(): Promise<void> {
   const id = harold.id;
   await db.transaction('rw', [
     db.users, db.events, db.medicationLogs, db.acseScores, db.supervisorAlerts,
-    db.memoryAnchors, db.emergencyContacts, db.routineTasks, db.familiarFaces, db.careJournal,
+    db.memoryAnchors, db.emergencyContacts, db.routineTasks, db.familiarFaces, db.careJournal, db.sleepLogs,
   ], async () => {
     await db.events.where('userId').equals(id).delete();
     await db.medicationLogs.where('userId').equals(id).delete();
@@ -60,6 +98,7 @@ export async function purgeHaroldProfile(): Promise<void> {
     await db.emergencyContacts.where('userId').equals(id).delete();
     await db.routineTasks.where('userId').equals(id).delete();
     await db.familiarFaces.where('userId').equals(id).delete();
+    await db.sleepLogs.where('userId').equals(id).delete();
     await db.careJournal.where('userId').equals(id).delete();
     await db.users.delete(id);
   });
@@ -85,7 +124,7 @@ export async function seedIfEmpty(): Promise<void> {
     caregiverName: 'Susan',
     caregiverRelationship: 'daughter',
     caregiverPhone: '+15555550142',
-    familyPhotoUrl: 'https://images.unsplash.com/photo-1559839734-2b71ea197ec2?w=400&h=400&fit=crop',
+    familyPhotoUrl: MARGARET_HERO_PHOTO,
     calmingMusicUrl: 'https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3',
     emergencyNote: 'Margaret has mild dementia. Lives alone with daily caregiver visits. Allergic to penicillin.',
     onboardingComplete: true,
@@ -184,21 +223,21 @@ async function seedUserExtras(
       userId,
       name: 'Susan',
       relationship: 'Daughter',
-      photoUrl: 'https://images.unsplash.com/photo-1438761681033-6461ffad8d80?w=200&h=200&fit=crop',
+      photoUrl: MARGARET_SUSAN_PHOTO,
       memoryPrompt: 'This is your daughter Susan. She calls you every day and visited last Sunday with blueberry pie.',
     },
     {
       userId,
       name: 'Robert',
       relationship: 'Grandson',
-      photoUrl: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=200&h=200&fit=crop',
+      photoUrl: MARGARET_ROBERT_PHOTO,
       memoryPrompt: 'This is Robert, your grandson. He is 12 and loves playing chess with you on the porch.',
     },
     {
       userId,
       name: 'Lily',
       relationship: 'Cat',
-      photoUrl: 'https://images.unsplash.com/photo-1514888286974-6c03e2ca1dba?w=200&h=200&fit=crop',
+      photoUrl: MARGARET_LILY_PHOTO,
       memoryPrompt: 'This is Lily, your cat. She sleeps on the sunny windowsill every afternoon.',
     },
   ]);
@@ -219,6 +258,8 @@ async function seedUserExtras(
       author: caregiverName,
     },
   ]);
+
+  await seedSleepLogs(userId, now);
 }
 
 /** Backfill v3 tables for existing installs */
@@ -248,6 +289,9 @@ async function seedExtendedData(): Promise<void> {
         emergencyNote: `${user.name} uses Recall for cognitive support. Contact ${user.caregiverName} first.`,
       });
     }
+    if (user.name === 'Margaret' && user.familyPhotoUrl?.includes('unsplash.com')) {
+      await db.users.update(user.id, { familyPhotoUrl: MARGARET_HERO_PHOTO });
+    }
     const hasFaces = (await db.familiarFaces.where('userId').equals(user.id).count()) > 0;
     if (!hasFaces && user.name === 'Margaret') {
       await db.familiarFaces.bulkAdd([
@@ -255,17 +299,41 @@ async function seedExtendedData(): Promise<void> {
           userId: user.id,
           name: 'Susan',
           relationship: 'Daughter',
-          photoUrl: 'https://images.unsplash.com/photo-1438761681033-6461ffad8d80?w=200&h=200&fit=crop',
+          photoUrl: MARGARET_SUSAN_PHOTO,
           memoryPrompt: 'This is your daughter Susan. She calls you every day.',
         },
         {
           userId: user.id,
           name: 'Robert',
           relationship: 'Grandson',
-          photoUrl: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=200&h=200&fit=crop',
+          photoUrl: MARGARET_ROBERT_PHOTO,
           memoryPrompt: 'This is Robert, your grandson. He loves playing chess with you.',
         },
       ]);
+    }
+    if (user.name === 'Margaret') {
+      const faces = await db.familiarFaces.where('userId').equals(user.id).toArray();
+      for (const face of faces) {
+        if (!face.id || !face.photoUrl?.includes('unsplash.com')) continue;
+        const photoUrl =
+          face.name === 'Susan' ? MARGARET_SUSAN_PHOTO
+          : face.name === 'Robert' ? MARGARET_ROBERT_PHOTO
+          : face.name === 'Lily' ? MARGARET_LILY_PHOTO
+          : MARGARET_HERO_PHOTO;
+        await db.familiarFaces.update(face.id, { photoUrl });
+      }
+    }
+    const hasSleep = (await db.sleepLogs.where('userId').equals(user.id).count()) > 0;
+    if (!hasSleep && user.name === 'Margaret') {
+      await seedSleepLogs(user.id, new Date());
+    }
+    if (user.name === 'Margaret') {
+      const tasks = await db.routineTasks.where('userId').equals(user.id).toArray();
+      const labels = new Set(tasks.map((t) => t.label));
+      const missing = DEFAULT_ROUTINES.filter((r) => !labels.has(r.label));
+      if (missing.length > 0) {
+        await db.routineTasks.bulkAdd(missing.map((r) => ({ ...r, userId: user.id! })));
+      }
     }
   }
 }

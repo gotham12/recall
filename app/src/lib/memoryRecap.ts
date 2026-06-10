@@ -1,4 +1,5 @@
 import type { FamiliarFace, User } from '../db/db';
+import { memoryPhotoUrl } from './memoryPhotos';
 
 export interface MemorySlide {
   id: string;
@@ -18,59 +19,42 @@ const LONELINESS_PATTERNS = [
   /\b(company|someone to talk)\b/i,
 ];
 
-/** Demo album — same family as Margaret's profile, different cherished moments */
+/** Demo album — Margaret's family in cherished moments (bundled photos) */
 const MARGARET_MEMORY_ALBUM: Omit<MemorySlide, 'id'>[] = [
   {
-    photoUrl: 'https://images.unsplash.com/photo-1559839734-2b71ea197ec2?w=800&h=600&fit=crop&auto=format',
+    photoUrl: memoryPhotoUrl('garden'),
+    caption: 'Your family together in the garden — everyone smiling.',
+    speakText: 'Oh, Margaret… look at your beautiful family in the garden. Everyone is gathered close, and you are right at the heart of it. You are so loved.',
+    person: 'Family',
+  },
+  {
+    photoUrl: memoryPhotoUrl('porch'),
     caption: 'You on the porch at Maple Lane — your favorite sunny spot.',
-    speakText: 'Oh, Margaret… look at you on the porch at Maple Lane. The sun feels so warm, and Lily is right beside you. You are loved.',
+    speakText: 'Oh, what a peaceful moment on the porch at Maple Lane. The sun feels so warm, and your family is right beside you. You are loved.',
     person: 'Margaret',
   },
   {
-    photoUrl: 'https://images.unsplash.com/photo-1511895426328-dc8714191300?w=800&h=600&fit=crop&auto=format',
+    photoUrl: memoryPhotoUrl('dinner'),
     caption: 'Sunday dinner with Susan and Robert — everyone laughing.',
     speakText: 'Oh, what a lovely Sunday dinner… Susan and Robert were laughing, and you lit up the whole room with your stories. So much love at that table.',
     person: 'Family',
   },
   {
-    photoUrl: 'https://images.unsplash.com/photo-1438761681033-6461ffad8d80?w=800&h=600&fit=crop&auto=format',
-    caption: "Susan's visit — she brought blueberry pie, just how you like it.",
-    speakText: 'This is your darling Susan. She visits you and calls every single day because she loves you more than words can say.',
-    person: 'Susan',
-  },
-  {
-    photoUrl: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=800&h=600&fit=crop&auto=format',
-    caption: 'Robert teaching you chess on the back porch.',
-    speakText: 'And here is Robert, your sweet grandson. He adores playing chess with you — and he still says you always win.',
-    person: 'Robert',
-  },
-  {
-    photoUrl: 'https://images.unsplash.com/photo-1464226184743-18fb080fad2d?w=800&h=600&fit=crop&auto=format',
-    caption: 'Your garden in full bloom — Susan helped you plant the roses.',
-    speakText: 'Your garden was breathtaking that spring. Susan helped you plant every rose, and she was so proud of you.',
-    person: 'Margaret & Susan',
-  },
-  {
-    photoUrl: 'https://images.unsplash.com/photo-1529156069898-49953e39b3ac?w=800&h=600&fit=crop&auto=format',
+    photoUrl: memoryPhotoUrl('picnic'),
     caption: 'A family picnic at Lake Quinsigamond — a perfect summer day.',
     speakText: 'The picnic at the lake was pure joy. Everyone was together, and your heart was so full of happiness.',
     person: 'Family',
   },
   {
-    photoUrl: 'https://images.unsplash.com/photo-1533777857889-8be897c693ab?w=800&h=600&fit=crop&auto=format',
+    photoUrl: memoryPhotoUrl('birthday'),
     caption: 'Your 75th birthday — Susan and Robert surprised you.',
     speakText: 'On your seventy-fifth birthday, Susan and Robert surprised you with so much love. The cake, the hugs — you are cherished.',
     person: 'Family',
   },
-  {
-    photoUrl: 'https://images.unsplash.com/photo-1544027993-37dbfe43562a?w=800&h=600&fit=crop&auto=format',
-    caption: 'Walking hand in hand with Susan through the autumn leaves.',
-    speakText: 'You and Susan walked through the golden leaves, hand in hand. She never lets go of you, Margaret. Never.',
-    person: 'Susan',
-  },
 ];
 
 function normalizePhotoUrl(url: string): string {
+  if (url.startsWith('data:')) return url;
   let u = url.replace('w=400', 'w=800').replace('h=400', 'h=600').replace('w=200', 'w=800').replace('h=200', 'h=600');
   if (!u.includes('auto=format')) {
     u += u.includes('?') ? '&auto=format' : '?auto=format';
@@ -84,16 +68,17 @@ export function detectLoneliness(text: string): boolean {
 
 export function buildMemorySlides(user: User, familiarFaces: FamiliarFace[] = []): MemorySlide[] {
   const slides: MemorySlide[] = [];
+  const heroPhoto = user.familyPhotoUrl
+    ? normalizePhotoUrl(user.familyPhotoUrl)
+    : memoryPhotoUrl('garden');
 
-  if (user.familyPhotoUrl) {
-    slides.push({
-      id: 'family-hero',
-      photoUrl: normalizePhotoUrl(user.familyPhotoUrl),
-      caption: `A cherished moment with your family.`,
-      speakText: `Oh, ${user.name.split(' ')[0]}… look at this beautiful moment with your family. They adore you, and you are never truly alone.`,
-      person: 'Family',
-    });
-  }
+  slides.push({
+    id: 'family-hero',
+    photoUrl: heroPhoto,
+    caption: 'A cherished moment with your family.',
+    speakText: `Oh, ${user.name.split(' ')[0]}… look at this beautiful moment with your family. They adore you, and you are never truly alone.`,
+    person: 'Family',
+  });
 
   const album =
     user.name === 'Margaret' || user.name.toLowerCase().includes('margaret')
@@ -101,7 +86,7 @@ export function buildMemorySlides(user: User, familiarFaces: FamiliarFace[] = []
       : MARGARET_MEMORY_ALBUM;
 
   album.forEach((s, i) => {
-    if (s.photoUrl === user.familyPhotoUrl) return;
+    if (s.photoUrl === heroPhoto) return;
     slides.push({ ...s, id: `album-${i}` });
   });
 

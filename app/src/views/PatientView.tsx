@@ -26,12 +26,16 @@ import SettingsSheet from '../components/SettingsSheet';
 import CaregiverMirror from '../components/CaregiverMirror';
 import GoldenPathDemo from '../components/GoldenPathDemo';
 import MemoryPhotoRecap from '../components/MemoryPhotoRecap';
+import SleepTracker from '../components/SleepTracker';
+import GameHub from '../components/games/GameHub';
 import { CLARA_PORTRAIT } from '../lib/clara';
 
-type Tab = 'home' | 'voice' | 'meds' | 'events' | 'stability';
+type Tab = 'home' | 'mind' | 'sleep' | 'voice' | 'meds' | 'events' | 'stability';
 
 const TAB_FLOWER_KEYS: Record<Tab, FlowerKey> = {
   home: 'home',
+  mind: 'patient',
+  sleep: 'landing',
   voice: 'patient',
   meds: 'patientEnter',
   events: 'landing',
@@ -40,6 +44,8 @@ const TAB_FLOWER_KEYS: Record<Tab, FlowerKey> = {
 
 const TABS: { id: Tab; label: string; icon: IconName }[] = [
   { id: 'home',      label: 'Home',    icon: 'home' },
+  { id: 'mind',      label: 'Mind',    icon: 'brain' },
+  { id: 'sleep',     label: 'Sleep',   icon: 'moon' },
   { id: 'voice',     label: 'Clara',   icon: 'clara' },
   { id: 'meds',      label: 'Meds',    icon: 'meds' },
   { id: 'events',    label: 'Today',   icon: 'events' },
@@ -136,7 +142,7 @@ export default function PatientView() {
         </div>
       }
       footer={
-        <nav className="studio-tab-bar tab-bar" aria-label="Main navigation">
+        <nav className="studio-tab-bar studio-tab-bar--dense tab-bar" aria-label="Main navigation">
           {TABS.map((tab) => (
             <button
               key={tab.id}
@@ -166,6 +172,16 @@ export default function PatientView() {
           onToggleMore={() => setMoreOpen((v) => !v)}
           onMemoryRecap={() => triggerMemoryRecap('manual')}
         />
+      )}
+      {activeTab === 'mind' && (
+        <div className="mind-tab studio-scroll">
+          <GameHub />
+        </div>
+      )}
+      {activeTab === 'sleep' && (
+        <div className="sleep-tab studio-scroll">
+          <SleepTracker dashboard />
+        </div>
       )}
       {activeTab === 'voice' && <VoiceAgent />}
       {activeTab === 'meds' && <MedTracker />}

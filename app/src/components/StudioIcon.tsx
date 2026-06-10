@@ -34,7 +34,9 @@ export type IconName =
   | 'routine'
   | 'music'
   | 'export'
-  | 'settings';
+  | 'settings'
+  | 'brain'
+  | 'puzzle';
 
 interface StudioIconProps {
   name: IconName;
@@ -248,6 +250,18 @@ const PATHS: Record<IconName, JSX.Element> = {
     <>
       <circle cx="12" cy="12" r="3" />
       <path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4" />
+    </>
+  ),
+  brain: (
+    <>
+      <path d="M8 5c-2 1-3 3-3 5a3 3 0 003 3c0 2 1 3 2 4M16 5c2 1 3 3 3 5a3 3 0 01-3 3c0 2-1 3-2 4" />
+      <path d="M9 8c0-1 1-2 3-2s3 1 3 2M12 11v5M10 14h4" />
+    </>
+  ),
+  puzzle: (
+    <>
+      <path d="M8 4h3v3H8zM13 4h3v3h-3zM4 8h3v3H4zM17 8h3v3h-3zM8 13h3v3H8zM13 17h3v3h-3z" />
+      <path d="M11 8h2v2h-2zM8 11h2v2H8zM14 11h2v2h-2zM11 14h2v2h-2z" />
     </>
   ),
 };

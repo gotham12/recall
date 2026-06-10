@@ -738,6 +738,20 @@ html, body, #root {
   text-transform: uppercase;
 }
 
+.studio-tab-bar--dense .studio-tab {
+  padding: 10px 2px;
+  min-height: 58px;
+  gap: 2px;
+}
+.studio-tab-bar--dense .studio-tab__label {
+  font-size: 10px;
+  letter-spacing: 0.02em;
+}
+.studio-tab-bar--dense .studio-tab__icon svg {
+  width: 20px;
+  height: 20px;
+}
+
 .studio-tab--active {
   transform: translateY(-2px);
 }
@@ -4601,3 +4615,264 @@ html, body, #root {
   border-top: 1px solid var(--studio-border);
 }
 .memory-recap__footer .studio-btn { flex: 1; display: inline-flex; align-items: center; justify-content: center; gap: 8px; }
+
+/* ── Sleep tab ───────────────────────────────────────────────────────────── */
+.sleep-tab { padding: 12px 16px 24px; }
+.sleep-dashboard__hero {
+  display: flex; gap: 16px; align-items: flex-start; margin-bottom: 16px;
+  padding: 20px; border-radius: 20px;
+  background: linear-gradient(135deg, rgba(99,102,241,0.15) 0%, rgba(79,70,229,0.22) 100%);
+  border: 1px solid rgba(99,102,241,0.3);
+}
+.sleep-dashboard__hero-icon {
+  width: 56px; height: 56px; border-radius: 16px; flex-shrink: 0;
+  background: linear-gradient(135deg, #6366f1 0%, #4f46e5 100%);
+  display: flex; align-items: center; justify-content: center; color: #fff;
+}
+.sleep-dashboard__title { margin: 0; font-size: 24px; font-weight: 700; }
+.sleep-dashboard__sub { margin: 6px 0 0; font-size: 14px; line-height: 1.45; color: var(--studio-text-muted); }
+.sleep-tips { padding: 16px; margin-top: 14px; }
+.sleep-tips__list { margin: 8px 0 0; padding-left: 18px; font-size: 14px; line-height: 1.55; }
+.sleep-insight {
+  display: flex; gap: 12px; align-items: flex-start; padding: 14px 16px; margin-top: 14px;
+  background: linear-gradient(135deg, rgba(16,185,129,0.08) 0%, rgba(5,150,105,0.12) 100%);
+  border-color: rgba(16,185,129,0.25);
+}
+.sleep-insight p { margin: 0; font-size: 14px; line-height: 1.45; }
+.sleep-tracker--dashboard { margin-bottom: 0; }
+.sleep-week-chart--tall { height: 88px; }
+
+/* ── Sleep tracker (patient) ─────────────────────────────────────────────── */
+.sleep-tracker { padding: 16px; margin-bottom: 14px; }
+.sleep-tracker__header { display: flex; align-items: center; gap: 12px; }
+.sleep-tracker__icon-wrap {
+  width: 44px; height: 44px; border-radius: 14px;
+  background: linear-gradient(135deg, #6366f1 0%, #4f46e5 100%);
+  display: flex; align-items: center; justify-content: center; color: #fff; flex-shrink: 0;
+}
+.sleep-tracker__head-text { flex: 1; min-width: 0; }
+.sleep-tracker__title { margin: 0; font-size: 17px; font-weight: 650; }
+.sleep-tracker__sub { margin: 2px 0 0; font-size: 13px; color: var(--studio-text-muted); }
+.sleep-tracker__log-btn { flex-shrink: 0; font-size: 14px; padding: 8px 14px; }
+.sleep-tracker__stats {
+  display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-top: 14px;
+}
+.sleep-stat {
+  text-align: center; padding: 10px 6px; border-radius: 12px;
+  background: var(--studio-card-inset); border: 1px solid var(--studio-border);
+}
+.sleep-stat__value { display: block; font-size: 18px; font-weight: 700; color: var(--recall-lavender); }
+.sleep-stat__label { font-size: 11px; color: var(--studio-text-muted); text-transform: uppercase; letter-spacing: 0.04em; }
+.sleep-tracker__week { margin-top: 14px; }
+.sleep-tracker__week-label { font-size: 12px; color: var(--studio-text-muted); margin: 0 0 8px; }
+.sleep-week-chart { display: flex; align-items: flex-end; gap: 6px; height: 64px; }
+.sleep-week-bar { flex: 1; display: flex; flex-direction: column; align-items: center; height: 100%; }
+.sleep-week-bar__fill {
+  width: 100%; max-width: 28px; border-radius: 6px 6px 2px 2px; margin-top: auto;
+  background: linear-gradient(180deg, var(--recall-lavender) 0%, #6366f1 100%);
+  min-height: 4px; transition: height 0.3s ease;
+}
+.sleep-week-bar__day { font-size: 10px; color: var(--studio-text-muted); margin-top: 4px; }
+.sleep-tracker__form { margin-top: 16px; padding-top: 16px; border-top: 1px solid var(--studio-border); }
+.sleep-tracker__form-title { margin: 0 0 12px; font-size: 15px; font-weight: 600; }
+.sleep-form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 14px; }
+.sleep-form-label { display: block; font-size: 13px; font-weight: 600; margin-bottom: 6px; }
+.sleep-time-inputs { display: flex; align-items: center; gap: 6px; }
+.sleep-time-inputs .studio-select { flex: 1; min-width: 0; }
+.sleep-quality-row { display: flex; gap: 8px; }
+.sleep-quality-btn {
+  width: 40px; height: 40px; border-radius: 10px; border: 1.5px solid var(--studio-border);
+  background: var(--studio-card-inset); color: var(--studio-text-muted); display: flex; align-items: center; justify-content: center;
+}
+.sleep-quality-btn--on { background: linear-gradient(135deg, #6366f1, #4f46e5); color: #fff; border-color: transparent; }
+.sleep-awakenings { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 6px; }
+
+/* ── Sleep clinical (supervisor) ─────────────────────────────────────────── */
+.sleep-clinical { padding: 20px; margin-bottom: 18px; }
+.sleep-clinical__header { display: flex; gap: 14px; align-items: flex-start; margin-bottom: 18px; }
+.sleep-clinical__title { margin: 0; font-size: 20px; font-weight: 700; }
+.sleep-clinical__sub { margin: 4px 0 0; font-size: 14px; color: var(--studio-text-muted); line-height: 1.4; }
+.sleep-clinical__metrics {
+  display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; margin-bottom: 14px;
+}
+@media (min-width: 520px) { .sleep-clinical__metrics { grid-template-columns: repeat(4, 1fr); } }
+.sleep-clinical-metric {
+  padding: 12px; border-radius: 14px; background: var(--studio-card-inset);
+  border: 1px solid var(--studio-border); text-align: center;
+}
+.sleep-clinical-metric__value { display: block; font-size: 22px; font-weight: 700; color: var(--recall-lavender); }
+.sleep-clinical-metric__label { font-size: 12px; color: var(--studio-text-muted); }
+.sleep-clinical-metric__target { display: block; font-size: 10px; color: var(--studio-text-muted); margin-top: 2px; opacity: 0.8; }
+.sleep-clinical__badges { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 16px; }
+.sleep-risk-badge, .sleep-trend-badge {
+  padding: 6px 12px; border-radius: 999px; font-size: 12px; font-weight: 650;
+}
+.sleep-trend-badge { background: var(--studio-card-inset); border: 1px solid var(--studio-border); }
+.sleep-trend-badge--improving { color: var(--fm-green); border-color: var(--fm-green); }
+.sleep-trend-badge--declining { color: #EF4444; border-color: #EF4444; }
+.sleep-clinical__chart { margin-bottom: 18px; }
+.sleep-clinical__chart-note { font-size: 12px; margin: 8px 0 0; text-align: center; }
+.sleep-clinical__section { margin-bottom: 16px; }
+.sleep-clinical__section--neuro {
+  padding: 14px; border-radius: 14px;
+  background: linear-gradient(135deg, rgba(99,102,241,0.08) 0%, rgba(79,70,229,0.12) 100%);
+  border: 1px solid rgba(99,102,241,0.25);
+}
+.sleep-clinical__list { margin: 8px 0 0; padding-left: 18px; font-size: 14px; line-height: 1.55; }
+.sleep-clinical__list--neuro li { margin-bottom: 8px; }
+.sleep-clinical__list--rec li { color: var(--studio-text); }
+.sleep-log-row {
+  display: grid; grid-template-columns: 1.2fr 0.8fr 0.8fr 0.8fr 0.6fr; gap: 8px;
+  padding: 8px 0; border-bottom: 1px solid var(--studio-border); font-size: 13px;
+}
+.sleep-log-row__date { font-weight: 600; }
+.sleep-log-row__by { font-size: 11px; color: var(--studio-text-muted); text-transform: capitalize; }
+
+/* ── Mind games hub ─────────────────────────────────────────────────────── */
+.mind-tab { padding: 12px 16px 24px; }
+.mind-games { margin-bottom: 16px; }
+.mind-games__hero { display: flex; align-items: center; gap: 12px; margin-bottom: 16px; }
+.mind-games__title { margin: 0; font-size: 22px; font-weight: 700; }
+.mind-games__sub { margin: 2px 0 0; font-size: 14px; color: var(--studio-text-muted); }
+.mind-games__grid { display: flex; flex-direction: column; gap: 12px; }
+.mind-game-card {
+  display: flex; align-items: center; gap: 14px; padding: 16px; border-radius: 18px;
+  border: none; text-align: left; cursor: pointer; color: #fff;
+  background: var(--game-gradient);
+  box-shadow: 0 8px 24px rgba(0,0,0,0.15), inset 0 1px 0 rgba(255,255,255,0.2);
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+.mind-game-card:active { transform: scale(0.98); }
+.mind-game-card__emoji { font-size: 32px; line-height: 1; }
+.mind-game-card__body { flex: 1; min-width: 0; }
+.mind-game-card__title { margin: 0; font-size: 18px; font-weight: 700; }
+.mind-game-card__sub { margin: 2px 0 6px; font-size: 13px; opacity: 0.9; }
+.mind-game-card__tag {
+  display: inline-block; font-size: 11px; padding: 3px 8px; border-radius: 999px;
+  background: rgba(255,255,255,0.22); font-weight: 600;
+}
+.mind-game-card__play {
+  font-size: 14px; font-weight: 700; padding: 8px 14px; border-radius: 999px;
+  background: rgba(255,255,255,0.25); flex-shrink: 0;
+}
+.routine-item--game { border-left: 3px solid var(--recall-lavender); }
+.routine-item__game-icon { font-size: 18px; line-height: 1; }
+.routine-item__play-tag {
+  display: block; font-size: 11px; color: var(--recall-lavender); font-weight: 600; margin-top: 2px;
+}
+
+/* ── Game modal ───────────────────────────────────────────────────────────── */
+.game-modal {
+  position: fixed; inset: 0; z-index: 200; display: flex; align-items: flex-end; justify-content: center;
+  padding: 0;
+}
+@media (min-width: 520px) {
+  .game-modal { align-items: center; padding: 20px; }
+}
+.game-modal__backdrop { position: absolute; inset: 0; background: rgba(0,0,0,0.55); backdrop-filter: blur(4px); }
+.game-modal__panel {
+  position: relative; z-index: 1; width: 100%; max-width: 480px; max-height: 92vh;
+  display: flex; flex-direction: column; border-radius: 22px 22px 0 0; overflow: hidden;
+}
+@media (min-width: 520px) { .game-modal__panel { border-radius: 22px; } }
+.game-modal__header {
+  display: flex; align-items: flex-start; justify-content: space-between; gap: 12px;
+  padding: 16px 18px; border-bottom: 1px solid var(--studio-border);
+}
+.game-modal__title { margin: 0; font-size: 20px; font-weight: 700; }
+.game-modal__subtitle { margin: 2px 0 0; font-size: 13px; color: var(--studio-text-muted); }
+.game-modal__body { padding: 16px 18px 24px; overflow-y: auto; flex: 1; }
+
+/* ── Wordle ───────────────────────────────────────────────────────────────── */
+.wordle-game__hint { text-align: center; font-size: 14px; color: var(--studio-text-muted); margin: 0 0 14px; }
+.wordle-board { display: flex; flex-direction: column; gap: 6px; align-items: center; margin-bottom: 16px; }
+.wordle-board--shake { animation: wordle-shake 0.5s ease; }
+@keyframes wordle-shake {
+  0%, 100% { transform: translateX(0); }
+  20% { transform: translateX(-6px); }
+  40% { transform: translateX(6px); }
+  60% { transform: translateX(-4px); }
+  80% { transform: translateX(4px); }
+}
+.wordle-board__row { display: flex; gap: 6px; }
+.wordle-tile {
+  width: 52px; height: 52px; border: 2px solid var(--studio-border); border-radius: 8px;
+  display: flex; align-items: center; justify-content: center; font-size: 22px; font-weight: 700;
+  text-transform: uppercase; transition: transform 0.15s, background 0.2s, border-color 0.2s;
+}
+@media (max-width: 400px) { .wordle-tile { width: 44px; height: 44px; font-size: 18px; } }
+.wordle-tile--filled { border-color: var(--studio-text-muted); animation: tile-pop 0.1s ease; }
+.wordle-tile--cursor { border-color: var(--recall-lavender); }
+.wordle-tile--correct { background: #6AAA64; border-color: #6AAA64; color: #fff; }
+.wordle-tile--present { background: #C9B458; border-color: #C9B458; color: #fff; }
+.wordle-tile--absent { background: #787C7E; border-color: #787C7E; color: #fff; }
+@keyframes tile-pop { 0% { transform: scale(1); } 50% { transform: scale(1.08); } 100% { transform: scale(1); } }
+.wordle-game__result { text-align: center; font-size: 15px; font-weight: 600; margin: 0 0 12px; }
+.wordle-game__result--win { color: var(--fm-green); }
+.wordle-game__result--lose { color: var(--studio-text-muted); }
+.wordle-keyboard { display: flex; flex-direction: column; gap: 6px; align-items: center; }
+.wordle-keyboard__row { display: flex; gap: 5px; justify-content: center; }
+.wordle-key {
+  min-width: 32px; height: 48px; padding: 0 8px; border: none; border-radius: 6px;
+  background: var(--studio-card-inset); border: 1px solid var(--studio-border);
+  font-size: 13px; font-weight: 700; color: var(--studio-text); cursor: pointer;
+}
+.wordle-key--wide { min-width: 52px; font-size: 11px; }
+.wordle-key--correct { background: #6AAA64; color: #fff; border-color: transparent; }
+.wordle-key--present { background: #C9B458; color: #fff; border-color: transparent; }
+.wordle-key--absent { background: #787C7E; color: #fff; border-color: transparent; }
+
+/* ── Sudoku ───────────────────────────────────────────────────────────────── */
+.sudoku-game__hint { text-align: center; font-size: 14px; color: var(--studio-text-muted); margin: 0 0 12px; }
+.sudoku-board { display: flex; flex-direction: column; border: 2px solid var(--studio-text); border-radius: 8px; overflow: hidden; margin: 0 auto 14px; max-width: 340px; }
+.sudoku-board__row { display: flex; }
+.sudoku-cell {
+  width: 11.11%; aspect-ratio: 1; border: 1px solid var(--studio-border); border-radius: 0;
+  font-size: 18px; font-weight: 600; display: flex; align-items: center; justify-content: center;
+  background: var(--studio-card-bg); color: var(--studio-text); cursor: pointer; padding: 0;
+}
+.sudoku-cell--fixed { background: var(--studio-card-inset); color: var(--studio-text); font-weight: 700; }
+.sudoku-cell--selected { background: rgba(99,102,241,0.25); }
+.sudoku-cell--highlight { background: rgba(99,102,241,0.1); }
+.sudoku-cell--error { color: #EF4444; background: rgba(239,68,68,0.12); }
+.sudoku-cell--border-r { border-right-width: 2px; border-right-color: var(--studio-text); }
+.sudoku-cell--border-b { border-bottom-width: 2px; border-bottom-color: var(--studio-text); }
+.sudoku-numpad { display: grid; grid-template-columns: repeat(5, 1fr); gap: 8px; max-width: 340px; margin: 0 auto 12px; }
+.sudoku-numpad__key {
+  padding: 12px; border-radius: 10px; border: 1px solid var(--studio-border);
+  background: var(--studio-card-inset); font-size: 18px; font-weight: 700; cursor: pointer;
+}
+.sudoku-numpad__key--clear { grid-column: span 2; font-size: 14px; }
+.sudoku-game__win { text-align: center; color: var(--fm-green); font-weight: 650; margin: 12px 0; }
+.sudoku-game__hint-btn { display: block; margin: 0 auto; font-size: 13px; }
+
+/* ── Connections ──────────────────────────────────────────────────────────── */
+.connections-game__hint { text-align: center; font-size: 14px; color: var(--studio-text-muted); margin: 0 0 10px; }
+.connections-game__mistakes { display: flex; gap: 8px; justify-content: center; margin-bottom: 14px; }
+.connections-mistake {
+  width: 14px; height: 14px; border-radius: 50%; border: 2px solid var(--studio-text-muted);
+}
+.connections-mistake--used { background: var(--studio-text-muted); }
+.connections-solved {
+  padding: 12px 14px; border-radius: 12px; margin-bottom: 8px; color: #1a1a1a;
+}
+.connections-solved__cat { margin: 0; font-size: 12px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.06em; }
+.connections-solved__words { margin: 4px 0 0; font-size: 14px; font-weight: 600; }
+.connections-grid {
+  display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px; margin-bottom: 14px;
+}
+.connections-grid--shake { animation: wordle-shake 0.5s ease; }
+.connections-tile {
+  padding: 14px 10px; border-radius: 10px; border: 2px solid var(--studio-border);
+  background: var(--studio-card-inset); font-size: 13px; font-weight: 700;
+  text-transform: uppercase; letter-spacing: 0.03em; cursor: pointer; text-align: center;
+  transition: transform 0.1s, background 0.15s, border-color 0.15s;
+}
+.connections-tile--selected {
+  background: var(--recall-lavender); color: #fff; border-color: var(--recall-lavender);
+  transform: scale(1.02);
+}
+.connections-actions { display: flex; gap: 10px; justify-content: center; }
+.connections-actions .studio-btn { min-width: 100px; }
+.connections-game__win { text-align: center; color: var(--fm-green); font-weight: 650; }
+.connections-game__lose { font-size: 14px; color: var(--studio-text-muted); margin: 0 0 10px; }
