@@ -109,11 +109,12 @@ export default function VoiceAgent() {
       await speak(response, { clara: true });
     } catch (err) {
       console.error(err);
-      setError('Voice unavailable — you can still read my reply above.');
-      sessionActiveRef.current = false;
-      setInSession(false);
-      setState('idle');
-      return;
+      // Voice failed — show a soft notice but keep the session alive so the
+      // user can continue the conversation via text/mic without re-tapping.
+      setError('Voice unavailable — read my reply above, then tap the mic to continue.');
+      await new Promise((r) => setTimeout(r, 2800));
+      if (!sessionActiveRef.current) return;
+      setError('');
     }
 
     if (sessionActiveRef.current) {

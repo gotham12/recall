@@ -9,6 +9,6 @@
     "secret:vision": "wrangler secret put GOOGLE_VISION_KEY"
   },
   "devDependencies": {
-    "wrangler": "^3.99.0"
+    "wrangler": "^4.0.0"
   }
 }
