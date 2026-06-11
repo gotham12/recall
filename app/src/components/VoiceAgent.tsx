@@ -3,9 +3,13 @@ import { useVoice } from '../hooks/useVoice';
 import { useACSE } from '../hooks/useACSE';
 import { claraChat } from '../services/groq';
 import { useAppStore } from '../store/appStore';
-import { detectLoneliness } from '../lib/memoryRecap';
+import { buildClaraRichContext } from '../lib/claraContext';
+import {
+  detectClaraIntent,
+  getTailoredResponse,
+  type MemoryRecapReason,
+} from '../lib/claraIntents';
 import { CLARA_BACKGROUND, CLARA_PORTRAIT } from '../lib/clara';
-import { db, type User } from '../db/db';
 import { speak, stopSpeaking, unlockAudioPlayback } from '../services/elevenlabs';
 import StudioIcon from './StudioIcon';
 import ClaraFlowerPulse from './ClaraFlowerPulse';
@@ -18,26 +22,34 @@ const SUGGESTIONS = [
   { label: 'I feel lonely', icon: 'heart' as const },
 ];
 
-const POST_SPEAK_PAUSE_MS = 1_400;
+const POST_SPEAK_PAUSE_MS = 1_200;
+const CASCADE_DELAY_MS = 1_800;
 
 export default function VoiceAgent() {
   const user = useAppStore((s) => s.user);
+  const acseScore = useAppStore((s) => s.acseScore);
   const triggerMemoryRecap = useAppStore((s) => s.triggerMemoryRecap);
+  const activateComfortMode = useAppStore((s) => s.activateComfortMode);
   const [state, setState] = useState<VoiceState>('idle');
   const [inSession, setInSession] = useState(false);
   const [claraLine, setClaraLine] = useState('');
   const [error, setError] = useState('');
+  const [llmConnected, setLlmConnected] = useState<boolean | null>(null);
   const { isListening, transcript, startListening, stopListening } = useVoice();
-  const { checkRepeatQuestion, recordActivity } = useACSE();
+  const { checkRepeatQuestion } = useACSE();
   const historyRef = useRef<{ role: 'user' | 'assistant'; content: string }[]>([]);
   const sessionActiveRef = useRef(false);
+  const greetingSetRef = useRef(false);
 
   const firstName = user?.name?.split(' ')[0] ?? 'friend';
   const flowerActive = state === 'thinking' || state === 'speaking';
 
   useEffect(() => {
     unlockAudioPlayback();
-    setClaraLine(`Hello, ${firstName}. Tap the microphone when you'd like to chat.`);
+    if (!greetingSetRef.current) {
+      setClaraLine(`Hello, ${firstName}. I'm Clara — tap the microphone and we can talk about anything.`);
+      greetingSetRef.current = true;
+    }
     return () => {
       sessionActiveRef.current = false;
       stopSpeaking();
@@ -55,6 +67,45 @@ export default function VoiceAgent() {
     setError('');
   }, [stopListening, firstName]);
 
+  const speakResponse = useCallback(async (response: string) => {
+    if (!sessionActiveRef.current) return;
+    stopListening();
+    setClaraLine(response);
+    setState('speaking');
+    try {
+      await speak(response, { clara: true });
+    } catch (err) {
+      console.error(err);
+      setError('Voice unavailable — read my reply above, then tap the mic to continue.');
+      await new Promise((r) => setTimeout(r, 2800));
+      if (!sessionActiveRef.current) return;
+      setError('');
+    }
+    if (sessionActiveRef.current) {
+      await new Promise((r) => setTimeout(r, POST_SPEAK_PAUSE_MS));
+      setState('idle');
+    } else {
+      setState('idle');
+    }
+  }, [stopListening]);
+
+  const runCascade = useCallback(
+    async (cascade: 'memory_recap' | 'comfort_mode', recapReason?: MemoryRecapReason) => {
+      if (!sessionActiveRef.current) return;
+      await new Promise((r) => setTimeout(r, CASCADE_DELAY_MS));
+      sessionActiveRef.current = false;
+      setInSession(false);
+      setState('idle');
+
+      if (cascade === 'memory_recap') {
+        triggerMemoryRecap(recapReason ?? 'disorientation');
+      } else if (cascade === 'comfort_mode') {
+        activateComfortMode();
+      }
+    },
+    [triggerMemoryRecap, activateComfortMode]
+  );
+
   const processUtterance = useCallback(async (text: string) => {
     const trimmed = text.trim();
     if (!trimmed) {
@@ -65,66 +116,45 @@ export default function VoiceAgent() {
     }
 
     checkRepeatQuestion(trimmed);
-
-    if (detectLoneliness(trimmed)) {
-      stopSpeaking();
-      stopListening();
-      sessionActiveRef.current = false;
-      setInSession(false);
-      setState('idle');
-      triggerMemoryRecap('loneliness');
-      return;
-    }
-
     setError('');
     setState('thinking');
-    setClaraLine('');
+    setClaraLine('One moment…');
 
-    let response = "I'm here with you. Could you say that once more?";
+    const intent = detectClaraIntent(trimmed);
+    const ctx = await buildClaraRichContext(user, acseScore);
 
-    try {
-      const ctx = await buildContext(user);
-      response = await claraChat(trimmed, historyRef.current, user?.name ?? 'Margaret', ctx);
-      historyRef.current = [
-        ...historyRef.current,
-        { role: 'user' as const, content: trimmed },
-        { role: 'assistant' as const, content: response },
-      ].slice(-20);
-    } catch (err) {
-      console.error(err);
-      setError('Connection issue — tap the mic to try again');
-      sessionActiveRef.current = false;
-      setInSession(false);
-      setState('idle');
-      return;
+    let response: string;
+
+    if (intent.tailoredFirst) {
+      response = getTailoredResponse(intent.intent, ctx);
+    } else {
+      try {
+        const result = await claraChat(trimmed, historyRef.current, user?.name ?? 'Margaret', ctx);
+        response = result.reply;
+        setLlmConnected(result.fromLlm);
+      } catch (err) {
+        console.error(err);
+        response = getTailoredResponse(intent.intent, ctx);
+        setLlmConnected(false);
+      }
     }
+
+    historyRef.current = [
+      ...historyRef.current,
+      { role: 'user' as const, content: trimmed },
+      { role: 'assistant' as const, content: response },
+    ].slice(-20);
 
     if (!sessionActiveRef.current) return;
 
-    stopListening();
-    setClaraLine(response);
-    setState('speaking');
+    await speakResponse(response);
 
-    try {
-      await speak(response, { clara: true });
-    } catch (err) {
-      console.error(err);
-      // Voice failed — show a soft notice but keep the session alive so the
-      // user can continue the conversation via text/mic without re-tapping.
-      setError('Voice unavailable — read my reply above, then tap the mic to continue.');
-      await new Promise((r) => setTimeout(r, 2800));
-      if (!sessionActiveRef.current) return;
-      setError('');
+    if (intent.cascade === 'memory_recap') {
+      await runCascade('memory_recap', intent.recapReason);
+    } else if (intent.cascade === 'comfort_mode') {
+      await runCascade('comfort_mode');
     }
-
-    if (sessionActiveRef.current) {
-      await new Promise((r) => setTimeout(r, POST_SPEAK_PAUSE_MS));
-    }
-
-    if (!sessionActiveRef.current) {
-      setState('idle');
-    }
-  }, [checkRepeatQuestion, recordActivity, triggerMemoryRecap, user, stopListening]);
+  }, [checkRepeatQuestion, user, acseScore, speakResponse, runCascade]);
 
   const runListeningTurn = useCallback(async () => {
     while (sessionActiveRef.current) {
@@ -153,7 +183,7 @@ export default function VoiceAgent() {
         await new Promise((r) => setTimeout(r, 800));
       }
     }
-  }, [startListening, processUtterance]);
+  }, [startListening, processUtterance, stopSpeaking]);
 
   const handleMicTap = useCallback(() => {
     unlockAudioPlayback();
@@ -168,7 +198,7 @@ export default function VoiceAgent() {
     setInSession(true);
     setError('');
     void runListeningTurn();
-  }, [state, inSession, stopSession, runListeningTurn]);
+  }, [state, inSession, stopSession, runListeningTurn, stopSpeaking]);
 
   const handleChip = (q: string) => {
     unlockAudioPlayback();
@@ -203,6 +233,9 @@ export default function VoiceAgent() {
           <div className="clara-room__intro">
             <h1 className="clara-room__name">Clara</h1>
             <span className={`clara-room__badge clara-room__badge--${state}`}>{statusLabel}</span>
+            {llmConnected === false && (
+              <span className="clara-room__offline-badge">Offline mode</span>
+            )}
           </div>
         </header>
 
@@ -219,7 +252,10 @@ export default function VoiceAgent() {
 
         <div className={`clara-room__speech clara-room__speech--seamless clara-room__speech--${state}`} aria-live="polite">
           {error ? (
-            <p className="clara-room__error">{error}</p>
+            <>
+              <p className="clara-room__error">{error}</p>
+              {claraLine && <p className="clara-room__line">{claraLine}</p>}
+            </>
           ) : (
             <>
               {claraLine ? <p className="clara-room__line">{claraLine}</p> : null}
@@ -276,28 +312,4 @@ export default function VoiceAgent() {
       </div>
     </div>
   );
-}
-
-async function buildContext(user: User | null) {
-  const userId = user?.id ?? 1;
-  const now = new Date();
-  const events = await db.events.where('userId').equals(userId).toArray();
-  const completed = events
-    .filter((e) => e.completed && new Date(e.timestamp) <= now)
-    .sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime())
-    .slice(0, 5);
-  const upcoming = events
-    .filter((e) => !e.completed && new Date(e.timestamp) > now)
-    .sort((a, b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime())
-    .slice(0, 3);
-  return {
-    recentEvents: completed.map(
-      (e) => `${e.title} at ${new Date(e.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`
-    ),
-    upcomingEvents: upcoming.map(
-      (e) => `${e.title} at ${new Date(e.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`
-    ),
-    caregiverName: user?.caregiverName,
-    city: user?.city,
-  };
 }

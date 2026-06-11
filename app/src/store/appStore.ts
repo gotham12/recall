@@ -39,7 +39,7 @@ interface AppState {
   warmthReceived: boolean;
   acseSignalLog: AcseSignalEvent[];
   memoryRecapActive: boolean;
-  memoryRecapReason: 'manual' | 'loneliness' | null;
+  memoryRecapReason: 'manual' | 'loneliness' | 'identity' | 'disorientation' | null;
 
   setScreen: (screen: AppScreen) => void;
   setUser: (user: User) => void;
@@ -59,7 +59,7 @@ interface AppState {
   setWarmthReceived: (v: boolean) => void;
   applyRemoteAcse: (score: number) => void;
   applyRemoteComfort: (active: boolean) => void;
-  triggerMemoryRecap: (reason?: 'manual' | 'loneliness') => void;
+  triggerMemoryRecap: (reason?: 'manual' | 'loneliness' | 'identity' | 'disorientation') => void;
   dismissMemoryRecap: () => void;
 }
 

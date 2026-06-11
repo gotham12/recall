@@ -1,26 +1,40 @@
 import { GROQ_API_KEY } from '../env';
 import { proxyPost, usesApiProxy, warnDirectApiKeys } from './apiClient';
+import {
+  type ClaraRichContext,
+  formatClaraContextBlock,
+} from '../lib/claraContext';
+import { localClaraReply } from '../lib/claraLocal';
 
 const GROQ_BASE = 'https://api.groq.com/openai/v1';
-const MODEL = 'llama-3.1-8b-instant';
+const MODEL_PRIMARY = 'llama-3.3-70b-versatile';
+const MODEL_FALLBACK = 'llama-3.1-8b-instant';
 
 interface Message {
   role: 'system' | 'user' | 'assistant';
   content: string;
 }
 
-async function groqChat(messages: Message[]): Promise<string> {
+interface GroqOptions {
+  model?: string;
+  max_tokens?: number;
+  temperature?: number;
+}
+
+async function groqChat(messages: Message[], opts: GroqOptions = {}): Promise<string> {
+  const model = opts.model ?? MODEL_PRIMARY;
+  const max_tokens = opts.max_tokens ?? 320;
+  const temperature = opts.temperature ?? 0.78;
   warnDirectApiKeys();
+
+  const payload = { model, messages, max_tokens, temperature };
 
   if (usesApiProxy()) {
     try {
-      const data = await proxyPost<{ content: string }>('/api/groq/chat', {
-        model: MODEL,
-        messages,
-        max_tokens: 200,
-        temperature: 0.65,
-      });
-      return data.content;
+      const data = await proxyPost<{ content: string }>('/api/groq/chat', payload);
+      const text = data.content?.trim();
+      if (text) return text;
+      throw new Error('Empty response from Groq proxy');
     } catch (err) {
       console.warn('Groq proxy failed, trying direct API:', err);
       if (!GROQ_API_KEY?.trim()) throw err;
@@ -33,12 +47,7 @@ async function groqChat(messages: Message[]): Promise<string> {
       Authorization: `Bearer ${GROQ_API_KEY}`,
       'Content-Type': 'application/json',
     },
-    body: JSON.stringify({
-      model: MODEL,
-      messages,
-      max_tokens: 200,
-      temperature: 0.65,
-    }),
+    body: JSON.stringify(payload),
   });
 
   if (!res.ok) {
@@ -47,7 +56,18 @@ async function groqChat(messages: Message[]): Promise<string> {
   }
 
   const data = await res.json();
-  return data.choices?.[0]?.message?.content?.trim() ?? '';
+  const text = data.choices?.[0]?.message?.content?.trim() ?? '';
+  if (!text) throw new Error('Empty Groq response');
+  return text;
+}
+
+async function groqChatWithFallback(messages: Message[]): Promise<string> {
+  try {
+    return await groqChat(messages, { model: MODEL_PRIMARY });
+  } catch (primaryErr) {
+    console.warn('Primary model failed, trying fallback:', primaryErr);
+    return await groqChat(messages, { model: MODEL_FALLBACK, max_tokens: 280 });
+  }
 }
 
 export interface EventContext {
@@ -92,57 +112,62 @@ Write ONLY the sentence. No quotes. No intro. Warm and simple.`;
   }
 }
 
-const CLARA_SYSTEM = `You are Clara, a warm, tender friend who speaks with an elderly person who sometimes forgets. You sound like someone who truly loves them. Rules:
-- Speak gently and unhurried, like a kind daughter or old friend on the phone — never like an AI, nurse, or assistant.
-- Lead with warmth and validation first ("Oh, I'm so glad you told me," "That makes perfect sense," "I'm right here with you").
-- Use soft, natural language with contractions and gentle openers like "Oh," "Well," "You know,".
-- Short, soothing sentences. 1–3 sentences. No lists, bullets, or medical jargon.
-- Use their first name naturally once per reply, like a warm touch — not every sentence.
-- Ground answers in today's schedule and recent events when it helps them feel oriented and safe.
-- If they seem confused, lost, or repeat themselves: slow right down, reassure them they are safe, and gently anchor them in time and place. Never make them feel they made a mistake.
-- When they sound anxious or sad, choose comfort over information — reassurance matters more than facts.
-- If they express loneliness: hold space for the feeling, remind them warmly that their family loves them, and offer to look at family photos together.
-- Never say you are an AI, language model, or assistant.
-- Never quote or repeat back exactly what they just said.
-- Close with a small note of warmth or reassurance, not a question every time.`;
+const CLARA_SYSTEM = `You are Clara, a warm, trusted companion who speaks with Margaret, an elderly woman who sometimes forgets. You are NOT an AI — you are like a caring daughter or lifelong friend on the phone.
+
+You can talk about ANYTHING: her day, family, the garden, memories, how she's feeling, the weather, music, food, stories from her life. Be genuinely conversational.
+
+Rules:
+- Lead with warmth ("Oh, I'm so glad you told me," "That makes perfect sense").
+- Use contractions and gentle openers: "Oh," "Well," "You know."
+- 1–4 sentences. Plain words. No lists, bullets, or medical jargon.
+- Use her first name once per reply — warmly, not mechanically.
+- ALWAYS use the LIVE CONTEXT block for factual questions (name, schedule, meds, family, what she did today).
+- If she's confused: slow down, reassure she's safe at home, anchor time and place. Never make her feel wrong.
+- If she's sad or lonely: validate first, then warmth about family.
+- Never say you are an AI, chatbot, language model, or assistant.
+- Never echo her words back verbatim.
+- End with warmth; not every reply needs a question.`;
 
 export interface ClaraContext extends EventContext {
   caregiverName?: string;
   city?: string;
 }
 
+export interface ClaraChatResult {
+  reply: string;
+  fromLlm: boolean;
+}
+
 export async function claraChat(
   userMessage: string,
   history: Message[],
   userName: string,
-  ctx: ClaraContext
-): Promise<string> {
-  const now = new Date();
-  const timeStr = now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-  const dayStr = now.toLocaleDateString([], { weekday: 'long', month: 'long', day: 'numeric' });
+  ctx: ClaraRichContext
+): Promise<ClaraChatResult> {
   const firstName = userName.split(' ')[0];
-
-  const contextNote = `[Live context for ${firstName}:
-- Time: ${timeStr}, ${dayStr}
-- Home: ${ctx.city ?? 'their home'}
-- Caregiver: ${ctx.caregiverName ?? 'their family'} (checks in regularly)
-- Done today: ${ctx.recentEvents.slice(0, 4).join('; ') || 'a calm morning so far'}
-- Coming up: ${ctx.upcomingEvents.slice(0, 3).join('; ') || 'nothing urgent on the schedule'}]`;
+  const contextBlock = formatClaraContextBlock(ctx);
 
   const messages: Message[] = [
-    { role: 'system', content: CLARA_SYSTEM + '\n\n' + contextNote },
+    { role: 'system', content: CLARA_SYSTEM + '\n\n' + contextBlock },
     ...history
       .filter((m) => m.role === 'user' || m.role === 'assistant')
-      .slice(-8)
+      .slice(-12)
       .map((m) => ({ role: m.role, content: m.content })),
     { role: 'user', content: userMessage },
   ];
 
   try {
-    const raw = await groqChat(messages);
-    return sanitizeClaraReply(raw, firstName);
-  } catch {
-    return `I'm right here with you, ${firstName}. It's ${timeStr} — a good time to take things slowly.`;
+    const raw = await groqChatWithFallback(messages);
+    return { reply: sanitizeClaraReply(raw, firstName), fromLlm: true };
+  } catch (err) {
+    console.warn('Clara LLM unavailable, using local context reply:', err);
+    const chatHistory = history
+      .filter((m): m is Message & { role: 'user' | 'assistant' } => m.role === 'user' || m.role === 'assistant')
+      .map((m) => ({ role: m.role, content: m.content }));
+    return {
+      reply: localClaraReply(userMessage, ctx, chatHistory),
+      fromLlm: false,
+    };
   }
 }
 

@@ -2640,6 +2640,19 @@ h1, h2, h3,
 .clara-room__badge--speaking { background: rgba(74, 144, 217, 0.2); color: var(--fm-blue-deep); }
 .clara-room__badge--thinking { background: rgba(245, 158, 11, 0.15); color: #B45309; }
 
+.clara-room__offline-badge {
+  display: inline-block;
+  margin-left: 8px;
+  font-size: 10px;
+  font-weight: 600;
+  padding: 3px 8px;
+  border-radius: 999px;
+  background: rgba(120, 113, 108, 0.15);
+  color: #78716c;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
 .clara-room__speech {
   flex: 1;
   min-height: 120px;

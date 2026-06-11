@@ -149,7 +149,11 @@ export default function MemoryPhotoRecap() {
             <p className="memory-recap__eyebrow">
               {memoryRecapReason === 'loneliness'
                 ? 'Clara noticed you might feel alone'
-                : 'Family Memory Recap™'}
+                : memoryRecapReason === 'identity'
+                  ? 'Clara is helping you remember who you are'
+                  : memoryRecapReason === 'disorientation'
+                    ? 'Clara is here to ground you'
+                    : 'Family Memory Recap™'}
             </p>
             <h2 className="memory-recap__title">{firstName}, you are so loved</h2>
           </div>
