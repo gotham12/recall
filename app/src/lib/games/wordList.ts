@@ -1,3 +1,5 @@
+import { isDictionaryWord } from './wordDict';
+
 /** Curated 5-letter words — familiar, positive, dementia-friendly vocabulary */
 export const WORDLE_WORDS = [
   'HEART', 'PEACE', 'HAPPY', 'SMILE', 'BLOOM', 'SWEET', 'GRACE', 'LIGHT',
@@ -10,8 +12,10 @@ export const WORDLE_WORDS = [
 ].filter((w) => w.length === 5);
 
 export function isValidGuess(word: string): boolean {
-  return /^[A-Za-z]{5}$/.test(word);
+  return /^[A-Za-z]{5}$/.test(word) && isDictionaryWord(word);
 }
+
+export { isDictionaryWord };
 
 export function dailyWord(date = new Date()): string {
   const key = date.toISOString().slice(0, 10);

@@ -104,7 +104,7 @@ export interface SleepLog {
   quality: 1 | 2 | 3 | 4 | 5;
   awakenings: number;
   notes?: string;
-  loggedBy: 'patient' | 'caregiver';
+  loggedBy: 'patient' | 'caregiver' | 'apple_watch';
 }
 
 export interface FamiliarFace {

@@ -23,6 +23,7 @@ import SleepClinicalDashboard from '../components/supervisor/SleepClinicalDashbo
 import AlertHistory from '../components/supervisor/AlertHistory';
 import { logout } from '../lib/session';
 import { useAppStore } from '../store/appStore';
+import SettingsSheet from '../components/SettingsSheet';
 import { db, type Event, type User } from '../db/db';
 
 type Tab = 'home' | 'events' | 'medications' | 'sleep' | 'stats' | 'profile';
@@ -47,6 +48,7 @@ const TABS: { id: Tab; label: string; icon: IconName }[] = [
 
 export default function SupervisorView() {
   const [activeTab, setActiveTab] = useState<Tab>('home');
+  const [settingsOpen, setSettingsOpen] = useState(false);
   const { user, supervisorAlerts, clearSupervisorAlert, theme } = useAppStore();
   const flowers = getFlowers(theme);
 
@@ -61,6 +63,13 @@ export default function SupervisorView() {
             <RecallLogo size="sm" />
             <div className="studio-header__actions">
               <ThemeToggle />
+              <button
+                onClick={() => setSettingsOpen(true)}
+                className="studio-icon-btn tap-feedback"
+                aria-label="Settings"
+              >
+                <StudioIcon name="settings" size={18} />
+              </button>
               <button
                 onClick={logout}
                 className="studio-icon-btn tap-feedback"
@@ -113,6 +122,7 @@ export default function SupervisorView() {
       )}
       {activeTab === 'stats'       && <StatsTab user={user} />}
       {activeTab === 'profile'     && <ProfileTab />}
+      <SettingsSheet open={settingsOpen} onClose={() => setSettingsOpen(false)} />
     </StudioShell>
   );
 }

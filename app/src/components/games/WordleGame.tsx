@@ -1,10 +1,19 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import {
   dailyWord,
-  isValidGuess,
+  isDictionaryWord,
   scoreGuess,
   type LetterState,
 } from '../../lib/games/wordList';
+import { useAppStore } from '../../store/appStore';
+
+const INVALID_WARNINGS = [
+  'Not in word list',
+  "Oops — that isn't a real word",
+  'Please enter a real word',
+  'Try a word you know',
+] as const;
+const INVALID_CASCADE_THRESHOLD = 4;
 
 const ROWS = 6;
 const COLS = 5;
@@ -25,7 +34,9 @@ export default function WordleGame({ onComplete }: WordleGameProps) {
   const [status, setStatus] = useState<'playing' | 'won' | 'lost'>('playing');
   const [shake, setShake] = useState(false);
   const [toast, setToast] = useState('');
+  const [invalidAttempts, setInvalidAttempts] = useState(0);
   const [keyStates, setKeyStates] = useState<Record<string, LetterState>>({});
+  const deductAcse = useAppStore((s) => s.deductAcse);
   const guessesRef = useRef(guesses);
   guessesRef.current = guesses;
 
@@ -61,10 +72,26 @@ export default function WordleGame({ onComplete }: WordleGameProps) {
       setTimeout(() => setShake(false), 500);
       return;
     }
-    if (!isValidGuess(word)) {
+    if (!/^[A-Za-z]{5}$/.test(word)) {
       setShake(true);
-      showToast('Letters only');
+      showToast('Not enough letters');
       setTimeout(() => setShake(false), 500);
+      return;
+    }
+    if (!isDictionaryWord(word)) {
+      setShake(true);
+      const nextInvalid = invalidAttempts + 1;
+      setInvalidAttempts(nextInvalid);
+      const msg = INVALID_WARNINGS[Math.min(nextInvalid - 1, INVALID_WARNINGS.length - 1)];
+      showToast(msg);
+      setTimeout(() => setShake(false), 500);
+
+      if (nextInvalid >= INVALID_CASCADE_THRESHOLD) {
+        const score = useAppStore.getState().acseScore;
+        const drop = Math.max(35, score - 40);
+        deductAcse(drop, 'Repeated invalid words in Daily Word puzzle', 'semantic_loop');
+        setInvalidAttempts(0);
+      }
       return;
     }
 
@@ -80,7 +107,7 @@ export default function WordleGame({ onComplete }: WordleGameProps) {
     } else if (nextGuesses.length >= ROWS) {
       setStatus('lost');
     }
-  }, [current, answer, status, updateKeyStates, onComplete]);
+  }, [current, answer, status, updateKeyStates, onComplete, invalidAttempts, deductAcse]);
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {

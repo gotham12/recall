@@ -132,7 +132,7 @@ export default function LoginScreen() {
       <FlowerStage
         key={`${theme}-${flowerKey}`}
         src={flowerSrc}
-        glowIntensity={0.9}
+        glowIntensity={0.45}
         variant="hero"
       />
 
@@ -140,12 +140,12 @@ export default function LoginScreen() {
         <ThemeToggle />
       </div>
 
-      <div className="login-top">
+      <div className="login-top login-top--slim">
         <RecallLogo size="lg" />
-        <p className="login-subtitle">Forget-me-not memory care — woven together</p>
+        <p className="login-subtitle">Memory care for Margaret &amp; family</p>
       </div>
 
-      <div ref={panelRef} className="login-panel">
+      <div ref={panelRef} className="login-panel login-panel--streamlined">
         {role !== null && (
           <div className="login-steps" aria-label={`Step ${loginStep} of 3`}>
             {[1, 2, 3].map((step) => (
@@ -159,8 +159,7 @@ export default function LoginScreen() {
 
         {role === null && (
           <AnimatedPanel panelKey="landing" stagger>
-            <p className="login-eyebrow">Sign in</p>
-            <p className="login-greeting" style={{ marginBottom: 0 }}>Who is using Recall?</p>
+            <p className="login-greeting login-greeting--hero">Who&apos;s here today?</p>
             <div className="login-actions login-actions--role-select">
               <button
                 className="studio-btn studio-btn--primary tap-feedback login-role-btn"

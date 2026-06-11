@@ -31,6 +31,18 @@ export function getSettings(): AppSettings {
   }
 }
 
+type SettingsListener = (settings: AppSettings) => void;
+const listeners = new Set<SettingsListener>();
+
+export function subscribeSettings(listener: SettingsListener): () => void {
+  listeners.add(listener);
+  return () => listeners.delete(listener);
+}
+
+function notifySettings(settings: AppSettings): void {
+  for (const listener of listeners) listener(settings);
+}
+
 export function saveSettings(patch: Partial<AppSettings>): AppSettings {
   const next = { ...getSettings(), ...patch };
   try {
@@ -39,6 +51,7 @@ export function saveSettings(patch: Partial<AppSettings>): AppSettings {
     /* ignore */
   }
   applySettings(next);
+  notifySettings(next);
   return next;
 }
 
@@ -47,6 +60,7 @@ export function applySettings(settings: AppSettings): void {
   root.dataset.easyMode = settings.easyMode ? 'true' : 'false';
   root.dataset.fontScale = settings.fontScale;
   root.dataset.highContrast = settings.highContrast ? 'true' : 'false';
+  document.body.dataset.easyMode = settings.easyMode ? 'true' : 'false';
 }
 
 export function initSettings(): AppSettings {
