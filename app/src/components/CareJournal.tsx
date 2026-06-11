@@ -3,10 +3,10 @@ import { useLiveQuery } from 'dexie-react-hooks';
 import { db, type CareJournalEntry } from '../db/db';
 import { useAppStore } from '../store/appStore';
 const MOODS: { id: CareJournalEntry['mood']; label: string; emoji: string }[] = [
-  { id: 'great', label: 'Great', emoji: '😊' },
-  { id: 'good', label: 'Good', emoji: '🙂' },
-  { id: 'okay', label: 'Okay', emoji: '😐' },
-  { id: 'difficult', label: 'Difficult', emoji: '😔' },
+  { id: 'great', label: 'Great', emoji: '+' },
+  { id: 'good', label: 'Good', emoji: '' },
+  { id: 'okay', label: 'Okay', emoji: '~' },
+  { id: 'difficult', label: 'Difficult', emoji: '-' },
 ];
 
 export default function CareJournal() {

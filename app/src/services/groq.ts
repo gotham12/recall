@@ -220,7 +220,7 @@ export async function generateMemoryAnchors(
 Each anchor is a grounding touchstone — a person, place, routine, or sensory memory that orients them when confused.
 
 Return ONLY valid JSON array (no markdown):
-[{"title":"short label","emoji":"single emoji","anchorText":"one warm sentence on card","speakText":"2 sentences Clara would say aloud, simple words"}]
+[{"title":"short label","emoji":"","anchorText":"one warm sentence on card","speakText":"2 sentences Clara would say aloud, simple words"}]
 
 Make anchors specific, loving, and believable for a New England senior.`;
 
@@ -232,7 +232,7 @@ Make anchors specific, loving, and believable for a New England senior.`;
       if (Array.isArray(parsed) && parsed.length >= 3) {
         return parsed.slice(0, 4).map((a) => ({
           title: a.title || 'A familiar moment',
-          emoji: a.emoji || '🌸',
+          emoji: '',
           anchorText: a.anchorText || 'You are safe and loved.',
           speakText: a.speakText || a.anchorText || 'You are safe and loved.',
         }));
@@ -246,25 +246,25 @@ Make anchors specific, loving, and believable for a New England senior.`;
   return [
     {
       title: `${caregiverName}'s voice`,
-      emoji: '💛',
+      emoji: '',
       anchorText: `${caregiverName} loves you and checks on you every day.`,
       speakText: `${first}, ${caregiverName} is your ${relationship}. She loves you very much and is always thinking of you.`,
     },
     {
       title: `Home in ${city.split(',')[0]}`,
-      emoji: '🏡',
+      emoji: '',
       anchorText: `Your cozy home in ${city} — familiar and safe.`,
       speakText: `You are at home in ${city}. This is your safe place. Everything here is familiar.`,
     },
     {
       title: 'Morning garden',
-      emoji: '🌷',
+      emoji: '',
       anchorText: 'The flowers you tend each morning are waiting for you.',
       speakText: `Remember your morning walks? The garden is peaceful. You have always loved the flowers.`,
     },
     {
       title: 'Today so far',
-      emoji: '☀️',
+      emoji: '',
       anchorText: recentEvents[0] ?? 'You have had a gentle, caring day.',
       speakText: `Today you have been taking good care of yourself. ${recentEvents[0] ?? 'You rested peacefully at home.'}`,
     },

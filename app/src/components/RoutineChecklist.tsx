@@ -19,9 +19,9 @@ const PERIOD_LABELS: Record<RoutineTask['period'], string> = {
 };
 
 const GAME_ICONS: Record<CognitiveGameId, string> = {
-  wordle: '📝',
-  sudoku: '🔢',
-  connections: '🧩',
+  wordle: 'W',
+  sudoku: 'S',
+  connections: 'C',
 };
 
 export default function RoutineChecklist() {

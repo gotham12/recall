@@ -81,11 +81,7 @@ export default function PatientView() {
   const flowers = getFlowers(theme);
   const { recordNavigation, recordActivity } = useACSE();
 
-  useEffect(() => {
-    const onInteract = () => recordActivity();
-    window.addEventListener('pointerdown', onInteract);
-    return () => window.removeEventListener('pointerdown', onInteract);
-  }, [recordActivity]);
+  // Activity is recorded on tab navigation only — not on every tap.
 
   const handleTabChange = (tab: Tab) => {
     recordNavigation();

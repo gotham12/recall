@@ -93,7 +93,7 @@ export default function MemoryThreads() {
       setAnchors([
         {
           title: 'You are safe',
-          emoji: '🤍',
+          emoji: '',
           anchorText: 'You are home, cared for, and loved.',
           speakText: 'You are safe at home. Take a slow breath. You are not alone.',
         },
