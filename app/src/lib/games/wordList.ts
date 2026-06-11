@@ -17,11 +17,22 @@ export function isValidGuess(word: string): boolean {
 
 export { isDictionaryWord };
 
+/** Only answers that are also accepted guesses — guarantees every day is winnable. */
+const PLAYABLE_WORDS = WORDLE_WORDS.filter((w) => isDictionaryWord(w));
+
+function localDateKey(date: Date): string {
+  const y = date.getFullYear();
+  const m = String(date.getMonth() + 1).padStart(2, '0');
+  const d = String(date.getDate()).padStart(2, '0');
+  return `${y}-${m}-${d}`;
+}
+
 export function dailyWord(date = new Date()): string {
-  const key = date.toISOString().slice(0, 10);
+  const pool = PLAYABLE_WORDS.length > 0 ? PLAYABLE_WORDS : WORDLE_WORDS;
+  const key = localDateKey(date);
   let hash = 0;
   for (let i = 0; i < key.length; i++) hash = (hash * 31 + key.charCodeAt(i)) >>> 0;
-  return WORDLE_WORDS[hash % WORDLE_WORDS.length];
+  return pool[hash % pool.length];
 }
 
 export type LetterState = 'correct' | 'present' | 'absent' | 'empty';

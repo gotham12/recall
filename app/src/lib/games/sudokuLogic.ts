@@ -16,29 +16,48 @@ function cloneGrid(g: Grid): Grid {
   return g.map((row) => [...row]);
 }
 
-function shuffle<T>(arr: T[]): T[] {
+/** Seeded PRNG (mulberry32) so each calendar day yields one stable puzzle. */
+function makeRng(seed: number): () => number {
+  let a = seed >>> 0;
+  return () => {
+    a |= 0;
+    a = (a + 0x6d2b79f5) | 0;
+    let t = Math.imul(a ^ (a >>> 15), 1 | a);
+    t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+  };
+}
+
+function seedFromDate(date: Date): number {
+  const key = `${date.getFullYear()}-${date.getMonth() + 1}-${date.getDate()}`;
+  let hash = 0;
+  for (let i = 0; i < key.length; i++) hash = (hash * 31 + key.charCodeAt(i)) >>> 0;
+  return hash;
+}
+
+function shuffle<T>(arr: T[], rng: () => number): T[] {
   const a = [...arr];
   for (let i = a.length - 1; i > 0; i--) {
-    const j = Math.floor(Math.random() * (i + 1));
+    const j = Math.floor(rng() * (i + 1));
     [a[i], a[j]] = [a[j], a[i]];
   }
   return a;
 }
 
 /** Valid Sudoku transforms: row permutations within bands + global digit remap */
-function transformSolution(): Grid {
+function transformSolution(rng: () => number): Grid {
   const g = cloneGrid(SOLUTION);
 
   for (let band = 0; band < 3; band++) {
     const rows = [band * 3, band * 3 + 1, band * 3 + 2];
-    const order = shuffle(rows);
+    const order = shuffle(rows, rng);
     const swapped = order.map((r) => [...g[r]]);
     rows.forEach((r, i) => {
       g[r] = swapped[i];
     });
   }
 
-  const digitMap = shuffle([1, 2, 3, 4, 5, 6, 7, 8, 9]);
+  const digitMap = shuffle([1, 2, 3, 4, 5, 6, 7, 8, 9], rng);
   for (let r = 0; r < 9; r++) {
     for (let c = 0; c < 9; c++) {
       g[r][c] = digitMap[g[r][c] - 1];
@@ -49,12 +68,13 @@ function transformSolution(): Grid {
 }
 
 export function dailyPuzzle(date = new Date()): { puzzle: Grid; solution: Grid } {
-  void date;
-  const solution = transformSolution();
+  const rng = makeRng(seedFromDate(date));
+  const solution = transformSolution(rng);
   const puzzle = cloneGrid(solution);
 
   const cells = shuffle(
-    Array.from({ length: 81 }, (_, i) => ({ r: Math.floor(i / 9), c: i % 9 }))
+    Array.from({ length: 81 }, (_, i) => ({ r: Math.floor(i / 9), c: i % 9 })),
+    rng
   );
 
   let removed = 0;

@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { subscribePresence, type PresencePulse as Pulse } from '../lib/presence';
 import { useAppStore } from '../store/appStore';
 import StudioIcon from './StudioIcon';
@@ -8,6 +8,7 @@ export default function PresencePulseBanner() {
   const user = useAppStore((s) => s.user);
   const warmthReceived = useAppStore((s) => s.warmthReceived);
   const [pulse, setPulse] = useState<Pulse | null>(null);
+  const lastPulseAt = useRef(0);
 
   const recoverAcse = useAppStore((s) => s.recoverAcse);
 
@@ -15,7 +16,11 @@ export default function PresencePulseBanner() {
     if (!user?.id) return;
     return subscribePresence(user.id, (p) => {
       setPulse(p);
-      recoverAcse(5, 'Caregiver warmth received — social co-regulation');
+      // Only count each distinct warmth pulse once (the poll re-emits the same pulse).
+      if (p.at !== lastPulseAt.current) {
+        lastPulseAt.current = p.at;
+        recoverAcse(5, 'Caregiver warmth received — social co-regulation');
+      }
     });
   }, [user?.id, recoverAcse]);
 

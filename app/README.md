@@ -63,7 +63,7 @@ Opens on `http://localhost:3000` — full hot-reload.
 | Role | How to login |
 |---|---|
 | Patient | Tap "I'm a Patient" → Enter Dashboard |
-| Supervisor | Tap "I'm a Supervisor" → Password: **care2024** |
+| Supervisor | Tap "I'm a Supervisor" → Password: **care2026** |
 
 ---
 
@@ -124,4 +124,4 @@ Graceful fallbacks: ElevenLabs → browser TTS. Google Vision → Groq Vision �
 5. Tap mic again → ask same question → ACSE detects repeat (−15 pts)
 6. Score tab → tap "Medication re-attempt" (−20 pts) → watch Comfort Mode activate at <50
 7. Breathe through Comfort Mode → exit → score resets to 70
-8. Login as Supervisor (care2024) → see full event timeline including the Comfort Mode episode
+8. Login as Supervisor (care2026) → see full event timeline including the Comfort Mode episode

@@ -65,7 +65,6 @@ export default function VoiceAgent() {
     }
 
     checkRepeatQuestion(trimmed);
-    recordActivity();
 
     if (detectLoneliness(trimmed)) {
       stopSpeaking();

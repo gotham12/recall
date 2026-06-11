@@ -77,6 +77,7 @@
   --studio-score-ring-shadow: rgba(74, 144, 217, 0.2);
   --studio-highlight-border: rgba(74, 144, 217, 0.3);
   --studio-icon-surface-border: rgba(74, 144, 217, 0.2);
+  --recall-petal: #4A90D9;
   -webkit-tap-highlight-color: transparent;
   --font-display: 'Fraunces', Georgia, 'Times New Roman', serif;
   --font-body: 'DM Sans', system-ui, -apple-system, sans-serif;
@@ -2021,6 +2022,12 @@ h1, h2, h3,
   text-align: center;
 }
 
+@property --score {
+  syntax: '<number>';
+  inherits: false;
+  initial-value: 75;
+}
+
 .acse-dashboard__score-ring {
   --score: 75;
   width: 140px;
@@ -2034,6 +2041,11 @@ h1, h2, h3,
   align-items: center;
   justify-content: center;
   box-shadow: 0 0 32px var(--studio-score-ring-shadow);
+  transition: --score 0.7s ease, box-shadow 0.7s ease;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .acse-dashboard__score-ring { transition: none; }
 }
 
 .acse-dashboard__score-inner {
@@ -2429,8 +2441,20 @@ h1, h2, h3,
   display: flex;
   align-items: center;
   justify-content: center;
-  min-height: 110px;
-  padding: 8px 0;
+  min-height: 120px;
+  padding: 10px 0;
+}
+.clara-room__flower {
+  filter: drop-shadow(0 6px 16px rgba(58, 130, 196, 0.35));
+  border-radius: 50%;
+}
+.clara-room__flower::before {
+  content: '';
+  position: absolute;
+  inset: -18%;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(142, 205, 245, 0.35) 0%, transparent 70%);
+  z-index: 0;
 }
 
 .clara-room__flower {
@@ -2444,9 +2468,26 @@ h1, h2, h3,
 .clara-room__speech--seamless {
   flex: 1;
   min-height: 100px;
-  background: rgba(255, 255, 255, 0.5);
+  background: rgba(255, 255, 255, 0.68);
   border: none;
   box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.8);
+}
+.clara-room__speech--seamless .clara-room__line {
+  color: #0F2847;
+}
+
+[data-theme="dark"] .clara-room--seamless .clara-room__backdrop::after {
+  background: linear-gradient(180deg, rgba(10, 18, 32, 0.78) 0%, rgba(12, 22, 38, 0.88) 50%, rgba(15, 28, 48, 0.94) 100%);
+}
+[data-theme="dark"] .clara-room__header--slim {
+  background: rgba(255, 255, 255, 0.08);
+}
+[data-theme="dark"] .clara-room__speech--seamless {
+  background: rgba(8, 16, 30, 0.55);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.08);
+}
+[data-theme="dark"] .clara-room__speech--seamless .clara-room__line {
+  color: #F4F9FF;
 }
 
 .clara-flower-pulse {
@@ -4355,6 +4396,28 @@ html[data-easy-mode='true'] .home-widget__label { font-size: 16px; }
   border: 1.5px solid rgba(142, 205, 245, 0.4) !important;
   background: rgba(10, 22, 40, 0.88) !important;
   box-shadow: 0 16px 48px rgba(74, 144, 217, 0.25) !important;
+}
+
+/* Comfort Mode sits on a dark calming card — force readable light text in both themes */
+.comfort-mode__card,
+.comfort-mode__card .comfort-mode__text,
+.comfort-mode__card .comfort-mode__title,
+.comfort-mode__card .breathing-circle__label,
+.comfort-mode__card .breathing-circle__cycle,
+.comfort-mode__card p,
+.comfort-mode__card h1,
+.comfort-mode__card h2,
+.comfort-mode__card h3 {
+  color: #F4F9FF !important;
+}
+
+.comfort-mode__card .studio-text-muted,
+.comfort-mode__card .comfort-mode__sub {
+  color: rgba(226, 240, 255, 0.78) !important;
+}
+
+.comfort-mode__card .studio-btn--text {
+  color: rgba(226, 240, 255, 0.85) !important;
 }
 
 .sos-fab {

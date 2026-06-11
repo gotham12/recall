@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useAppStore } from '../store/appStore';
 import StudioIcon, { type IconName } from './StudioIcon';
 
@@ -10,12 +10,15 @@ const STEPS: { icon: IconName; label: string; detail: string }[] = [
 ];
 
 export default function RecallCascade() {
-  const { comfortModeActive, acseScore } = useAppStore();
+  const comfortModeActive = useAppStore((s) => s.comfortModeActive);
   const [activeStep, setActiveStep] = useState(-1);
   const [show, setShow] = useState(false);
+  const hasPlayed = useRef(false);
 
   useEffect(() => {
-    if (comfortModeActive && acseScore < 50) {
+    // Run the cascade once per comfort-mode activation; ignore later score ticks.
+    if (comfortModeActive && !hasPlayed.current) {
+      hasPlayed.current = true;
       setShow(true);
       setActiveStep(0);
       const timers = STEPS.map((_, i) =>
@@ -24,13 +27,14 @@ export default function RecallCascade() {
       return () => timers.forEach(clearTimeout);
     }
     if (!comfortModeActive) {
+      hasPlayed.current = false;
       const t = window.setTimeout(() => {
         setShow(false);
         setActiveStep(-1);
       }, 800);
       return () => clearTimeout(t);
     }
-  }, [comfortModeActive, acseScore]);
+  }, [comfortModeActive]);
 
   if (!show) return null;
 

@@ -143,9 +143,9 @@ async function fetchElevenLabsAudio(text: string, modelId: string, options?: Spe
   const warm = options?.warm ?? false;
   const voiceId = clara ? CLARA_VOICE_ID : VOICE_ID;
   const voice_settings = clara
-    ? { stability: 0.34, similarity_boost: 0.93, style: 0.74, use_speaker_boost: true }
+    ? { stability: 0.3, similarity_boost: 0.9, style: 0.8, use_speaker_boost: true, speed: 0.92 }
     : warm
-      ? { stability: 0.42, similarity_boost: 0.88, style: 0.55, use_speaker_boost: true }
+      ? { stability: 0.4, similarity_boost: 0.88, style: 0.6, use_speaker_boost: true, speed: 0.94 }
       : { stability: 0.55, similarity_boost: 0.8, style: 0.25, use_speaker_boost: true };
 
   const payload = { text, model_id: modelId, voice_settings };

@@ -76,7 +76,7 @@ export default function ACSEDashboard() {
         <div className="card acse-dashboard__history">
           <p className="studio-section-title">Recent activity</p>
           {recentScores.map((s, i) => (
-            <div key={i} className="acse-history-row">
+            <div key={s.id ?? s.timestamp ?? i} className="acse-history-row">
               <span className={`acse-history-row__score acse-history-row__score--${s.score >= 75 ? 'high' : s.score >= 50 ? 'mid' : 'low'}`}>
                 {s.score}
               </span>

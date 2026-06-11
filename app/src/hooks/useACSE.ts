@@ -51,13 +51,17 @@ export function useACSE() {
       }
     }, ms);
 
-    if (settings.recoveryEnabled && acseScore < 100) {
+    // Read live score imperatively so this callback is stable and timers don't
+    // reset on every score change (which caused erratic ticking).
+    if (settings.recoveryEnabled && useAppStore.getState().acseScore < 100) {
       if (recoveryTimerRef.current) clearTimeout(recoveryTimerRef.current);
       recoveryTimerRef.current = setTimeout(() => {
-        recoverAcse(3, 'Sustained calm engagement');
+        if (useAppStore.getState().acseScore < 100) {
+          recoverAcse(3, 'Sustained calm engagement');
+        }
       }, 5 * 60 * 1000);
     }
-  }, [applyDeduction, recoverAcse, acseScore, getSettings]);
+  }, [applyDeduction, recoverAcse, getSettings]);
 
   const checkRepeatQuestion = useCallback(
     (question: string) => {

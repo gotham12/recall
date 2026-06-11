@@ -55,6 +55,18 @@ export default function MedTracker() {
     };
   }, [stopCamera, clearCountdown]);
 
+  // Attach the live stream once the <video> element is actually mounted for the
+  // camera phase. Fixes a race where getUserMedia resolved before the element existed.
+  useEffect(() => {
+    if (phase !== 'camera') return;
+    const video = videoRef.current;
+    const stream = streamRef.current;
+    if (video && stream && video.srcObject !== stream) {
+      video.srcObject = stream;
+      void video.play().catch(() => {});
+    }
+  }, [phase]);
+
   const checkCooldown = useCallback(
     async (medName: string): Promise<boolean> => {
       if (!user?.id) return false;
