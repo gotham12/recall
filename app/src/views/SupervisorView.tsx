@@ -1,6 +1,10 @@
 import { useState } from 'react';
 import { useLiveQuery } from 'dexie-react-hooks';
-import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, ReferenceLine } from 'recharts';
+import {
+  ComposedChart, AreaChart, Area, LineChart, Line, BarChart, Bar,
+  XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
+  ReferenceLine, ReferenceArea, Brush, Legend, Cell,
+} from 'recharts';
 import StudioShell from '../components/StudioShell';
 import RecallLogo from '../components/RecallLogo';
 import StudioIcon, { type IconName } from '../components/StudioIcon';
@@ -548,99 +552,238 @@ function MedicationsTab({ user }: { user: User | null }) {
 // ── Stats Tab (vitals + ACSE) ─────────────────────────────────────────────────
 function StatsTab({ user }: { user: User | null }) {
   const { acseScore } = useAppStore();
+
   const scoreHistory = useLiveQuery<import('../db/db').AcseScore[]>(
     () =>
       user?.id
         ? db.acseScores
             .where('userId')
             .equals(user.id)
-            .and((s) => {
-              const cutoff = new Date(Date.now() - 24 * 60 * 60 * 1000);
-              return new Date(s.timestamp) > cutoff;
-            })
+            .and((s) => new Date(s.timestamp) > new Date(Date.now() - 24 * 60 * 60 * 1000))
             .sortBy('timestamp')
         : Promise.resolve([]),
     [user?.id]
   ) ?? [];
 
-  const chartData = scoreHistory.map((s) => ({
-    time: new Date(s.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-    score: s.score,
-    reason: s.reason,
-  }));
+  const weekHistory = useLiveQuery<import('../db/db').AcseScore[]>(
+    () =>
+      user?.id
+        ? db.acseScores
+            .where('userId')
+            .equals(user.id)
+            .and((s) => new Date(s.timestamp) > new Date(Date.now() - 7 * 24 * 60 * 60 * 1000))
+            .sortBy('timestamp')
+        : Promise.resolve([]),
+    [user?.id]
+  ) ?? [];
 
-  const color =
-    acseScore >= 75 ? '#10B981' :
-    acseScore >= 50 ? '#F59E0B' :
-    '#EF4444';
+  const color = acseScore >= 75 ? '#10B981' : acseScore >= 50 ? '#F59E0B' : '#EF4444';
+
+  // 24h chart data with rolling 5-point average
+  const chartData = scoreHistory.map((s, i, arr) => {
+    const window = arr.slice(Math.max(0, i - 4), i + 1);
+    const avg = Math.round(window.reduce((a, b) => a + b.score, 0) / window.length);
+    return {
+      time: new Date(s.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+      score: s.score,
+      avg,
+      reason: s.reason,
+    };
+  });
+
+  // Score zone distribution
+  const stable = scoreHistory.filter((s) => s.score >= 75).length;
+  const moderate = scoreHistory.filter((s) => s.score >= 50 && s.score < 75).length;
+  const critical = scoreHistory.filter((s) => s.score < 50).length;
+  const total = scoreHistory.length || 1;
+  const distData = [
+    { zone: 'Stable (75–100)', pct: Math.round((stable / total) * 100), fill: '#10B981' },
+    { zone: 'Moderate (50–74)', pct: Math.round((moderate / total) * 100), fill: '#F59E0B' },
+    { zone: 'Critical (<50)', pct: Math.round((critical / total) * 100), fill: '#EF4444' },
+  ];
+
+  // Hourly pattern from week data
+  const hourBuckets: Record<number, number[]> = {};
+  weekHistory.forEach((s) => {
+    const h = new Date(s.timestamp).getHours();
+    if (!hourBuckets[h]) hourBuckets[h] = [];
+    hourBuckets[h].push(s.score);
+  });
+  const hourlyData = Array.from({ length: 24 }, (_, h) => ({
+    hour: h === 0 ? '12a' : h < 12 ? `${h}a` : h === 12 ? '12p' : `${h - 12}p`,
+    avg: hourBuckets[h]
+      ? Math.round(hourBuckets[h].reduce((a, b) => a + b, 0) / hourBuckets[h].length)
+      : null,
+  })).filter((d) => d.avg !== null);
+
+  // Min/max/delta
+  const minScore = scoreHistory.length ? Math.min(...scoreHistory.map((s) => s.score)) : acseScore;
+  const maxScore = scoreHistory.length ? Math.max(...scoreHistory.map((s) => s.score)) : acseScore;
+  const delta = scoreHistory.length >= 2
+    ? scoreHistory[scoreHistory.length - 1].score - scoreHistory[0].score
+    : 0;
+
+  const CustomTooltip = ({ active, payload, label }: { active?: boolean; payload?: { value: number; name: string }[]; label?: string }) => {
+    if (!active || !payload?.length) return null;
+    const score = payload.find((p) => p.name === 'score')?.value;
+    const avg = payload.find((p) => p.name === 'avg')?.value;
+    const zone = score !== undefined ? (score >= 75 ? 'Stable' : score >= 50 ? 'Moderate' : 'Critical') : '';
+    const zoneColor = score !== undefined ? (score >= 75 ? '#10B981' : score >= 50 ? '#F59E0B' : '#EF4444') : '#999';
+    return (
+      <div style={{ background: 'var(--studio-card-bg)', border: '1px solid var(--studio-border)', borderRadius: 10, padding: '10px 14px', fontSize: 13 }}>
+        <p style={{ margin: '0 0 4px', fontWeight: 600 }}>{label}</p>
+        {score !== undefined && <p style={{ margin: '0 0 2px', color: zoneColor }}>Score: <strong>{score}</strong> · {zone}</p>}
+        {avg !== undefined && <p style={{ margin: 0, color: 'var(--studio-text-muted)' }}>5-pt avg: {avg}</p>}
+      </div>
+    );
+  };
 
   return (
     <div className="stats-tab studio-scroll">
       <VitalsDashboard patientName={user?.name} />
-
       <ACSESignalAudit />
       <WeeklyInsights />
 
       <h2 className="studio-page-title" style={{ marginTop: 8 }}>ACSE — Cognitive Score</h2>
 
-      {/* Current score */}
-      <div className="card" style={{ padding: 20, marginBottom: 16, textAlign: 'center' }}>
-        <p style={{ fontSize: 60, fontWeight: 700, color, margin: 0 }}>{acseScore}</p>
-        <p className="studio-text-muted" style={{ fontSize: 17, margin: 0 }}>
-          {acseScore >= 75 ? 'Stable' : acseScore >= 50 ? 'Moderate — monitor closely' : 'Low — Comfort Mode may activate'}
-        </p>
+      {/* Score summary row */}
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 10, marginBottom: 16 }}>
+        {[
+          { label: 'Now', value: acseScore, color },
+          { label: 'High today', value: maxScore, color: '#10B981' },
+          { label: 'Low today', value: minScore, color: '#EF4444' },
+          { label: '24h delta', value: `${delta >= 0 ? '+' : ''}${delta}`, color: delta >= 0 ? '#10B981' : '#EF4444' },
+        ].map((m) => (
+          <div key={m.label} className="card" style={{ padding: '12px 10px', textAlign: 'center' }}>
+            <p style={{ fontSize: 26, fontWeight: 700, color: m.color, margin: 0 }}>{m.value}</p>
+            <p className="studio-text-muted" style={{ fontSize: 11, margin: 0 }}>{m.label}</p>
+          </div>
+        ))}
       </div>
 
-      {/* Line chart */}
-      {chartData.length > 0 ? (
-        <div className="card" style={{ padding: 16, marginBottom: 16 }}>
-          <ResponsiveContainer width="100%" height={200}>
-            <LineChart data={chartData}>
+      {/* Rich 24h ACSE chart */}
+      <div className="card" style={{ padding: 16, marginBottom: 16 }}>
+        <p className="studio-section-title" style={{ marginBottom: 12 }}>24h Score Timeline</p>
+        {chartData.length > 0 ? (
+          <ResponsiveContainer width="100%" height={240}>
+            <ComposedChart data={chartData} margin={{ top: 4, right: 8, left: -16, bottom: 0 }}>
+              <defs>
+                <linearGradient id="scoreAreaGrad" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="5%" stopColor={color} stopOpacity={0.25} />
+                  <stop offset="95%" stopColor={color} stopOpacity={0.02} />
+                </linearGradient>
+              </defs>
+              <ReferenceArea y1={75} y2={100} fill="#10B981" fillOpacity={0.06} />
+              <ReferenceArea y1={50} y2={75}  fill="#F59E0B" fillOpacity={0.06} />
+              <ReferenceArea y1={0}  y2={50}  fill="#EF4444" fillOpacity={0.06} />
               <CartesianGrid strokeDasharray="3 3" stroke="var(--studio-border)" />
-              <XAxis dataKey="time" tick={{ fontSize: 11 }} />
-              <YAxis domain={[0, 100]} tick={{ fontSize: 11 }} />
-              <Tooltip
-                formatter={(value: number) => [`${value}`, 'Score']}
-                contentStyle={{ fontSize: 14, borderRadius: 8 }}
-              />
-              <ReferenceLine y={50} stroke="#EF4444" strokeDasharray="4 4" label={{ value: 'Comfort threshold', position: 'insideTopRight', fontSize: 11 }} />
-              <Line
-                type="monotone"
-                dataKey="score"
-                stroke="var(--recall-coral)"
-                strokeWidth={2}
-                dot={{ fill: 'var(--recall-coral)', r: 3 }}
-                activeDot={{ r: 5 }}
-              />
-            </LineChart>
+              <XAxis dataKey="time" tick={{ fontSize: 10 }} interval="preserveStartEnd" />
+              <YAxis domain={[0, 100]} tick={{ fontSize: 10 }} ticks={[0, 25, 50, 75, 100]} />
+              <Tooltip content={<CustomTooltip />} />
+              <ReferenceLine y={75} stroke="#10B981" strokeDasharray="4 4" />
+              <ReferenceLine y={50} stroke="#EF4444" strokeDasharray="4 4" />
+              <Area type="monotone" dataKey="score" name="score" stroke={color} strokeWidth={2.5}
+                fill="url(#scoreAreaGrad)" dot={{ fill: color, r: 3, strokeWidth: 0 }} activeDot={{ r: 6 }} />
+              <Line type="monotone" dataKey="avg" name="avg" stroke="var(--studio-text-muted)"
+                strokeWidth={1.5} strokeDasharray="5 3" dot={false} />
+              {chartData.length > 10 && (
+                <Brush dataKey="time" height={20} stroke="var(--studio-border)" travellerWidth={6} />
+              )}
+            </ComposedChart>
           </ResponsiveContainer>
-          <p className="studio-text-muted" style={{ fontSize: 13, margin: '8px 0 0', textAlign: 'center' }}>
-            Red dashed line = Comfort Mode threshold (50)
-          </p>
+        ) : (
+          <p className="studio-text-muted" style={{ textAlign: 'center', padding: '32px 0' }}>No score history yet today.</p>
+        )}
+        <div style={{ display: 'flex', gap: 16, marginTop: 8, fontSize: 11, color: 'var(--studio-text-muted)' }}>
+          <span style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+            <span style={{ width: 16, height: 2, background: color, display: 'inline-block', borderRadius: 1 }} /> Score
+          </span>
+          <span style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+            <span style={{ width: 16, height: 2, background: 'var(--studio-text-muted)', display: 'inline-block', borderRadius: 1, borderTop: '2px dashed var(--studio-text-muted)' }} /> 5-pt avg
+          </span>
+          <span style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+            <span style={{ width: 10, height: 10, background: '#10B981', opacity: 0.18, display: 'inline-block', borderRadius: 2 }} /> Stable
+          </span>
+          <span style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+            <span style={{ width: 10, height: 10, background: '#F59E0B', opacity: 0.18, display: 'inline-block', borderRadius: 2 }} /> Moderate
+          </span>
+          <span style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+            <span style={{ width: 10, height: 10, background: '#EF4444', opacity: 0.18, display: 'inline-block', borderRadius: 2 }} /> Critical
+          </span>
         </div>
-      ) : (
-        <div className="card" style={{ padding: 32, textAlign: 'center' }}>
-          <p className="studio-text-muted" style={{ fontSize: 17 }}>No score history yet today.</p>
+      </div>
+
+      {/* Score zone distribution */}
+      {scoreHistory.length > 0 && (
+        <div className="card" style={{ padding: 16, marginBottom: 16 }}>
+          <p className="studio-section-title" style={{ marginBottom: 12 }}>Time in Each Zone (today)</p>
+          <ResponsiveContainer width="100%" height={120}>
+            <BarChart data={distData} layout="vertical" margin={{ left: 90, right: 40, top: 0, bottom: 0 }}>
+              <XAxis type="number" domain={[0, 100]} tick={{ fontSize: 10 }} unit="%" />
+              <YAxis type="category" dataKey="zone" tick={{ fontSize: 11 }} width={88} />
+              <Tooltip formatter={(v: number) => [`${v}%`, 'Time']} contentStyle={{ fontSize: 13, borderRadius: 8 }} />
+              <Bar dataKey="pct" radius={[0, 6, 6, 0]} label={{ position: 'right', fontSize: 11, formatter: (v: number) => `${v}%` }}>
+                {distData.map((d) => <Cell key={d.zone} fill={d.fill} />)}
+              </Bar>
+            </BarChart>
+          </ResponsiveContainer>
         </div>
       )}
 
-      {/* Score history list */}
+      {/* Hourly pattern (7-day) */}
+      {hourlyData.length > 0 && (
+        <div className="card" style={{ padding: 16, marginBottom: 16 }}>
+          <p className="studio-section-title" style={{ marginBottom: 4 }}>Hourly Score Pattern (7-day avg)</p>
+          <p className="studio-text-muted" style={{ fontSize: 12, marginBottom: 10 }}>Average ACSE by hour of day — helps identify sundowning or low-energy windows.</p>
+          <ResponsiveContainer width="100%" height={180}>
+            <BarChart data={hourlyData} margin={{ top: 4, right: 8, left: -16, bottom: 0 }}>
+              <CartesianGrid strokeDasharray="3 3" stroke="var(--studio-border)" vertical={false} />
+              <XAxis dataKey="hour" tick={{ fontSize: 10 }} />
+              <YAxis domain={[0, 100]} tick={{ fontSize: 10 }} ticks={[0, 50, 75, 100]} />
+              <Tooltip formatter={(v: number) => [`${v}`, 'Avg ACSE']} contentStyle={{ fontSize: 13, borderRadius: 8 }} />
+              <ReferenceLine y={50} stroke="#EF4444" strokeDasharray="3 3" />
+              <ReferenceLine y={75} stroke="#10B981" strokeDasharray="3 3" />
+              <Bar dataKey="avg" radius={[4, 4, 0, 0]}>
+                {hourlyData.map((d) => (
+                  <Cell
+                    key={d.hour}
+                    fill={d.avg !== null && d.avg >= 75 ? '#10B981' : d.avg !== null && d.avg >= 50 ? '#F59E0B' : '#EF4444'}
+                  />
+                ))}
+              </Bar>
+            </BarChart>
+          </ResponsiveContainer>
+        </div>
+      )}
+
+      {/* Score event log */}
       {scoreHistory.length > 0 && (
         <div>
           <h3 className="studio-section-title">Score Events</h3>
-          {[...scoreHistory].reverse().slice(0, 10).map((s, i) => (
-            <div key={i} className="card" style={{ padding: '10px 14px', marginBottom: 8 }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                <span style={{ fontSize: 18, fontWeight: 600, color: s.score < 50 ? '#EF4444' : s.score < 75 ? '#F59E0B' : '#10B981' }}>
-                  {s.score}
-                </span>
-                <span className="studio-text-muted" style={{ fontSize: 13 }}>
-                  {new Date(s.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                </span>
+          {[...scoreHistory].reverse().slice(0, 10).map((s, i) => {
+            const prev = [...scoreHistory].reverse()[i + 1];
+            const diff = prev ? s.score - prev.score : 0;
+            return (
+              <div key={i} className="card" style={{ padding: '10px 14px', marginBottom: 8 }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                    <span style={{ fontSize: 20, fontWeight: 700, color: s.score < 50 ? '#EF4444' : s.score < 75 ? '#F59E0B' : '#10B981' }}>
+                      {s.score}
+                    </span>
+                    {prev && (
+                      <span style={{ fontSize: 12, color: diff >= 0 ? '#10B981' : '#EF4444', fontWeight: 600 }}>
+                        {diff >= 0 ? `+${diff}` : diff}
+                      </span>
+                    )}
+                  </div>
+                  <span className="studio-text-muted" style={{ fontSize: 12 }}>
+                    {new Date(s.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                  </span>
+                </div>
+                {s.reason && <p className="studio-text-muted" style={{ fontSize: 13, margin: '4px 0 0' }}>{s.reason}</p>}
               </div>
-              {s.reason && <p className="studio-text-muted" style={{ fontSize: 14, margin: '2px 0 0' }}>{s.reason}</p>}
-            </div>
-          ))}
+            );
+          })}
         </div>
       )}
     </div>
