@@ -211,6 +211,21 @@ export default function VoiceAgent() {
     });
   };
 
+  const [typedInput, setTypedInput] = useState('');
+
+  const handleTextSend = () => {
+    const text = typedInput.trim();
+    if (!text) return;
+    setTypedInput('');
+    unlockAudioPlayback();
+    stopSpeaking();
+    stopListening();
+    sessionActiveRef.current = true;
+    setInSession(true);
+    setError('');
+    void processUtterance(text);
+  };
+
   const statusLabel =
     state === 'listening' ? 'Listening' :
     state === 'thinking' ? 'Thinking' :
@@ -283,6 +298,27 @@ export default function VoiceAgent() {
                 ? 'Tap to interrupt'
                 : 'Tap to talk — pause when finished'}
           </p>
+        </div>
+
+        <div className="clara-room__text-input">
+          <input
+            type="text"
+            className="clara-room__text-field"
+            placeholder="Type a message to Clara…"
+            value={typedInput}
+            onChange={(e) => setTypedInput(e.target.value)}
+            onKeyDown={(e) => { if (e.key === 'Enter') handleTextSend(); }}
+            aria-label="Type a message to Clara"
+          />
+          <button
+            type="button"
+            className="clara-room__text-send tap-feedback"
+            onClick={handleTextSend}
+            aria-label="Send"
+            disabled={!typedInput.trim()}
+          >
+            <StudioIcon name="send" size={18} />
+          </button>
         </div>
 
         {!inSession && state === 'idle' && (
