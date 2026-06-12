@@ -10,12 +10,10 @@ import StudioIcon, { type IconName } from '../components/StudioIcon';
 import { useACSE } from '../hooks/useACSE';
 import { useAppStore } from '../store/appStore';
 import { db, type Event, type Medication } from '../db/db';
-import { getFlowers, type FlowerKey } from '../flowers';
 import ThemeToggle from '../components/ThemeToggle';
 import { isMedicationDueSoon } from '../lib/schedule';
 import { logout } from '../lib/session';
 import MemoryThreads from '../components/MemoryThreads';
-import PresencePulseBanner from '../components/PresencePulse';
 import WhereAmICard from '../components/WhereAmICard';
 import RoutineChecklist from '../components/RoutineChecklist';
 import FamiliarFaces from '../components/FamiliarFaces';
@@ -27,21 +25,9 @@ import GoldenPathDemo from '../components/GoldenPathDemo';
 import MemoryPhotoRecap from '../components/MemoryPhotoRecap';
 import SleepTracker from '../components/SleepTracker';
 import GameHub from '../components/games/GameHub';
-import { memoryPhotoUrl } from '../lib/memoryPhotos';
-import { widgetImageUrl } from '../lib/widgetImages';
 import DashHero from '../components/DashHero';
 
 type Tab = 'home' | 'mind' | 'sleep' | 'voice' | 'meds' | 'events' | 'stability';
-
-const TAB_FLOWER_KEYS: Record<Tab, FlowerKey> = {
-  home: 'home',
-  mind: 'patient',
-  sleep: 'landing',
-  voice: 'patient',
-  meds: 'patientEnter',
-  events: 'landing',
-  stability: 'supervisor',
-};
 
 const TABS: { id: Tab; label: string; icon: IconName }[] = [
   { id: 'home',      label: 'Home',    icon: 'home' },
@@ -77,9 +63,8 @@ export default function PatientView() {
   const [moreOpen, setMoreOpen] = useState(false);
   const logoTaps = useRef(0);
   const logoTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const { user, acseScore, theme, demoMode, setDemoMode, comfortModeActive, triggerMemoryRecap } = useAppStore();
-  const flowers = getFlowers(theme);
-  const { recordNavigation, recordActivity } = useACSE();
+  const { user, acseScore, demoMode, setDemoMode, comfortModeActive, triggerMemoryRecap } = useAppStore();
+  const { recordNavigation } = useACSE();
 
   // Activity is recorded on tab navigation only — not on every tap.
 
@@ -108,9 +93,7 @@ export default function PatientView() {
 
   return (
     <StudioShell
-      flowerSrc={flowers[TAB_FLOWER_KEYS[activeTab]]}
       contentKey={activeTab}
-      dimOverlay={0.76}
       header={
         <div className="studio-header">
           <button type="button" className="recall-logo-tap tap-feedback" onClick={handleLogoTap} aria-label="Recall">
@@ -199,29 +182,22 @@ export default function PatientView() {
   );
 }
 
-function HomePhotoWidget({
-  photo,
-  icon,
-  label,
-  sub,
-  onClick,
-}: {
-  photo: string;
-  icon: IconName;
-  label: string;
-  sub?: string;
-  onClick: () => void;
-}) {
+const QUICK_ACTIONS: { icon: IconName; label: string; color: string; tab?: Tab; action?: string }[] = [
+  { icon: 'clara',  label: 'Clara',      color: '#AF52DE', tab: 'voice' },
+  { icon: 'brain',  label: 'Mind',       color: '#007AFF', tab: 'mind' },
+  { icon: 'moon',   label: 'Sleep',      color: '#5856D6', tab: 'sleep' },
+  { icon: 'meds',   label: 'Meds',       color: '#FF9500', tab: 'meds' },
+  { icon: 'events', label: 'Today',      color: '#34C759', tab: 'events' },
+  { icon: 'heart',  label: 'Memories',   color: '#FF2D55', action: 'memory' },
+];
+
+function QuickTile({ icon, label, color, onClick }: { icon: IconName; label: string; color: string; onClick: () => void }) {
   return (
-    <button type="button" className="home-widget tap-feedback" onClick={onClick} aria-label={label}>
-      <img src={photo} alt="" className="home-widget__photo" />
-      <div className="home-widget__caption">
-        <StudioIcon name={icon} size={18} />
-        <div className="home-widget__caption-text">
-          <span className="home-widget__label">{label}</span>
-          {sub && <span className="home-widget__sub">{sub}</span>}
-        </div>
-      </div>
+    <button type="button" className="quick-tile tap-feedback" onClick={onClick} aria-label={label}>
+      <span className="quick-tile__icon" style={{ background: color }}>
+        <StudioIcon name={icon} size={22} />
+      </span>
+      <span className="quick-tile__label">{label}</span>
     </button>
   );
 }
@@ -251,50 +227,104 @@ function HomeTab({
 }) {
   const now = new Date();
   const dueMeds = medications.filter((m) => isMedicationDueSoon(m.schedule));
+  const medsTotal = medications.length;
+  const medsDone = medications.filter((m) => !isMedicationDueSoon(m.schedule)).length;
   const upcoming = events
     .filter((e) => !e.completed && new Date(e.timestamp) > now)
     .sort((a, b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime())
     .slice(0, 3);
 
   const dateLabel = now.toLocaleDateString([], { weekday: 'long', month: 'long', day: 'numeric' });
+  const scoreColor = acseScore >= 80 ? '#34C759' : acseScore >= 60 ? '#FF9500' : '#FF3B30';
 
   return (
     <div className="home-tab studio-scroll">
-      <PresencePulseBanner />
-
       <DashHero greeting={timeGreeting()} firstName={firstName} dateLabel={dateLabel} />
 
       {dueMeds.length > 0 && (
         <button type="button" className="home-alert-strip home-alert-strip--meds tap-feedback" onClick={() => onNavigate('meds')}>
           <StudioIcon name="meds" size={18} />
-          <span>{dueMeds.length === 1 ? `${dueMeds[0].name} due now` : `${dueMeds.length} meds due`}</span>
+          <span>{dueMeds.length === 1 ? `${dueMeds[0].name} is due` : `${dueMeds.length} medications due now`}</span>
         </button>
       )}
 
-      {acseScore < 75 && (
-        <button type="button" className={`home-alert-strip home-alert-strip--wellness tap-feedback ${acseScore < 50 ? 'home-alert-strip--low' : ''}`} onClick={() => onNavigate('stability')}>
-          <StudioIcon name={acseScore < 50 ? 'alert' : 'moderate'} size={18} />
-          <span>{acseScore < 50 ? 'Take a moment to rest' : 'Go at your own pace'}</span>
-        </button>
-      )}
-
-      <div className="home-widgets">
-        <HomePhotoWidget photo={memoryPhotoUrl('garden')} icon="heart" label="Memories" onClick={onMemoryRecap} />
-        <HomePhotoWidget photo={widgetImageUrl('clara')} icon="clara" label="Clara" sub="Tap to talk" onClick={() => onNavigate('voice')} />
-        <HomePhotoWidget photo={widgetImageUrl('mind')} icon="brain" label="Mind games" onClick={() => onNavigate('mind')} />
-        <HomePhotoWidget photo={widgetImageUrl('sleep')} icon="moon" label="Sleep" onClick={() => onNavigate('sleep')} />
-        <HomePhotoWidget photo={widgetImageUrl('meds')} icon="meds" label="Meds" onClick={() => onNavigate('meds')} />
-        <HomePhotoWidget photo={widgetImageUrl('today')} icon="events" label="Today" onClick={() => onNavigate('events')} />
+      <p className="ios-section-label">Quick access</p>
+      <div className="quick-grid">
+        {QUICK_ACTIONS.map((a) => (
+          <QuickTile
+            key={a.label}
+            icon={a.icon}
+            label={a.label}
+            color={a.color}
+            onClick={() => a.tab ? onNavigate(a.tab) : onMemoryRecap()}
+          />
+        ))}
       </div>
 
-      <div className="home-status-cards">
+      <p className="ios-section-label">Your health</p>
+      <div className="metric-row">
+        <button type="button" className="metric-card tap-feedback" onClick={() => onNavigate('stability')}>
+          <span className="metric-card__label">Wellness</span>
+          <span className="metric-card__value" style={{ color: scoreColor }}>{acseScore}</span>
+          <span className="metric-card__sub">score</span>
+          <div className="metric-card__bar">
+            <div className="metric-card__fill" style={{ width: `${acseScore}%`, background: scoreColor }} />
+          </div>
+        </button>
+        <button type="button" className="metric-card tap-feedback" onClick={() => onNavigate('meds')}>
+          <span className="metric-card__label">Meds</span>
+          <span className="metric-card__value" style={{ color: '#FF9500' }}>{medsDone}<span className="metric-card__denom">/{medsTotal}</span></span>
+          <span className="metric-card__sub">taken today</span>
+          <div className="metric-card__bar">
+            <div className="metric-card__fill" style={{ width: medsTotal ? `${(medsDone / medsTotal) * 100}%` : '0%', background: '#FF9500' }} />
+          </div>
+        </button>
+        <button type="button" className="metric-card tap-feedback" onClick={() => onNavigate('events')}>
+          <span className="metric-card__label">Events</span>
+          <span className="metric-card__value" style={{ color: '#34C759' }}>{upcoming.length}</span>
+          <span className="metric-card__sub">coming up</span>
+          <div className="metric-card__bar">
+            <div className="metric-card__fill" style={{ width: upcoming.length > 0 ? '60%' : '0%', background: '#34C759' }} />
+          </div>
+        </button>
+      </div>
+
+      <div className="ios-list-section">
         <WhereAmICard />
         <StateReconCard />
       </div>
 
-      <button type="button" className="home-more-toggle home-more-toggle--slim tap-feedback" onClick={onToggleMore} aria-expanded={moreOpen}>
+      {upcoming.length > 0 && (
+        <>
+          <p className="ios-section-label">Coming up</p>
+          <div className="ios-list-cards">
+            {upcoming.map((e) => (
+              <div key={e.id} className="ios-event-row">
+                <span className="ios-event-dot" style={{ background: e.type === 'planned' ? '#007AFF' : e.completed ? '#34C759' : '#FF9500' }} />
+                <div className="ios-event-body">
+                  <p className="ios-event-title">{e.title}</p>
+                  <p className="ios-event-time">{formatTime(e.timestamp)}</p>
+                </div>
+              </div>
+            ))}
+          </div>
+        </>
+      )}
+
+      {caregiverName && caregiverPhone && (
+        <a href={`tel:${caregiverPhone}`} className="caregiver-call-strip tap-feedback">
+          <span className="caregiver-call-strip__avatar">{caregiverName.split(' ').map(n => n[0]).join('').slice(0,2)}</span>
+          <div>
+            <p className="caregiver-call-strip__name">{caregiverName}</p>
+            <p className="caregiver-call-strip__hint">Your caregiver · Tap to call</p>
+          </div>
+          <StudioIcon name="send" size={18} />
+        </a>
+      )}
+
+      <button type="button" className="home-more-toggle tap-feedback" onClick={onToggleMore} aria-expanded={moreOpen}>
         <StudioIcon name={moreOpen ? 'close' : 'add'} size={16} />
-        <span>{moreOpen ? 'Hide extras' : 'Routines & support'}</span>
+        <span>{moreOpen ? 'Hide more' : 'Routines & support'}</span>
       </button>
 
       {moreOpen && (
@@ -306,26 +336,7 @@ function HomeTab({
         </div>
       )}
 
-      <section className="home-tab__section">
-        <h3 className="studio-section-title">Coming up</h3>
-        {upcoming.length === 0 ? (
-          <p className="studio-empty-note">Nothing scheduled — enjoy your day.</p>
-        ) : (
-          <div className="event-list">
-            {upcoming.map((e) => (
-              <div key={e.id} className="event-card event-card--upcoming">
-                <span className="event-icon-badge">
-                  <StudioIcon name={eventIcon(e.type)} size={20} />
-                </span>
-                <div className="event-card__body">
-                  <p className="event-card__title">{e.title}</p>
-                  <p className="event-card__meta">{formatTime(e.timestamp)}</p>
-                </div>
-              </div>
-            ))}
-          </div>
-        )}
-      </section>
+      <div style={{ height: 20 }} />
     </div>
   );
 }

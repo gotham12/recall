@@ -5773,3 +5773,104 @@ body, html { background: var(--studio-bg) !important; font-family: -apple-system
 }
 .dash-input::placeholder { color: #8E8E93; }
 .dash-error { font-size: 13px; color: #FF3B30; margin: 0 16px 8px; text-align: center; }
+
+/* ── Quick tiles ── */
+.quick-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 10px;
+  padding: 0 16px 8px;
+}
+.quick-tile {
+  background: var(--studio-card-bg);
+  border-radius: 14px;
+  box-shadow: 0 1px 4px rgba(0,0,0,0.08), 0 0 0 0.5px rgba(0,0,0,0.04);
+  border: none;
+  cursor: pointer;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  padding: 16px 8px 14px;
+  -webkit-tap-highlight-color: transparent;
+  transition: transform 0.12s ease;
+}
+.quick-tile:active { transform: scale(0.94); }
+.quick-tile__icon {
+  width: 44px; height: 44px; border-radius: 12px;
+  display: flex; align-items: center; justify-content: center;
+  color: #fff;
+}
+.quick-tile__label {
+  font-size: 11px; font-weight: 500; color: var(--studio-text);
+  text-align: center; line-height: 1.2;
+}
+
+/* ── iOS section label ── */
+.ios-section-label {
+  font-size: 13px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--studio-text-muted);
+  padding: 16px 16px 6px;
+  margin: 0;
+}
+
+/* ── Metric row ── */
+.metric-row {
+  display: flex;
+  gap: 10px;
+  padding: 0 16px 8px;
+}
+.metric-card {
+  flex: 1;
+  background: var(--studio-card-bg);
+  border-radius: 14px;
+  box-shadow: 0 1px 4px rgba(0,0,0,0.08), 0 0 0 0.5px rgba(0,0,0,0.04);
+  border: none;
+  cursor: pointer;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  padding: 13px 12px 11px;
+  gap: 2px;
+  -webkit-tap-highlight-color: transparent;
+  transition: transform 0.12s ease;
+}
+.metric-card:active { transform: scale(0.96); }
+.metric-card__label { font-size: 11px; font-weight: 500; color: var(--studio-text-muted); text-transform: uppercase; letter-spacing: 0.03em; }
+.metric-card__value { font-size: 26px; font-weight: 700; line-height: 1; letter-spacing: -0.02em; margin-top: 2px; }
+.metric-card__denom { font-size: 16px; font-weight: 400; opacity: 0.55; }
+.metric-card__sub { font-size: 10px; color: var(--studio-text-muted); margin-top: 1px; }
+.metric-card__bar { width: 100%; height: 3px; background: rgba(0,0,0,0.07); border-radius: 99px; margin-top: 8px; overflow: hidden; }
+.metric-card__fill { height: 100%; border-radius: 99px; transition: width 0.8s ease; }
+
+/* ── Event rows ── */
+.ios-list-cards { padding: 0 16px 8px; display: flex; flex-direction: column; gap: 0; background: var(--studio-card-bg); border-radius: 14px; margin: 0 16px 8px; box-shadow: 0 1px 4px rgba(0,0,0,0.08), 0 0 0 0.5px rgba(0,0,0,0.04); overflow: hidden; }
+.ios-event-row { display: flex; align-items: center; gap: 12px; padding: 12px 16px; border-bottom: 0.5px solid rgba(60,60,67,0.12); }
+.ios-event-row:last-child { border-bottom: none; }
+.ios-event-dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
+.ios-event-body { flex: 1; }
+.ios-event-title { font-size: 15px; color: var(--studio-text); margin: 0; font-weight: 400; }
+.ios-event-time { font-size: 13px; color: var(--studio-text-muted); margin: 2px 0 0; }
+
+/* ── Caregiver call strip ── */
+.caregiver-call-strip {
+  margin: 0 16px 8px; padding: 12px 16px; border-radius: 14px;
+  background: var(--studio-card-bg); box-shadow: 0 1px 4px rgba(0,0,0,0.08), 0 0 0 0.5px rgba(0,0,0,0.04);
+  display: flex; align-items: center; gap: 12px; text-decoration: none;
+  color: var(--studio-text); -webkit-tap-highlight-color: transparent;
+}
+.caregiver-call-strip:active { opacity: 0.7; }
+.caregiver-call-strip__avatar {
+  width: 36px; height: 36px; border-radius: 50%;
+  background: var(--studio-accent-soft); color: var(--studio-accent);
+  font-size: 13px; font-weight: 700;
+  display: flex; align-items: center; justify-content: center; flex-shrink: 0;
+}
+.caregiver-call-strip__name { font-size: 15px; font-weight: 500; color: var(--studio-text); margin: 0; }
+.caregiver-call-strip__hint { font-size: 12px; color: var(--studio-text-muted); margin: 1px 0 0; }
+
+/* ── ios-list-section ── */
+.ios-list-section { padding: 0 16px 8px; display: flex; flex-direction: column; gap: 10px; }
