@@ -6,7 +6,9 @@ import StudioIcon from './StudioIcon';
 
 const HOLD_MS = 1500;
 
-export default function EmergencySOS() {
+interface Props { inline?: boolean; }
+
+export default function EmergencySOS({ inline = false }: Props) {
   const { user } = useAppStore();
   const [active, setActive] = useState(false);
   const [holding, setHolding] = useState(false);
@@ -45,7 +47,6 @@ export default function EmergencySOS() {
       : [];
     const location = await shareLocation(user);
     const sms = buildEmergencySms(user, contacts, location);
-
     if (user.caregiverPhone) {
       window.location.href = `sms:${user.caregiverPhone}?body=${encodeURIComponent(sms)}`;
     }
@@ -55,16 +56,17 @@ export default function EmergencySOS() {
     <>
       <button
         type="button"
-        className={`sos-fab tap-feedback ${holding ? 'sos-fab--holding' : ''}`}
+        className={inline ? `sos-inline tap-feedback ${holding ? 'sos-inline--holding' : ''}` : `sos-fab tap-feedback ${holding ? 'sos-fab--holding' : ''}`}
         aria-label="Emergency SOS — hold to activate"
         onPointerDown={startHold}
         onPointerUp={clearHold}
         onPointerLeave={clearHold}
         onPointerCancel={clearHold}
+        style={inline ? { '--progress': `${progress}%` } as CSSProperties : undefined}
       >
-        <span className="sos-fab__ring" style={{ '--progress': `${progress}%` } as CSSProperties} />
-        <StudioIcon name="sos" size={26} />
-        <span className="sos-fab__label">SOS</span>
+        {!inline && <span className="sos-fab__ring" style={{ '--progress': `${progress}%` } as CSSProperties} />}
+        <StudioIcon name="sos" size={inline ? 18 : 26} />
+        <span className={inline ? 'sos-inline__label' : 'sos-fab__label'}>SOS</span>
       </button>
 
       {active && (
@@ -77,24 +79,12 @@ export default function EmergencySOS() {
             </p>
             <div className="sos-modal__actions">
               {user.caregiverPhone && (
-                <button
-                  type="button"
-                  className="studio-btn studio-btn--primary tap-feedback"
-                  onClick={() => dialNumber(user.caregiverPhone!)}
-                >
+                <button type="button" className="studio-btn studio-btn--primary tap-feedback" onClick={() => dialNumber(user.caregiverPhone!)}>
                   Call {user.caregiverName}
                 </button>
               )}
-              <button type="button" className="studio-btn studio-btn--ghost tap-feedback" onClick={dial911}>
-                Call 911
-              </button>
-              <button
-                type="button"
-                className="studio-btn studio-btn--text tap-feedback"
-                onClick={() => setActive(false)}
-              >
-                I'm okay now
-              </button>
+              <button type="button" className="studio-btn studio-btn--ghost tap-feedback" onClick={dial911}>Call 911</button>
+              <button type="button" className="studio-btn studio-btn--text tap-feedback" onClick={() => setActive(false)}>I'm okay now</button>
             </div>
           </div>
         </div>

@@ -26,17 +26,18 @@ import MemoryPhotoRecap from '../components/MemoryPhotoRecap';
 import SleepTracker from '../components/SleepTracker';
 import GameHub from '../components/games/GameHub';
 import DashHero from '../components/DashHero';
+import SoundSanctuary from '../components/SoundSanctuary';
 
-type Tab = 'home' | 'mind' | 'sleep' | 'voice' | 'meds' | 'events' | 'stability';
+type Tab = 'home' | 'mind' | 'sleep' | 'voice' | 'meds' | 'events' | 'sanctuary';
 
 const TABS: { id: Tab; label: string; icon: IconName }[] = [
-  { id: 'home',      label: 'Home',    icon: 'home' },
-  { id: 'mind',      label: 'Mind',    icon: 'brain' },
-  { id: 'sleep',     label: 'Sleep',   icon: 'moon' },
-  { id: 'voice',     label: 'Clara',   icon: 'clara' },
-  { id: 'meds',      label: 'Meds',    icon: 'meds' },
-  { id: 'events',    label: 'Today',   icon: 'events' },
-  { id: 'stability', label: 'Score',   icon: 'score' },
+  { id: 'home',      label: 'Home',     icon: 'home' },
+  { id: 'mind',      label: 'Mind',     icon: 'brain' },
+  { id: 'sleep',     label: 'Sleep',    icon: 'moon' },
+  { id: 'voice',     label: 'Clara',    icon: 'clara' },
+  { id: 'meds',      label: 'Meds',     icon: 'meds' },
+  { id: 'events',    label: 'Today',    icon: 'events' },
+  { id: 'sanctuary', label: 'Calm',     icon: 'music' },
 ];
 
 function eventIcon(type: Event['type']): IconName {
@@ -100,10 +101,7 @@ export default function PatientView() {
             <RecallLogo size="sm" />
           </button>
           <div className="studio-header__actions">
-            <div className="studio-header__greeting">
-              <span className="studio-header__greeting-label">{timeGreeting()}</span>
-              <span className="studio-header__meta">{firstName}</span>
-            </div>
+            <EmergencySOS inline />
             <ThemeToggle />
             <button
               onClick={() => setSettingsOpen(true)}
@@ -167,9 +165,8 @@ export default function PatientView() {
       {activeTab === 'voice' && <VoiceAgent />}
       {activeTab === 'meds' && <MedTracker />}
       {activeTab === 'events' && <EventsTab events={events ?? []} />}
-      {activeTab === 'stability' && <ACSEDashboard />}
+      {activeTab === 'sanctuary' && <SoundSanctuary />}
       {!comfortModeActive && <CaregiverMirror />}
-      <EmergencySOS />
       <SettingsSheet open={settingsOpen} onClose={() => setSettingsOpen(false)} />
       {demoMode && (
         <GoldenPathDemo
@@ -188,7 +185,7 @@ const QUICK_ACTIONS: { icon: IconName; label: string; color: string; tab?: Tab; 
   { icon: 'moon',   label: 'Sleep',      color: '#5856D6', tab: 'sleep' },
   { icon: 'meds',   label: 'Meds',       color: '#FF9500', tab: 'meds' },
   { icon: 'events', label: 'Today',      color: '#34C759', tab: 'events' },
-  { icon: 'heart',  label: 'Memories',   color: '#FF2D55', action: 'memory' },
+  { icon: 'music',  label: 'Calm',       color: '#5AC8FA', tab: 'sanctuary' },
 ];
 
 function QuickTile({ icon, label, color, onClick }: { icon: IconName; label: string; color: string; onClick: () => void }) {
@@ -263,7 +260,7 @@ function HomeTab({
 
       <p className="ios-section-label">Your health</p>
       <div className="metric-row">
-        <button type="button" className="metric-card tap-feedback" onClick={() => onNavigate('stability')}>
+        <button type="button" className="metric-card tap-feedback" onClick={() => onNavigate('home')}>
           <span className="metric-card__label">Wellness</span>
           <span className="metric-card__value" style={{ color: scoreColor }}>{acseScore}</span>
           <span className="metric-card__sub">score</span>

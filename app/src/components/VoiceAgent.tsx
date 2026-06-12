@@ -72,6 +72,7 @@ export default function VoiceAgent() {
     setClaraLine(response);
     setState('speaking');
     try {
+      unlockAudioPlayback();
       await speak(response, { clara: true });
     } catch (err) {
       console.error(err);

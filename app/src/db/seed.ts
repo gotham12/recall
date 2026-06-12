@@ -129,8 +129,9 @@ export async function seedIfEmpty(): Promise<void> {
     emergencyNote: 'Margaret has mild dementia. Lives alone with daily caregiver visits. Allergic to penicillin.',
     onboardingComplete: true,
     medications: [
-      { name: 'Metformin', dosage: '500mg', schedule: ['8:00 AM'] },
-      { name: 'Lisinopril', dosage: '10mg', schedule: ['8:00 PM'] },
+      { name: 'Donepezil', dosage: '10mg', schedule: ['8:00 AM'] },
+      { name: 'Levodopa/Carbidopa', dosage: '25-100mg', schedule: ['8:00 AM', '2:00 PM', '8:00 PM'] },
+      { name: 'Memantine', dosage: '5mg', schedule: ['8:00 PM'] },
     ],
     createdAt: now.toISOString(),
   });
@@ -160,8 +161,8 @@ async function seedUserExtras(
       userId,
       timestamp: t.past(8, 5),
       type: 'user_action',
-      title: 'Metformin taken',
-      description: 'Margaret took Metformin 500mg. Vision verified.',
+      title: 'Donepezil taken',
+      description: 'Margaret took Donepezil 10mg. Vision verified.',
       completed: true,
       source: 'system',
     },
@@ -187,8 +188,8 @@ async function seedUserExtras(
       userId,
       timestamp: t.future(20, 0),
       type: 'planned',
-      title: 'Lisinopril — evening dose',
-      description: 'Time to take Lisinopril 10mg with a glass of water.',
+      title: 'Memantine — evening dose',
+      description: 'Time to take Memantine 5mg with a glass of water.',
       completed: false,
       source: 'system',
     },
@@ -203,7 +204,7 @@ async function seedUserExtras(
 
   await db.medicationLogs.add({
     userId,
-    medicationName: 'Metformin',
+    medicationName: 'Donepezil',
     timestamp: t.past(8, 5),
     visionConfidence: 'high',
     visionDescription: 'Pill bottle clearly visible.',
