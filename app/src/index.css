@@ -1834,7 +1834,30 @@ h1, h2, h3,
     inset 0 6px 16px rgba(255,255,200,0.25);
 }
 
-/* Swirling energy overlay — conic gradient rotated by CSS */
+/* Lava-crack texture overlay */
+.sl-orb-cracks {
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  background:
+    repeating-radial-gradient(ellipse at 30% 40%, transparent 0px, transparent 6px, rgba(180,80,0,0.12) 7px, transparent 8px),
+    repeating-radial-gradient(ellipse at 70% 60%, transparent 0px, transparent 9px, rgba(140,50,0,0.10) 10px, transparent 11px),
+    repeating-radial-gradient(ellipse at 55% 25%, transparent 0px, transparent 4px, rgba(200,100,0,0.08) 5px, transparent 6px);
+  mix-blend-mode: multiply;
+}
+
+/* Fine stipple/hatch noise for hammered-metal feel */
+.sl-orb-stipple {
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  background:
+    repeating-linear-gradient(47deg,  transparent 0px, transparent 3px, rgba(255,200,60,0.06) 3px, rgba(255,200,60,0.06) 4px),
+    repeating-linear-gradient(-47deg, transparent 0px, transparent 5px, rgba(120,50,0,0.05)   5px, rgba(120,50,0,0.05)   6px);
+  mix-blend-mode: overlay;
+}
+
+/* Swirling energy overlay — primary */
 .sl-orb-swirl {
   position: absolute;
   inset: 0;
@@ -1852,21 +1875,60 @@ h1, h2, h3,
   mix-blend-mode: screen;
   animation: swirlSpin 6s linear infinite;
 }
+/* Counter-swirl for depth */
+.sl-orb-swirl2 {
+  position: absolute;
+  inset: 6px;
+  border-radius: 50%;
+  background: conic-gradient(
+    from 180deg,
+    transparent 0%,
+    rgba(255,160,0,0.10) 20%,
+    transparent 40%,
+    rgba(200,80,0,0.08) 60%,
+    transparent 80%,
+    rgba(255,180,0,0.07) 90%,
+    transparent 100%
+  );
+  mix-blend-mode: screen;
+  animation: swirlSpin 9s linear infinite reverse;
+}
 @keyframes swirlSpin {
   from { transform: rotate(0deg); }
   to   { transform: rotate(360deg); }
 }
 
-/* Specular highlight */
+/* Deep shadow rim — enforces 3-D roundness */
+.sl-orb-rim {
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  background: radial-gradient(circle at 68% 72%, rgba(40,10,0,0.55) 0%, transparent 55%);
+  mix-blend-mode: multiply;
+}
+
+/* Primary specular highlight */
 .sl-orb-shine {
   position: absolute;
-  top: 10%;
-  left: 16%;
-  width: 32%;
-  height: 26%;
+  top: 8%;
+  left: 14%;
+  width: 34%;
+  height: 28%;
   border-radius: 50%;
-  background: radial-gradient(ellipse, rgba(255,255,255,0.75) 0%, transparent 70%);
-  transform: rotate(-30deg);
+  background: radial-gradient(ellipse, rgba(255,255,255,0.82) 0%, rgba(255,240,180,0.4) 45%, transparent 70%);
+  transform: rotate(-32deg);
+}
+
+/* Secondary micro-highlight */
+.sl-orb-shine2 {
+  position: absolute;
+  top: 48%;
+  left: 58%;
+  width: 16%;
+  height: 12%;
+  border-radius: 50%;
+  background: radial-gradient(ellipse, rgba(255,220,80,0.45) 0%, transparent 70%);
+  transform: rotate(20deg);
 }
 
 /* Title */
