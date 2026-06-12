@@ -1718,6 +1718,7 @@ h1, h2, h3,
 
 /* ── Splash / loading screen (distinct from login) ── */
 /* ── New Loading Screen ──────────────────────────────────────────── */
+/* ── Loading Screen ── */
 .sl-screen {
   position: fixed;
   inset: 0;
@@ -1731,64 +1732,141 @@ h1, h2, h3,
   gap: 0;
 }
 
-/* Aurora orbs */
+/* Aurora blobs — CSS animated only, no GSAP infinite loops */
 .sl-orb {
   position: absolute;
   border-radius: 50%;
   pointer-events: none;
-  will-change: transform;
 }
-.sl-orb--rose {
-  width: 600px; height: 600px;
-  top: -200px; left: -180px;
-  background: radial-gradient(circle, rgba(255,45,85,0.55) 0%, rgba(255,45,85,0.12) 45%, transparent 70%);
-  filter: blur(60px);
-}
-.sl-orb--purple {
-  width: 500px; height: 500px;
-  bottom: -180px; right: -150px;
-  background: radial-gradient(circle, rgba(175,82,222,0.5) 0%, rgba(175,82,222,0.1) 45%, transparent 70%);
+.sl-orb-rose {
+  width: 560px; height: 560px;
+  top: -200px; left: -160px;
+  background: radial-gradient(circle, rgba(255,140,0,0.35) 0%, rgba(255,80,0,0.1) 50%, transparent 70%);
   filter: blur(55px);
+  animation: orbDrift1 9s ease-in-out infinite;
 }
-.sl-orb--blue {
+.sl-orb-blue {
   width: 420px; height: 420px;
-  bottom: -120px; left: 20%;
-  background: radial-gradient(circle, rgba(0,122,255,0.4) 0%, rgba(0,122,255,0.08) 45%, transparent 70%);
+  bottom: -130px; right: -80px;
+  background: radial-gradient(circle, rgba(120,60,0,0.4) 0%, rgba(80,30,0,0.1) 50%, transparent 70%);
   filter: blur(50px);
+  animation: orbDrift2 11s ease-in-out infinite;
 }
-.sl-orb--teal {
-  width: 300px; height: 300px;
-  top: 10%; right: 5%;
-  background: radial-gradient(circle, rgba(52,199,89,0.25) 0%, transparent 70%);
-  filter: blur(50px);
+@keyframes orbDrift1 {
+  0%,100% { transform: translate(0,0); }
+  50%     { transform: translate(30px, 20px); }
 }
-
-/* Stars */
-.sl-stars {
-  position: absolute;
-  inset: 0;
-  width: 100%; height: 100%;
-  pointer-events: none;
+@keyframes orbDrift2 {
+  0%,100% { transform: translate(0,0); }
+  50%     { transform: translate(-20px, -25px); }
 }
 
-/* Progress ring */
-.sl-arc-wrap {
-  position: absolute;
-  width: 260px; height: 260px;
-  pointer-events: none;
-}
-.sl-arc-svg { width: 100%; height: 100%; }
-
-/* Rose */
-.sl-rose {
+/* Wreath + orb container */
+.sl-wreath-wrap {
   position: relative;
   z-index: 4;
-  margin-bottom: 24px;
-  filter:
-    drop-shadow(0 0 28px rgba(255,45,85,0.7))
-    drop-shadow(0 0 60px rgba(175,82,222,0.35))
-    drop-shadow(0 0 100px rgba(255,45,85,0.2));
-  will-change: transform;
+  width: 240px;
+  height: 240px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 20px;
+  will-change: transform, opacity;
+}
+.sl-wreath-svg {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+  /* subtle gold shimmer via CSS */
+  filter: drop-shadow(0 0 18px rgba(255,193,7,0.55)) drop-shadow(0 0 6px rgba(255,140,0,0.4));
+  animation: wreathGlow 3s ease-in-out infinite;
+}
+@keyframes wreathGlow {
+  0%,100% { filter: drop-shadow(0 0 18px rgba(255,193,7,0.55)) drop-shadow(0 0 6px rgba(255,140,0,0.4)); }
+  50%     { filter: drop-shadow(0 0 28px rgba(255,220,0,0.8))  drop-shadow(0 0 12px rgba(255,160,0,0.6)); }
+}
+
+/* Golden orb — all via CSS, zero GSAP */
+.sl-orb-center {
+  position: relative;
+  z-index: 5;
+  width: 128px;
+  height: 128px;
+  border-radius: 50%;
+  animation: orbScale 2.8s ease-in-out infinite;
+}
+@keyframes orbScale {
+  0%,100% { transform: scale(1); }
+  50%     { transform: scale(1.06); }
+}
+
+.sl-orb-glow {
+  position: absolute;
+  inset: -24px;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(255,180,0,0.55) 0%, rgba(255,100,0,0.25) 45%, transparent 68%);
+  filter: blur(14px);
+  animation: glowPulse 2.8s ease-in-out infinite;
+}
+@keyframes glowPulse {
+  0%,100% { opacity: 0.7; transform: scale(1); }
+  50%     { opacity: 1;   transform: scale(1.18); }
+}
+
+.sl-orb-core {
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  background: radial-gradient(circle at 38% 32%,
+    #FFFFFF 0%,
+    #FFE97A 12%,
+    #FFB700 32%,
+    #FF8C00 58%,
+    #7A3800 88%
+  );
+  box-shadow:
+    0 0 24px rgba(255,165,0,0.9),
+    0 0 48px rgba(255,100,0,0.55),
+    0 0 90px rgba(200,60,0,0.25),
+    inset 0 -10px 30px rgba(100,30,0,0.5),
+    inset 0 6px 16px rgba(255,255,200,0.25);
+}
+
+/* Swirling energy overlay — conic gradient rotated by CSS */
+.sl-orb-swirl {
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  background: conic-gradient(
+    from 0deg,
+    transparent 0%,
+    rgba(255,255,180,0.18) 15%,
+    transparent 30%,
+    rgba(255,220,80,0.12) 50%,
+    transparent 65%,
+    rgba(255,255,150,0.15) 80%,
+    transparent 100%
+  );
+  mix-blend-mode: screen;
+  animation: swirlSpin 6s linear infinite;
+}
+@keyframes swirlSpin {
+  from { transform: rotate(0deg); }
+  to   { transform: rotate(360deg); }
+}
+
+/* Specular highlight */
+.sl-orb-shine {
+  position: absolute;
+  top: 10%;
+  left: 16%;
+  width: 32%;
+  height: 26%;
+  border-radius: 50%;
+  background: radial-gradient(ellipse, rgba(255,255,255,0.75) 0%, transparent 70%);
+  transform: rotate(-30deg);
 }
 
 /* Title */
@@ -1797,20 +1875,20 @@ h1, h2, h3,
   z-index: 4;
   display: flex;
   gap: 2px;
-  margin-bottom: 14px;
+  margin-bottom: 12px;
   perspective: 600px;
 }
 .sl-letter {
   display: inline-block;
-  font-size: 76px;
+  font-size: 72px;
   font-weight: 900;
   color: #fff;
   letter-spacing: -1px;
   line-height: 1;
   text-shadow:
-    0 0 30px rgba(255,45,85,0.6),
-    0 0 60px rgba(175,82,222,0.3),
-    0 2px 20px rgba(0,0,0,0.5);
+    0 0 28px rgba(255,165,0,0.7),
+    0 0 56px rgba(255,100,0,0.3),
+    0 2px 18px rgba(0,0,0,0.6);
   will-change: transform, opacity;
 }
 
@@ -1818,11 +1896,11 @@ h1, h2, h3,
 .sl-subtitle {
   position: relative;
   z-index: 4;
-  font-size: 16px;
+  font-size: 15px;
   font-weight: 500;
-  color: rgba(255,255,255,0.72);
-  letter-spacing: 0.12em;
-  margin: 0 0 24px;
+  color: rgba(255,255,255,0.68);
+  letter-spacing: 0.13em;
+  margin: 0 0 22px;
   text-transform: uppercase;
 }
 
@@ -1838,8 +1916,8 @@ h1, h2, h3,
 .sl-tag {
   padding: 5px 14px;
   border-radius: 99px;
-  border: 1px solid rgba(255,255,255,0.15);
-  background: rgba(255,255,255,0.07);
+  border: 1px solid rgba(255,193,7,0.2);
+  background: rgba(255,165,0,0.08);
   color: rgba(255,255,255,0.6);
   font-size: 12px;
   font-weight: 500;
