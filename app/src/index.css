@@ -2429,14 +2429,18 @@ h1, h2, h3,
 }
 
 .clara-room__speech--seamless {
-  flex: 1;
-  min-height: 100px;
-  background: rgba(255, 255, 255, 0.68);
-  border: none;
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.8);
+  flex: unset;
+  min-height: 90px;
+  background: var(--studio-card-bg, #fff);
+  border: 1.5px solid rgba(0, 0, 0, 0.09);
+  border-radius: 18px;
+  box-shadow: 0 2px 16px rgba(0, 0, 0, 0.07);
 }
 .clara-room__speech--seamless .clara-room__line {
-  color: #0F2847;
+  color: var(--studio-text, #000);
+  font-size: 17px;
+  font-weight: 400;
+  line-height: 1.6;
 }
 
 [data-theme="dark"] .clara-room--seamless .clara-room__backdrop::after {
@@ -2491,8 +2495,9 @@ h1, h2, h3,
   border-color: rgba(255,255,255,0.1);
 }
 [data-theme="dark"] .clara-room__speech--seamless {
-  background: rgba(8, 16, 30, 0.55);
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.08);
+  background: var(--studio-bg-deep, #1C1C1E);
+  border-color: rgba(255, 255, 255, 0.12);
+  box-shadow: 0 2px 16px rgba(0, 0, 0, 0.3);
 }
 [data-theme="dark"] .clara-room__speech--seamless .clara-room__line {
   color: #F4F9FF;
@@ -2507,73 +2512,67 @@ h1, h2, h3,
 
 .clara-flower-pulse__center {
   position: absolute;
-  width: 22%;
-  height: 22%;
-  border-radius: 50%;
-  background: radial-gradient(circle, #FFE566 0%, #F5A623 100%);
-  box-shadow: 0 0 12px rgba(245, 166, 35, 0.5);
-  z-index: 3;
-}
-
-.clara-flower-pulse__stem {
-  position: absolute;
-  bottom: 8%;
-  left: 50%;
-  width: 3px;
-  height: 28%;
-  margin-left: -1.5px;
-  background: linear-gradient(180deg, #3D8B6E, #2d6b54);
-  border-radius: 2px;
-  z-index: 1;
-}
-
-.clara-flower-pulse__petal {
-  position: absolute;
   width: 26%;
   height: 26%;
   border-radius: 50%;
-  background: radial-gradient(circle at 35% 35%, #8ECDF5, #3B82C4);
+  background: radial-gradient(circle at 38% 35%, #fff 0%, #FFD6DE 40%, #FF2D55 100%);
+  box-shadow: 0 0 0 3px rgba(255, 45, 85, 0.18), 0 0 18px rgba(255, 45, 85, 0.35);
+  z-index: 3;
+}
+
+.clara-flower-pulse__stem { display: none; }
+
+.clara-flower-pulse__petal {
+  position: absolute;
+  width: 30%;
+  height: 44%;
+  border-radius: 50% 50% 50% 50% / 60% 60% 40% 40%;
+  background: radial-gradient(ellipse at 40% 30%, #FFB3C1 0%, #FF2D55 55%, #C0003A 100%);
   top: 50%;
   left: 50%;
-  margin: -13% 0 0 -13%;
-  transform: rotate(var(--petal-angle)) translateY(-42%);
-  transform-origin: center center;
+  margin: -22% 0 0 -15%;
+  transform: rotate(var(--petal-angle)) translateY(-52%);
+  transform-origin: 50% 100%;
   z-index: 2;
-  opacity: 1;
+  opacity: 0.92;
+  filter: drop-shadow(0 1px 3px rgba(255, 45, 85, 0.25));
 }
 
 .clara-flower-pulse--active .clara-flower-pulse__petal {
-  animation: claraPetalCycle 2.4s ease-in-out infinite;
+  animation: claraPetalBloom 2.8s ease-in-out infinite;
   animation-delay: var(--petal-delay);
 }
 
-@keyframes claraPetalCycle {
+@keyframes claraPetalBloom {
   0%, 100% {
-    opacity: 1;
-    transform: rotate(var(--petal-angle)) translateY(-42%) scale(1);
+    opacity: 0.92;
+    transform: rotate(var(--petal-angle)) translateY(-52%) scale(1);
+    filter: drop-shadow(0 1px 3px rgba(255, 45, 85, 0.25));
   }
-  35% {
-    opacity: 0;
-    transform: rotate(var(--petal-angle)) translateY(18%) scale(0.3) rotate(25deg);
+  25% {
+    opacity: 1;
+    transform: rotate(var(--petal-angle)) translateY(-56%) scale(1.08);
+    filter: drop-shadow(0 2px 8px rgba(255, 45, 85, 0.45));
   }
   55% {
-    opacity: 0;
-    transform: rotate(var(--petal-angle)) translateY(-20%) scale(0.1);
+    opacity: 0.7;
+    transform: rotate(var(--petal-angle)) translateY(-46%) scale(0.88);
+    filter: drop-shadow(0 1px 2px rgba(255, 45, 85, 0.15));
   }
-  75% {
-    opacity: 0.6;
-    transform: rotate(var(--petal-angle)) translateY(-35%) scale(0.85);
+  80% {
+    opacity: 0.95;
+    transform: rotate(var(--petal-angle)) translateY(-53%) scale(1.03);
   }
 }
 
 .clara-flower-pulse--active .clara-flower-pulse__center {
-  animation: claraCenterPulse 2.4s ease-in-out infinite;
+  animation: claraCenterGlow 2.8s ease-in-out infinite;
 }
 
-@keyframes claraCenterPulse {
-  0%, 100% { transform: scale(1); }
-  40% { transform: scale(0.85); }
-  70% { transform: scale(1.08); }
+@keyframes claraCenterGlow {
+  0%, 100% { transform: scale(1); box-shadow: 0 0 0 3px rgba(255,45,85,0.18), 0 0 18px rgba(255,45,85,0.35); }
+  40% { transform: scale(1.12); box-shadow: 0 0 0 5px rgba(255,45,85,0.22), 0 0 28px rgba(255,45,85,0.5); }
+  70% { transform: scale(0.95); box-shadow: 0 0 0 2px rgba(255,45,85,0.12), 0 0 12px rgba(255,45,85,0.25); }
 }
 
 .clara-room__header {

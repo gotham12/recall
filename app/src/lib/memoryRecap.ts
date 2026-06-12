@@ -19,36 +19,36 @@ const LONELINESS_PATTERNS = [
   /\b(company|someone to talk)\b/i,
 ];
 
-/** Demo album — Margaret's family in cherished moments (bundled photos) */
+/** Demo album — Margaret's family in cherished moments */
 const MARGARET_MEMORY_ALBUM: Omit<MemorySlide, 'id'>[] = [
   {
     photoUrl: memoryPhotoUrl('garden'),
     caption: 'Your family together in the garden — everyone smiling.',
-    speakText: 'Oh, Margaret… look at your beautiful family in the garden. Everyone is gathered close, and you are right at the heart of it. You are so loved.',
+    speakText: 'Oh, Margaret… look at your beautiful family in the garden. Everyone is gathered close, and you are right at the heart of it all. You are so loved.',
     person: 'Family',
-  },
-  {
-    photoUrl: memoryPhotoUrl('porch'),
-    caption: 'You on the porch at Maple Lane — your favorite sunny spot.',
-    speakText: 'Oh, what a peaceful moment on the porch at Maple Lane. The sun feels so warm, and your family is right beside you. You are loved.',
-    person: 'Margaret',
   },
   {
     photoUrl: memoryPhotoUrl('dinner'),
     caption: 'Sunday dinner with Susan and Robert — everyone laughing.',
-    speakText: 'Oh, what a lovely Sunday dinner… Susan and Robert were laughing, and you lit up the whole room with your stories. So much love at that table.',
+    speakText: 'Oh, what a lovely Sunday dinner. Susan and Robert were laughing, and you lit up the whole room with your stories. So much love at that table.',
     person: 'Family',
+  },
+  {
+    photoUrl: memoryPhotoUrl('porch'),
+    caption: 'A quiet afternoon on the porch at Maple Lane.',
+    speakText: 'Remember sitting on the porch at Maple Lane on warm afternoons? The birds, the breeze, and the feeling of being safe and at home.',
+    person: 'Margaret',
   },
   {
     photoUrl: memoryPhotoUrl('picnic'),
     caption: 'A family picnic at Lake Quinsigamond — a perfect summer day.',
-    speakText: 'The picnic at the lake was pure joy. Everyone was together, and your heart was so full of happiness.',
+    speakText: 'The picnic at the lake was pure joy. Everyone was together, and the air smelled like summer. Your heart was so full that day.',
     person: 'Family',
   },
   {
     photoUrl: memoryPhotoUrl('birthday'),
     caption: 'Your 75th birthday — Susan and Robert surprised you.',
-    speakText: 'On your seventy-fifth birthday, Susan and Robert surprised you with so much love. The cake, the hugs — you are cherished.',
+    speakText: 'On your seventy-fifth birthday, Susan and Robert surprised you with so much love. The cake, the candles, the hugs — you are deeply cherished.',
     person: 'Family',
   },
 ];

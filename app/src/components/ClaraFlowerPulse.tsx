@@ -1,4 +1,4 @@
-/** Clara's response indicator — forget-me-not petals fall and regrow in a cycle */
+/** Clara's response indicator — rose bloom pulses when active */
 
 interface ClaraFlowerPulseProps {
   active: boolean;
@@ -6,9 +6,9 @@ interface ClaraFlowerPulseProps {
   className?: string;
 }
 
-const PETAL_ANGLES = [0, 72, 144, 216, 288];
+const PETAL_ANGLES = [0, 45, 90, 135, 180, 225, 270, 315];
 
-export default function ClaraFlowerPulse({ active, size = 88, className = '' }: ClaraFlowerPulseProps) {
+export default function ClaraFlowerPulse({ active, size = 96, className = '' }: ClaraFlowerPulseProps) {
   return (
     <div
       className={`clara-flower-pulse ${active ? 'clara-flower-pulse--active' : ''} ${className}`}
@@ -25,7 +25,7 @@ export default function ClaraFlowerPulse({ active, size = 88, className = '' }: 
           className="clara-flower-pulse__petal"
           style={{
             ['--petal-angle' as string]: `${angle}deg`,
-            ['--petal-delay' as string]: `${i * 0.22}s`,
+            ['--petal-delay' as string]: `${i * 0.18}s`,
           }}
         />
       ))}
