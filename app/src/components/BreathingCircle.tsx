@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import StudioIcon from './StudioIcon';
 import { useAppStore } from '../store/appStore';
 
@@ -16,6 +16,10 @@ export default function BreathingCircle({ onComplete, cycles = 3 }: BreathingCir
   const [cycleCount, setCycleCount] = useState(0);
   const [secondsLeft, setSecondsLeft] = useState(3);
   const [label, setLabel] = useState('Breathe In…');
+
+  // Keep a stable ref so the interval never needs onComplete in its deps.
+  const onCompleteRef = useRef(onComplete);
+  useEffect(() => { onCompleteRef.current = onComplete; }, [onComplete]);
 
   useEffect(() => {
     const sequence: { phase: Phase; duration: number; label: string }[] = [
@@ -46,7 +50,7 @@ export default function BreathingCircle({ onComplete, cycles = 3 }: BreathingCir
             clearInterval(interval);
             setPhase('done');
             setLabel('Well done');
-            onComplete?.();
+            onCompleteRef.current?.();
             return;
           }
           setCycleCount(currentCycle);
@@ -59,7 +63,7 @@ export default function BreathingCircle({ onComplete, cycles = 3 }: BreathingCir
     }, 1000);
 
     return () => clearInterval(interval);
-  }, [cycles, onComplete]);
+  }, [cycles]); // onComplete intentionally omitted — read via ref above
 
   const circleClass =
     phase === 'in'   ? 'breathing-in' :
