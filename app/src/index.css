@@ -2656,6 +2656,22 @@ h1, h2, h3,
   border: 1px solid rgba(0,0,0,0.08);
   box-shadow: 0 1px 4px rgba(0,0,0,0.06);
 }
+@media (max-width: 768px), (hover: none) and (pointer: coarse) {
+  .clara-room__text-input--desktop {
+    display: none;
+  }
+  .clara-room--seamless .clara-room__mic {
+    width: 88px;
+    height: 88px;
+  }
+  .clara-room--seamless .clara-room__speech--seamless {
+    min-height: 72px;
+  }
+  .clara-room--seamless .clara-room__line {
+    font-size: 1.05rem;
+    line-height: 1.45;
+  }
+}
 .clara-room__text-field {
   flex: 1;
   border: none;

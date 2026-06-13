@@ -1,5 +1,5 @@
 import { useState, useRef, useCallback, useEffect } from 'react';
-import { useVoice } from '../hooks/useVoice';
+import { useClaraVoice } from '../hooks/useClaraVoice';
 import { useACSE } from '../hooks/useACSE';
 import { claraChat } from '../services/groq';
 import { useAppStore } from '../store/appStore';
@@ -34,7 +34,7 @@ export default function VoiceAgent() {
   const [claraLine, setClaraLine] = useState('');
   const [error, setError] = useState('');
   const [llmConnected, setLlmConnected] = useState<boolean | null>(null);
-  const { isListening, transcript, startListening, stopListening } = useVoice();
+  const { isListening, startListening, stopListening } = useClaraVoice();
   const { checkRepeatQuestion } = useACSE();
   const historyRef = useRef<{ role: 'user' | 'assistant'; content: string }[]>([]);
   const sessionActiveRef = useRef(false);
@@ -46,7 +46,7 @@ export default function VoiceAgent() {
   useEffect(() => {
     unlockAudioPlayback();
     if (!greetingSetRef.current) {
-      setClaraLine(`Hello, ${firstName}. I'm Clara — tap the microphone and we can talk about anything.`);
+      setClaraLine(`Hello, ${firstName}. I'm Clara — tap the microphone and we can talk.`);
       greetingSetRef.current = true;
     }
     return () => {
@@ -154,7 +154,7 @@ export default function VoiceAgent() {
         stopSpeaking();
         await new Promise((r) => setTimeout(r, 300));
         setState('listening');
-        setClaraLine("I'm listening… speak naturally, then pause when you're done.");
+        setClaraLine("I'm listening…");
         setError('');
         const heard = await startListening();
         if (!sessionActiveRef.current) break;
@@ -251,8 +251,6 @@ export default function VoiceAgent() {
     state === 'thinking' ? 'Thinking' :
     state === 'speaking' ? 'Speaking' : inSession ? 'In conversation' : 'Ready';
 
-  const showLiveTranscript = state === 'listening' && transcript.length > 0;
-
   return (
     <div className="clara-room clara-room--seamless">
       <div className="clara-room__inner studio-scroll">
@@ -290,14 +288,7 @@ export default function VoiceAgent() {
               {claraLine && <p className="clara-room__line">{claraLine}</p>}
             </>
           ) : (
-            <>
-              {claraLine ? <p className="clara-room__line">{claraLine}</p> : null}
-              {showLiveTranscript && (
-                <p className="clara-room__heard">
-                  <span className="clara-room__heard-label">Hearing:</span> {transcript}
-                </p>
-              )}
-            </>
+            claraLine ? <p className="clara-room__line">{claraLine}</p> : null
           )}
         </div>
 
@@ -320,11 +311,11 @@ export default function VoiceAgent() {
               ? 'Tap to end'
               : state === 'speaking'
                 ? 'Tap to interrupt'
-                : 'Tap to talk — pause when finished'}
+                : 'Tap to talk'}
           </p>
         </div>
 
-        <div className="clara-room__text-input">
+        <div className="clara-room__text-input clara-room__text-input--desktop">
           <input
             type="text"
             className="clara-room__text-field"
