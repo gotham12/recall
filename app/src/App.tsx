@@ -1,7 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useAppStore } from './store/appStore';
 import { seedIfEmpty } from './db/seed';
-import { needsConsent } from './lib/settings';
 import { useMedReminders } from './hooks/useMedReminders';
 import { useOnlineStatus } from './hooks/useOnlineStatus';
 import { useSyncBridge } from './hooks/useSyncBridge';
@@ -15,7 +14,7 @@ import OfflineBanner from './components/OfflineBanner';
 
 export default function App() {
   const { screen, comfortModeActive } = useAppStore();
-  const [showConsent, setShowConsent] = useState(needsConsent);
+  const [showConsent, setShowConsent] = useState(true);
   const online = useOnlineStatus();
 
   useMedReminders();

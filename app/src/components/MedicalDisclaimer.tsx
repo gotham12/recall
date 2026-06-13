@@ -1,5 +1,4 @@
 import { useState } from 'react';
-import { saveSettings, CONSENT_VERSION } from '../lib/settings';
 import RecallLogo from './RecallLogo';
 
 interface Props {
@@ -38,10 +37,7 @@ export default function MedicalDisclaimer({ onAccept }: Props) {
           type="button"
           className="studio-btn studio-btn--primary tap-feedback disclaimer-card__cta"
           disabled={!checked}
-          onClick={() => {
-            saveSettings({ consentAccepted: true, consentVersion: CONSENT_VERSION });
-            onAccept();
-          }}
+          onClick={onAccept}
         >
           Continue
         </button>
