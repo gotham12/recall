@@ -1,0 +1,253 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Recall — Supervisor Demo Script</title>
+  <style>
+    :root {
+      --bg: #0f1117;
+      --surface: #1a1d27;
+      --border: #2a2f3d;
+      --text: #e8eaed;
+      --muted: #9aa0b0;
+      --accent: #5b8def;
+      --accent-dim: rgba(91, 141, 239, 0.12);
+      --green: #34c759;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      line-height: 1.55;
+      padding: 32px 20px 64px;
+    }
+    .wrap { max-width: 900px; margin: 0 auto; }
+    h1 { font-size: 1.75rem; font-weight: 700; margin-bottom: 6px; }
+    .sub { color: var(--muted); font-size: 0.95rem; margin-bottom: 28px; }
+    .stats {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 12px;
+      margin-bottom: 28px;
+    }
+    .stat {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 14px 16px;
+      text-align: center;
+    }
+    .stat-val { font-size: 1.5rem; font-weight: 700; color: var(--accent); }
+    .stat-lbl { font-size: 0.75rem; color: var(--muted); margin-top: 2px; }
+    .tip {
+      background: var(--accent-dim);
+      border: 1px solid var(--border);
+      border-left: 3px solid var(--accent);
+      border-radius: 8px;
+      padding: 14px 16px;
+      font-size: 0.88rem;
+      color: var(--muted);
+      margin-bottom: 28px;
+    }
+    .tip strong { color: var(--text); }
+    .filters { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 20px; }
+    .filter {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 20px;
+      padding: 6px 14px;
+      font-size: 0.82rem;
+      cursor: pointer;
+      color: var(--muted);
+      transition: all 0.15s;
+    }
+    .filter:hover { border-color: var(--accent); color: var(--text); }
+    .filter.active { background: var(--accent); border-color: var(--accent); color: #fff; }
+    table { width: 100%; border-collapse: collapse; font-size: 0.9rem; }
+    thead th {
+      text-align: left;
+      padding: 10px 12px;
+      font-size: 0.75rem;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+      color: var(--muted);
+      border-bottom: 1px solid var(--border);
+      position: sticky;
+      top: 0;
+      background: var(--bg);
+    }
+    tbody tr { border-bottom: 1px solid var(--border); }
+    tbody tr:hover { background: var(--surface); }
+    td { padding: 14px 12px; vertical-align: top; }
+    .time { font-variant-numeric: tabular-nums; font-weight: 600; white-space: nowrap; color: var(--accent); }
+    .feature { font-weight: 600; }
+    .dur { font-size: 0.78rem; color: var(--muted); margin-top: 2px; }
+    .action { color: var(--muted); font-size: 0.85rem; }
+    .script { font-size: 0.92rem; }
+    .checklist {
+      margin-top: 32px;
+      padding-top: 24px;
+      border-top: 1px solid var(--border);
+    }
+    .checklist h2 { font-size: 1rem; margin-bottom: 10px; }
+    .checklist p { font-size: 0.85rem; color: var(--muted); line-height: 1.7; }
+    .hidden { display: none; }
+    @media (max-width: 640px) {
+      .stats { grid-template-columns: 1fr; }
+      table, thead, tbody, th, td, tr { display: block; }
+      thead { display: none; }
+      td { padding: 8px 0; }
+      td::before {
+        content: attr(data-label);
+        display: block;
+        font-size: 0.7rem;
+        text-transform: uppercase;
+        color: var(--muted);
+        margin-bottom: 2px;
+      }
+      tbody tr { padding: 14px 0; display: block; }
+    }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <h1>Supervisor Interface — Demo Script</h1>
+    <p class="sub">3–4 minute voiceover · every supervisor feature · target 3:45</p>
+
+    <div class="stats">
+      <div class="stat"><div class="stat-val">3:45</div><div class="stat-lbl">Target runtime</div></div>
+      <div class="stat"><div class="stat-val">13</div><div class="stat-lbl">Beats</div></div>
+      <div class="stat"><div class="stat-val">6 tabs</div><div class="stat-lbl">Navigation</div></div>
+    </div>
+
+    <div class="tip">
+      <strong>Login:</strong> Supervisor → Margaret → password <strong>care</strong>.
+      Disclaimer appears before login every session.
+      Pre-trigger an alert via dev console:
+      <code>window.__recallStore.getState().addSupervisorAlert({message:'Comfort Mode activated', type:'comfort_mode'})</code>
+    </div>
+
+    <div class="filters" id="filters"></div>
+
+    <table>
+      <thead>
+        <tr>
+          <th>Time</th>
+          <th>Feature</th>
+          <th>On-screen action</th>
+          <th>Voiceover script</th>
+        </tr>
+      </thead>
+      <tbody id="beats"></tbody>
+    </table>
+
+    <div class="checklist">
+      <h2>Feature checklist</h2>
+      <p>
+        Disclaimer · Login · Alert banner · Care Command Center · Send Warmth · Remote Comfort ·
+        Live Activity Feed · Storm Radar · Care Journal · Quick event · Stat grid · Profile card ·
+        Events (note, filters, add, complete, delete) · Meds CRUD · Adherence · Intake logs ·
+        Sleep clinical · Vitals · ACSE Audit · Weekly Insights · 24h chart · Zones · Hourly pattern ·
+        Score log · Profile edit · Care Settings · Care Kit · Alert History · Data Export · Settings · Theme
+      </p>
+    </div>
+  </div>
+
+  <script>
+    const BEATS = [
+      { ts:'0:00', end:'0:08', dur:'8s', section:'Intro',
+        feature:'Medical disclaimer',
+        action:'Open app → check box → tap Continue',
+        script:'Every session starts with the privacy statement — before anything else. Check the box and tap Continue.' },
+      { ts:'0:08', end:'0:14', dur:'6s', section:'Intro',
+        feature:'Loading screen',
+        action:'Let golden orb animate',
+        script:'After accepting, the loading screen plays — golden orb and laurel wreath.' },
+      { ts:'0:14', end:'0:22', dur:'8s', section:'Intro',
+        feature:'Supervisor login',
+        action:'Supervisor → Margaret → password "care" → Sign In',
+        script:"Susan logs in as Margaret's caregiver supervisor." },
+      { ts:'0:22', end:'0:30', dur:'8s', section:'Intro',
+        feature:'Alert banner',
+        action:'Point at alert banner; dismiss with X',
+        script:'Clinical alerts appear here — Comfort Mode activations, ACSE drops — with timestamp.' },
+      { ts:'0:30', end:'0:53', dur:'23s', section:'Home',
+        feature:'Home — command center + warmth',
+        action:'Point at Care Command Center → tap Send Warmth',
+        script:"Care Command Center shows status, live ACSE score, today's meds and journal count, and Comfort Mode state. Send Warmth delivers a gentle presence ping to Margaret's device. Remote Comfort Mode is one tap away." },
+      { ts:'0:53', end:'1:15', dur:'22s', section:'Home',
+        feature:'Home — feed, radar, journal, events',
+        action:'Scroll: Live Activity Feed → Storm Radar → Care Journal note → quick-add event',
+        script:"Live Activity Feed logs every patient action in real time. Storm Radar plots cognitive volatility — sundowning spikes visible at a glance. Care Journal captures observations. Quick-add event schedules something instantly on Margaret's timeline." },
+      { ts:'1:15', end:'1:23', dur:'8s', section:'Home',
+        feature:'Home — stats + profile card',
+        action:'Scroll to stat grid and patient profile',
+        script:'Stat grid shows ACSE, events, and med logs. Patient profile confirms age, city, and caregiver relationship.' },
+      { ts:'1:23', end:'1:41', dur:'18s', section:'Tabs',
+        feature:'Events tab',
+        action:'Tap Events → add note "I\'ll visit at 6 PM" → show filters → Add Event → mark complete',
+        script:"Events manages the full timeline. Quick caregiver notes parse time automatically. Filter by all, completed, upcoming, or alerts. Add events with type and datetime. Mark complete or delete any entry." },
+      { ts:'1:41', end:'1:59', dur:'18s', section:'Tabs',
+        feature:'Meds tab',
+        action:'Tap Meds → show patient card → + Add med → scroll Adherence chart + intake logs',
+        script:"Meds shows Margaret's plan — add, edit, or delete medications remotely. Medication Adherence charts daily compliance. Intake logs timestamp every dose with vision confidence." },
+      { ts:'1:59', end:'2:13', dur:'14s', section:'Tabs',
+        feature:'Sleep tab',
+        action:'Tap Sleep → scroll clinical dashboard',
+        script:'Clinical Sleep dashboard shows architecture, disturbances, and 7-day trends.' },
+      { ts:'2:13', end:'2:41', dur:'28s', section:'Tabs',
+        feature:'Stats tab',
+        action:'Tap Stats → scroll: Vitals → ACSE Audit → Weekly Insights → 24h chart → zone bars → hourly pattern → score log',
+        script:"Stats is the analytical core. Vitals, ACSE Signal Audit, and Weekly Insights up top. The 24-hour timeline with rolling average. Zone distribution and hourly sundowning pattern. Score event log — full audit trail." },
+      { ts:'2:41', end:'3:07', dur:'26s', section:'Tabs',
+        feature:'Profile tab',
+        action:'Tap Profile → Edit fields → scroll Care Settings → Care Kit → Alert History → Data Export',
+        script:"Profile edits all patient fields — contacts, calming music URL, emergency note. Care Settings set alert thresholds. Supervisor Care Kit has de-escalation guides. Alert History logs every clinical event. Data Export hands off JSON for clinicians." },
+      { ts:'3:07', end:'3:15', dur:'8s', section:'Settings',
+        feature:'Settings + theme',
+        action:'Open Settings sheet → toggle theme',
+        script:'Settings for Easy Mode, contrast, and text size. Theme toggle in the header.' },
+      { ts:'3:15', end:'3:50', dur:'35s', section:'Outro',
+        feature:'Closing',
+        action:'Return to Home → hold on Care Command Center',
+        script:"Recall gives caregivers clinical-grade visibility without clinical complexity. One platform, two perspectives — Margaret's calm morning and Susan's confident evening review." },
+    ];
+
+    const SECTIONS = ['All', 'Intro', 'Home', 'Tabs', 'Settings', 'Outro'];
+    let active = 'All';
+
+    const filtersEl = document.getElementById('filters');
+    const beatsEl = document.getElementById('beats');
+
+    function renderFilters() {
+      filtersEl.innerHTML = SECTIONS.map(s =>
+        `<button class="filter${s === active ? ' active' : ''}" data-section="${s}">${s}</button>`
+      ).join('');
+      filtersEl.querySelectorAll('.filter').forEach(btn => {
+        btn.addEventListener('click', () => {
+          active = btn.dataset.section;
+          renderFilters();
+          renderBeats();
+        });
+      });
+    }
+
+    function renderBeats() {
+      const visible = active === 'All' ? BEATS : BEATS.filter(b => b.section === active);
+      beatsEl.innerHTML = visible.map(b => `
+        <tr>
+          <td class="time" data-label="Time">${b.ts}–${b.end}</td>
+          <td data-label="Feature"><div class="feature">${b.feature}</div><div class="dur">${b.dur}</div></td>
+          <td class="action" data-label="Action">${b.action}</td>
+          <td class="script" data-label="Script">${b.script}</td>
+        </tr>
+      `).join('');
+    }
+
+    renderFilters();
+    renderBeats();
+  </script>
+</body>
+</html>
