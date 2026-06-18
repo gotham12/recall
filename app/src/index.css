@@ -8328,3 +8328,88 @@ button .studio-icon { color: rgba(0,0,0,0.70); }
   height: 44px !important;
 }
 
+
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   LIQUID GLASS — PASS 6  (med card specificity fix + glass Take Now btn)
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+/*
+  ROOT CAUSE: .med-tracker [class*="card"] (specificity 0-1-1) matches
+  card-row / card-info / card-head because "card" is in those class names,
+  beating our 0-1-0 overrides. Fix: use compound selectors (0-2-0) to win.
+*/
+
+/* Strip glass off every inner descendant that isn't the card itself */
+.med-tracker .med-tracker__card-row,
+.med-tracker .med-tracker__card-info,
+.med-tracker .med-tracker__card-head,
+.med-tracker .med-tracker__schedule,
+.med-tracker .med-tracker__med-name,
+.med-tracker .med-tracker__dosage {
+  background: transparent !important;
+  background-color: transparent !important;
+  border: none !important;
+  box-shadow: none !important;
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+  border-radius: 0 !important;
+}
+
+/* Card row layout */
+.med-tracker .med-tracker__card-row {
+  display: flex !important;
+  align-items: center !important;
+  justify-content: space-between !important;
+  gap: 16px !important;
+}
+
+/* Info section fills remaining space */
+.med-tracker .med-tracker__card-info {
+  flex: 1 1 0% !important;
+  min-width: 0 !important;
+}
+
+/* ── "Take Now" → proper liquid glass button ── */
+.med-tracker .med-tracker__take-btn,
+.med-tracker .btn-electric {
+  background: rgba(255,255,255,0.62) !important;
+  backdrop-filter: blur(24px) saturate(180%) !important;
+  -webkit-backdrop-filter: blur(24px) saturate(180%) !important;
+  border: 1px solid rgba(255,255,255,0.85) !important;
+  box-shadow:
+    0 1px 0 rgba(255,255,255,0.98) inset,
+    0 4px 14px rgba(0,0,0,0.10) !important;
+  border-radius: 14px !important;
+  color: rgba(0,0,0,0.78) !important;
+  font-weight: 600 !important;
+  font-size: 0.9rem !important;
+  padding: 12px 18px !important;
+  min-height: 46px !important;
+  min-width: 104px !important;
+  flex-shrink: 0 !important;
+  cursor: pointer !important;
+  transition: transform 0.26s cubic-bezier(0.34,1.56,0.64,1),
+              box-shadow 0.2s ease !important;
+  white-space: nowrap !important;
+}
+.med-tracker .med-tracker__take-btn:active,
+.med-tracker .btn-electric:active {
+  transform: scale(0.94) !important;
+  box-shadow: 0 1px 0 rgba(255,255,255,0.98) inset, 0 2px 6px rgba(0,0,0,0.08) !important;
+}
+
+/* Schedule chips stay glass pills */
+.med-tracker .schedule-chip {
+  display: inline-block !important;
+  background: rgba(255,255,255,0.50) !important;
+  border: 1px solid rgba(255,255,255,0.72) !important;
+  box-shadow: 0 1px 0 rgba(255,255,255,0.97) inset !important;
+  border-radius: 8px !important;
+  padding: 3px 10px !important;
+  font-size: 0.82rem !important;
+  color: rgba(0,0,0,0.56) !important;
+  margin-right: 4px !important;
+  margin-bottom: 4px !important;
+}
+
