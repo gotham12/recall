@@ -8714,3 +8714,49 @@ body, body * {
 .recharts-text,
 .recharts-cartesian-axis-tick text { fill: rgba(0,0,0,0.60) !important; }
 
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   LIQUID GLASS — PASS 10  (header logo fix — remove circle, show wordmark)
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+/* Kill the forced circle on the header logo button */
+.recall-logo-tap {
+  background: none !important;
+  border: none !important;
+  box-shadow: none !important;
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+  border-radius: 0 !important;
+  width: auto !important;
+  height: auto !important;
+  padding: 4px 6px !important;
+}
+
+/* Keep the flower mark hidden — show wordmark only */
+.recall-logo__mark {
+  display: none !important;
+}
+
+/* Wordmark in the header — bold, dark, Apple font */
+.recall-logo-tap .recall-logo__word {
+  font-size: 20px !important;
+  font-weight: 700 !important;
+  color: rgba(0,0,0,0.84) !important;
+  letter-spacing: -0.4px !important;
+}
+
+/* Login screen icon wrap: keep the glass circle for the brand mark there */
+.dash-login__icon-wrap {
+  width: 52px !important;
+  height: 52px !important;
+  border-radius: 16px !important;
+  background: rgba(255,255,255,0.55) !important;
+  backdrop-filter: blur(20px) !important;
+  -webkit-backdrop-filter: blur(20px) !important;
+  border: 1px solid rgba(255,255,255,0.80) !important;
+  box-shadow: 0 1px 0 rgba(255,255,255,0.97) inset, 0 4px 12px rgba(0,0,0,0.08) !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+}
+
