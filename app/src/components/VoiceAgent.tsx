@@ -25,68 +25,6 @@ const SUGGESTIONS: { label: string; icon: IconName }[] = [
 const POST_SPEAK_PAUSE_MS = 800;
 const CASCADE_DELAY_MS = 1_800;
 
-// ── Live mic volume meter (shown when listening via MediaRecorder) ─────────────
-function useMicLevel(active: boolean) {
-  const [level, setLevel] = useState(0);
-  const rafRef = useRef(0);
-  const ctxRef = useRef<AudioContext | null>(null);
-  const analyserRef = useRef<AnalyserNode | null>(null);
-  const streamRef = useRef<MediaStream | null>(null);
-
-  useEffect(() => {
-    if (!active) {
-      cancelAnimationFrame(rafRef.current);
-      ctxRef.current?.close().catch(() => {});
-      ctxRef.current = null;
-      streamRef.current?.getTracks().forEach((t) => t.stop());
-      streamRef.current = null;
-      setLevel(0);
-      return;
-    }
-
-    // Try to attach a separate analyser just for the meter
-    // (the main recorder has its own context — this is display-only)
-    navigator.mediaDevices
-      .getUserMedia({ audio: true })
-      .then((stream) => {
-        if (!active) { stream.getTracks().forEach((t) => t.stop()); return; }
-        const ctx = new AudioContext();
-        const source = ctx.createMediaStreamSource(stream);
-        const analyser = ctx.createAnalyser();
-        analyser.fftSize = 256;
-        source.connect(analyser);
-        ctxRef.current = ctx;
-        analyserRef.current = analyser;
-        streamRef.current = stream;
-
-        const tick = () => {
-          const buf = new Uint8Array(analyser.fftSize);
-          analyser.getByteTimeDomainData(buf);
-          let sum = 0;
-          for (let i = 0; i < buf.length; i++) {
-            const s = (buf[i] - 128) / 128;
-            sum += s * s;
-          }
-          const rms = Math.min(1, Math.sqrt(sum / buf.length) * 8);
-          setLevel(rms);
-          rafRef.current = requestAnimationFrame(tick);
-        };
-        rafRef.current = requestAnimationFrame(tick);
-      })
-      .catch(() => { /* meter is optional — ignore errors */ });
-
-    return () => {
-      cancelAnimationFrame(rafRef.current);
-      ctxRef.current?.close().catch(() => {});
-      streamRef.current?.getTracks().forEach((t) => t.stop());
-      setLevel(0);
-    };
-  }, [active]);
-
-  return level;
-}
-
-// ── Main component ────────────────────────────────────────────────────────────
 export default function VoiceAgent() {
   const user = useAppStore((s) => s.user);
   const acseScore = useAppStore((s) => s.acseScore);
@@ -100,9 +38,8 @@ export default function VoiceAgent() {
   const [llmConnected, setLlmConnected] = useState<boolean | null>(null);
   const [typedInput, setTypedInput] = useState('');
 
-  const { isListening, startListening, stopListening, isRecorderMode } = useClaraVoice();
+  const { startListening, stopListening } = useClaraVoice();
   const { checkRepeatQuestion } = useACSE();
-  const micLevel = useMicLevel(state === 'listening');
 
   const historyRef = useRef<{ role: 'user' | 'assistant'; content: string }[]>([]);
   const sessionActiveRef = useRef(false);
@@ -212,7 +149,7 @@ export default function VoiceAgent() {
       if (!sessionActiveRef.current) return;
 
       setState('listening');
-      setClaraLine(isRecorderMode ? "I'm listening — speak clearly…" : "I'm listening…");
+      setClaraLine("I'm listening…");
       setError('');
 
       const heard = await startListening();
@@ -224,15 +161,13 @@ export default function VoiceAgent() {
         return;
       }
 
-      // Show what was heard briefly
-      setClaraLine(`"${heard}"`);
       await processUtterance(heard);
     } catch (err) {
       console.error('[Clara voice]', err);
       if (!sessionActiveRef.current) return;
       const msg = (err instanceof Error ? err.message : '').toLowerCase();
       if (msg.includes('denied') || msg.includes('not-allowed') || msg.includes('permission')) {
-        setError('Microphone access is blocked. Please allow microphone in your browser settings.');
+        setError('Please allow microphone access — tap the mic icon in your browser address bar.');
         setClaraLine('Once the mic is allowed, tap below and we can talk.');
       } else if (msg.includes('network') || msg.includes('fetch') || msg.includes('transcri')) {
         setClaraLine("Having trouble connecting. Check your internet and try again.");
@@ -244,7 +179,7 @@ export default function VoiceAgent() {
       sessionActiveRef.current = false;
       setInSession(false);
     }
-  }, [startListening, processUtterance, firstName, isRecorderMode]);
+  }, [startListening, processUtterance, firstName]);
 
   const handleMicTap = useCallback(() => {
     unlockAudioPlayback();
@@ -287,13 +222,10 @@ export default function VoiceAgent() {
 
   const micIcon: IconName = (state === 'thinking' || state === 'speaking') ? 'close' : 'mic';
   const micHint =
-    state === 'listening' ? (isRecorderMode ? 'Listening — speak now' : 'Listening…') :
-    state === 'thinking'  ? 'Thinking…' :
-    state === 'speaking'  ? 'Tap to stop' :
+    state === 'listening' ? 'Listening… speak now' :
+    state === 'thinking'  ? 'Thinking…'            :
+    state === 'speaking'  ? 'Tap to stop'          :
     'Tap to talk';
-
-  // Mic level bar — 5 bars driven by micLevel (0–1)
-  const bars = [0.2, 0.4, 0.6, 0.8, 1.0];
 
   return (
     <div className="cv2-room">
@@ -313,11 +245,9 @@ export default function VoiceAgent() {
       {/* ── Scrollable body ── */}
       <div className="cv2-body studio-scroll">
 
-        {/* Flower + mic visualizer */}
+        {/* Flower + wave */}
         <div className="cv2-stage">
           <ClaraFlowerPulse active={flowerActive} size={120} className="cv2-flower" />
-
-          {/* Animated wave bars (always shown when listening) */}
           {state === 'listening' && (
             <div className="cv2-wave" aria-hidden>
               {[0, 1, 2, 3, 4].map((i) => (
@@ -329,37 +259,15 @@ export default function VoiceAgent() {
               ))}
             </div>
           )}
-
-          {/* Live mic level — only in recorder mode, shows real audio input */}
-          {state === 'listening' && isRecorderMode && (
-            <div className="cv2-miclevel" aria-hidden>
-              {bars.map((threshold, i) => (
-                <div
-                  key={i}
-                  className="cv2-miclevel__bar"
-                  style={{
-                    height: `${8 + i * 5}px`,
-                    background: micLevel >= threshold
-                      ? 'var(--cv2-accent, #AF52DE)'
-                      : 'var(--studio-border, rgba(255,255,255,0.15))',
-                    transition: 'background 0.06s',
-                  }}
-                />
-              ))}
-              <span className="cv2-miclevel__label">
-                {micLevel > 0.15 ? 'Voice detected' : 'Speak now…'}
-              </span>
-            </div>
-          )}
         </div>
 
         {/* Speech / status text */}
         <div className="cv2-speech" aria-live="polite">
-          {error    && <p className="cv2-speech__error">{error}</p>}
+          {error     && <p className="cv2-speech__error">{error}</p>}
           {claraLine && <p className="cv2-speech__line">{claraLine}</p>}
         </div>
 
-        {/* Suggestion chips */}
+        {/* Suggestion chips — only when idle */}
         {!inSession && state === 'idle' && (
           <div className="cv2-chips" role="group" aria-label="Quick suggestions">
             {SUGGESTIONS.map((s) => (
@@ -379,7 +287,7 @@ export default function VoiceAgent() {
         <div style={{ flex: 1, minHeight: 16 }} />
       </div>
 
-      {/* ── Input bar ── */}
+      {/* ── Bottom input bar ── */}
       <div className="cv2-input-bar">
         <button
           type="button"

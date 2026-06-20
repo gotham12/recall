@@ -75,6 +75,7 @@ jobs:
           VITE_ELEVENLABS_API_KEY: ${{ secrets.ELEVENLABS_API_KEY }}
           VITE_GOOGLE_VISION_KEY: ${{ secrets.GOOGLE_VISION_KEY }}
           VITE_SUPERVISOR_PASSWORD: ${{ secrets.VITE_SUPERVISOR_PASSWORD }}
+          VITE_OPENROUTER_API_KEY: ${{ secrets.OPENROUTER_API_KEY }}
 
       - uses: actions/configure-pages@v4
 
