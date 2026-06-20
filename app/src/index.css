@@ -6529,6 +6529,9 @@ body, html { background: var(--studio-bg) !important; font-family: -apple-system
   text-align: center;
   padding: 4px 0 20px;
   min-height: 80px;
+  max-height: 220px;
+  overflow-y: auto;
+  box-sizing: border-box;
 }
 .cv2-speech__line {
   font-family: 'Fraunces', Georgia, serif;
@@ -6537,45 +6540,20 @@ body, html { background: var(--studio-bg) !important; font-family: -apple-system
   line-height: 1.65;
   color: var(--studio-text, #1C1C1E);
   margin: 0;
+  word-break: break-word;
+  overflow-wrap: break-word;
+  white-space: normal;
 }
 .cv2-speech__error {
   font-size: 14px;
   color: #FF3B30;
   margin: 0 0 8px;
   font-weight: 500;
+  word-break: break-word;
+  overflow-wrap: break-word;
 }
 [data-theme="dark"] .cv2-speech__line { color: #F4F9FF; }
 
-/* ── Suggestion chips ── */
-.cv2-chips {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
-  justify-content: center;
-  padding: 4px 0 12px;
-  width: 100%;
-}
-.cv2-chip {
-  display: inline-flex;
-  align-items: center;
-  gap: 5px;
-  padding: 7px 14px;
-  border-radius: 999px;
-  border: 1.5px solid rgba(0,0,0,0.10);
-  background: var(--studio-card-bg, #fff);
-  color: var(--studio-text, #1C1C1E);
-  font-size: 14px;
-  font-weight: 500;
-  cursor: pointer;
-  transition: background 0.15s, border-color 0.15s;
-  white-space: nowrap;
-}
-.cv2-chip:active { background: rgba(0,0,0,0.06); }
-[data-theme="dark"] .cv2-chip {
-  background: rgba(255,255,255,0.08);
-  border-color: rgba(255,255,255,0.14);
-  color: #F4F9FF;
-}
 
 /* ── Input bar ── */
 .cv2-input-bar {
@@ -6600,7 +6578,7 @@ body, html { background: var(--studio-bg) !important; font-family: -apple-system
   grid-row: 1 / 3;
   align-self: center;
   position: relative;
-  width: 58px; height: 58px;
+  width: 72px; height: 72px;
   border-radius: 50%;
   border: none;
   background: var(--studio-accent, #FF2D55);
@@ -7104,6 +7082,10 @@ html, body {
   box-shadow: var(--lg-inset), var(--lg-shadow) !important;
   border-radius: 22px !important;
   padding: 18px 20px !important;
+  max-height: 220px !important;
+  overflow-y: auto !important;
+  word-break: break-word !important;
+  overflow-wrap: break-word !important;
 }
 .cv2-speech__line {
   color: var(--lg-text) !important;
@@ -7111,19 +7093,6 @@ html, body {
   font-style: italic !important;
 }
 .cv2-speech__error { color: rgba(200,60,60,0.85) !important; }
-
-/* Clara chips */
-.cv2-chip {
-  background: rgba(255,255,255,0.45) !important;
-  backdrop-filter: blur(24px) !important;
-  -webkit-backdrop-filter: blur(24px) !important;
-  border: 1px solid rgba(255,255,255,0.78) !important;
-  box-shadow: var(--lg-inset), 0 2px 8px rgba(0,0,0,0.05) !important;
-  color: var(--lg-text-muted) !important;
-  font-family: var(--lg-font) !important;
-  transition: transform 0.26s var(--lg-spring) !important;
-}
-.cv2-chip:active { transform: scale(0.92) !important; }
 
 /* Clara input bar */
 .cv2-input-bar {
@@ -7306,7 +7275,6 @@ html::before {
 .quick-tile__icon .studio-icon,
 .cv2-mic .studio-icon,
 .cv2-send .studio-icon,
-.cv2-chip .studio-icon,
 .disclaimer-card .studio-icon {
   color: rgba(0,0,0,0.72) !important;
   stroke: rgba(0,0,0,0.72) !important;
@@ -7524,6 +7492,16 @@ button .studio-icon { color: rgba(0,0,0,0.70); }
   bottom: 14%; right: 14%;
   width: 28%; height: 22%;
   background: radial-gradient(ellipse at 50% 50%, rgba(255,255,255,0.52) 0%, transparent 100%);
+}
+
+/* Loading screen logo */
+.sl-logo {
+  width: auto !important;
+  height: 100px !important;
+  object-fit: contain !important;
+  margin-bottom: 16px !important;
+  border-radius: 22px !important;
+  opacity: 0.95 !important;
 }
 
 /* Loading screen text */

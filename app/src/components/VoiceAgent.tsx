@@ -15,13 +15,6 @@ import ClaraFlowerPulse from './ClaraFlowerPulse';
 
 type VoiceState = 'idle' | 'listening' | 'thinking' | 'speaking';
 
-const SUGGESTIONS: { label: string; icon: IconName }[] = [
-  { label: 'What did I do today?', icon: 'calendar' },
-  { label: 'Who is my caregiver?', icon: 'user'     },
-  { label: 'I feel lonely',        icon: 'heart'    },
-  { label: 'What time is it?',     icon: 'speaker'  },
-];
-
 const POST_SPEAK_PAUSE_MS = 800;
 const CASCADE_DELAY_MS = 1_800;
 
@@ -143,66 +136,63 @@ export default function VoiceAgent() {
   }, [checkRepeatQuestion, user, acseScore, speakResponse, runCascade]);
 
   const runSingleTurn = useCallback(async () => {
-    try {
-      stopSpeaking();
-      await new Promise<void>((r) => setTimeout(r, 150));
-      if (!sessionActiveRef.current) return;
+    // Loop: listen → think → speak → listen → … until session ends
+    while (sessionActiveRef.current) {
+      try {
+        stopSpeaking();
+        await new Promise<void>((r) => setTimeout(r, 150));
+        if (!sessionActiveRef.current) break;
 
-      setState('listening');
-      setClaraLine("I'm listening…");
-      setError('');
+        setState('listening');
+        setClaraLine("I'm listening…");
+        setError('');
 
-      const heard = await startListening();
-      if (!sessionActiveRef.current) return;
+        const heard = await startListening();
+        if (!sessionActiveRef.current) break;
 
-      if (!heard.trim()) {
-        setClaraLine(`I didn't quite hear you, ${firstName} — tap the mic and try again.`);
-        setState('idle');
-        return;
+        if (!heard.trim()) {
+          // Nothing heard — keep looping so Clara stays ready
+          setClaraLine("I'm still listening — go ahead.");
+          continue;
+        }
+
+        await processUtterance(heard);
+        // After speaking, loop back to listen again (if still active)
+      } catch (err) {
+        console.error('[Clara voice]', err);
+        if (!sessionActiveRef.current) break;
+        const msg = (err instanceof Error ? err.message : '').toLowerCase();
+        if (msg.includes('denied') || msg.includes('not-allowed') || msg.includes('permission')) {
+          setError('Please allow microphone access — tap the mic icon in your browser address bar.');
+          setClaraLine('Once the mic is allowed, tap below and we can talk.');
+          sessionActiveRef.current = false;
+          setInSession(false);
+          setState('idle');
+          return;
+        } else if (msg.includes('network') || msg.includes('fetch') || msg.includes('transcri')) {
+          setClaraLine("Having trouble connecting. Check your internet and try again.");
+        } else {
+          setClaraLine("I didn't quite catch that — try again.");
+        }
+        // On non-fatal errors, keep the loop going
+        await new Promise<void>((r) => setTimeout(r, 800));
       }
-
-      await processUtterance(heard);
-    } catch (err) {
-      console.error('[Clara voice]', err);
-      if (!sessionActiveRef.current) return;
-      const msg = (err instanceof Error ? err.message : '').toLowerCase();
-      if (msg.includes('denied') || msg.includes('not-allowed') || msg.includes('permission')) {
-        setError('Please allow microphone access — tap the mic icon in your browser address bar.');
-        setClaraLine('Once the mic is allowed, tap below and we can talk.');
-      } else if (msg.includes('network') || msg.includes('fetch') || msg.includes('transcri')) {
-        setClaraLine("Having trouble connecting. Check your internet and try again.");
-      } else {
-        setClaraLine("I didn't quite catch that — try again.");
-      }
-      setState('idle');
-    } finally {
-      sessionActiveRef.current = false;
-      setInSession(false);
     }
-  }, [startListening, processUtterance, firstName]);
+    // Session ended
+    sessionActiveRef.current = false;
+    setInSession(false);
+    setState('idle');
+  }, [startListening, processUtterance]);
 
   const handleMicTap = useCallback(() => {
     unlockAudioPlayback();
-    if (state !== 'idle' || inSession) { stopSession(); return; }
+    if (inSession) { stopSession(); return; }
     stopSpeaking();
     sessionActiveRef.current = true;
     setInSession(true);
     setError('');
     void runSingleTurn();
-  }, [state, inSession, stopSession, runSingleTurn]);
-
-  const handleChip = (q: string) => {
-    unlockAudioPlayback();
-    stopSpeaking();
-    stopListening();
-    sessionActiveRef.current = true;
-    setInSession(true);
-    setError('');
-    void processUtterance(q).finally(() => {
-      sessionActiveRef.current = false;
-      setInSession(false);
-    });
-  };
+  }, [inSession, stopSession, runSingleTurn]);
 
   const handleTextSend = () => {
     const text = typedInput.trim();
@@ -267,23 +257,6 @@ export default function VoiceAgent() {
           {claraLine && <p className="cv2-speech__line">{claraLine}</p>}
         </div>
 
-        {/* Suggestion chips — only when idle */}
-        {!inSession && state === 'idle' && (
-          <div className="cv2-chips" role="group" aria-label="Quick suggestions">
-            {SUGGESTIONS.map((s) => (
-              <button
-                key={s.label}
-                type="button"
-                className="cv2-chip tap-feedback"
-                onClick={() => handleChip(s.label)}
-              >
-                <StudioIcon name={s.icon} size={14} />
-                {s.label}
-              </button>
-            ))}
-          </div>
-        )}
-
         <div style={{ flex: 1, minHeight: 16 }} />
       </div>
 
@@ -296,7 +269,7 @@ export default function VoiceAgent() {
           aria-label={state !== 'idle' ? 'Stop' : 'Talk to Clara'}
         >
           <span className="cv2-mic__ring" />
-          <StudioIcon name={micIcon} size={24} />
+          <StudioIcon name={micIcon} size={32} />
         </button>
 
         <div className="cv2-text-wrap">

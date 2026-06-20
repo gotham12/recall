@@ -23,6 +23,11 @@ export default function LoadingScreen() {
       duration: duration(1.0), ease: 'back.out(1.4)',
     }, 0.05);
 
+    tl.from('.sl-logo', {
+      scale: 0.6, opacity: 0,
+      duration: duration(0.9), ease: 'back.out(1.4)',
+    }, 0.20);
+
     tl.from(letterRefs.current.filter(Boolean), {
       y: 70, opacity: 0, scale: 0.4, rotationX: 90,
       duration: duration(0.75), stagger: 0.07,
@@ -49,6 +54,7 @@ export default function LoadingScreen() {
       const letters = letterRefs.current.filter(Boolean);
       gsap.to(letters, { y: -70, opacity: 0, stagger: 0.04, duration: duration(0.4), ease: 'power3.in' });
       gsap.to('.sl-glass-stage', { scale: 0, opacity: 0, duration: duration(0.4), ease: 'back.in(1.5)', delay: 0.05 });
+      gsap.to('.sl-logo', { scale: 0.7, opacity: 0, duration: duration(0.35), ease: 'back.in(1.5)', delay: 0.05 });
       gsap.to('.sl-subtitle, .sl-tags', { opacity: 0, duration: duration(0.3) });
       if (screenRef.current) gsap.to(screenRef.current, { opacity: 0, duration: duration(0.5), delay: 0.15 });
     }, DISPLAY_MS);
@@ -70,6 +76,14 @@ export default function LoadingScreen() {
         <div className="sl-glass-shine sl-glass-shine--1" />
         <div className="sl-glass-shine sl-glass-shine--2" />
       </div>
+
+      {/* Logo */}
+      <img
+        src="/logo.png"
+        alt="Recall"
+        className="sl-logo"
+        aria-hidden
+      />
 
       {/* RECALL */}
       <div className="sl-title" aria-label="Recall">
