@@ -5,10 +5,10 @@ import { proxyPost, usesApiProxy } from '../services/apiClient';
 const GROQ_TRANSCRIBE_URL = 'https://api.groq.com/openai/v1/audio/transcriptions';
 const WHISPER_MODEL = 'whisper-large-v3-turbo';
 
-const LISTEN_MAX_MS = 22_000;
-const SILENCE_AFTER_SPEECH_MS = 2_400;
-const MIN_SPEECH_MS = 500;
-const VAD_RMS_THRESHOLD = 0.012;
+const LISTEN_MAX_MS = 20_000;
+const SILENCE_AFTER_SPEECH_MS = 1_800;
+const MIN_SPEECH_MS = 400;
+const VAD_RMS_THRESHOLD = 0.010;
 
 function isMobileDevice(): boolean {
   if (typeof navigator === 'undefined') return false;

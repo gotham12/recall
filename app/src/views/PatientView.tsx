@@ -22,17 +22,13 @@ import EmergencySOS from '../components/EmergencySOS';
 import SettingsSheet from '../components/SettingsSheet';
 import GoldenPathDemo from '../components/GoldenPathDemo';
 import MemoryPhotoRecap from '../components/MemoryPhotoRecap';
-import SleepTracker from '../components/SleepTracker';
-import GameHub from '../components/games/GameHub';
 import DashHero from '../components/DashHero';
 import SoundSanctuary from '../components/SoundSanctuary';
 
-type Tab = 'home' | 'mind' | 'sleep' | 'voice' | 'meds' | 'events' | 'sanctuary';
+type Tab = 'home' | 'voice' | 'meds' | 'events' | 'sanctuary';
 
 const TABS: { id: Tab; label: string; icon: IconName }[] = [
   { id: 'home',      label: 'Home',     icon: 'home' },
-  { id: 'mind',      label: 'Mind',     icon: 'brain' },
-  { id: 'sleep',     label: 'Sleep',    icon: 'moon' },
   { id: 'voice',     label: 'Clara',    icon: 'clara' },
   { id: 'meds',      label: 'Meds',     icon: 'meds' },
   { id: 'events',    label: 'Today',    icon: 'events' },
@@ -63,7 +59,7 @@ export default function PatientView() {
   const [moreOpen, setMoreOpen] = useState(false);
   const logoTaps = useRef(0);
   const logoTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const { user, acseScore, demoMode, setDemoMode, comfortModeActive, triggerMemoryRecap } = useAppStore();
+  const { user, acseScore, demoMode, setDemoMode, comfortModeActive, triggerMemoryRecap, setPro } = useAppStore();
   const { recordNavigation } = useACSE();
 
   // Activity is recorded on tab navigation only — not on every tap.
@@ -102,6 +98,19 @@ export default function PatientView() {
           <div className="studio-header__actions">
             <EmergencySOS inline />
             <ThemeToggle />
+            {/* Demo: Upgrade to Pro */}
+            <button
+              onClick={() => setPro(true)}
+              style={{
+                fontSize: 11, fontWeight: 800, letterSpacing: '0.05em',
+                color: '#D4AF37', background: 'rgba(212,175,55,0.15)',
+                border: '1px solid rgba(212,175,55,0.35)',
+                borderRadius: 8, padding: '4px 10px', cursor: 'pointer',
+              }}
+              aria-label="Try Recall Pro"
+            >
+              ✦ Pro
+            </button>
             <button
               onClick={() => setSettingsOpen(true)}
               className="studio-icon-btn tap-feedback"
@@ -149,16 +158,6 @@ export default function PatientView() {
           onMemoryRecap={() => triggerMemoryRecap('manual')}
         />
       )}
-      {activeTab === 'mind' && (
-        <div className="mind-tab studio-scroll">
-          <GameHub />
-        </div>
-      )}
-      {activeTab === 'sleep' && (
-        <div className="sleep-tab studio-scroll">
-          <SleepTracker dashboard />
-        </div>
-      )}
       {activeTab === 'voice' && <VoiceAgent />}
       {activeTab === 'meds' && <MedTracker />}
       {activeTab === 'events' && <EventsTab events={events ?? []} />}
@@ -177,8 +176,6 @@ export default function PatientView() {
 
 const QUICK_ACTIONS: { icon: IconName; label: string; color: string; tab?: Tab; action?: string }[] = [
   { icon: 'clara',  label: 'Clara',      color: 'transparent', tab: 'voice' },
-  { icon: 'brain',  label: 'Mind',       color: 'transparent', tab: 'mind' },
-  { icon: 'moon',   label: 'Sleep',      color: 'transparent', tab: 'sleep' },
   { icon: 'meds',   label: 'Meds',       color: 'transparent', tab: 'meds' },
   { icon: 'events', label: 'Today',      color: 'transparent', tab: 'events' },
   { icon: 'music',  label: 'Calm',       color: 'transparent', tab: 'sanctuary' },

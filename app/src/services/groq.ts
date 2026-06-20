@@ -5,6 +5,7 @@ import {
   formatClaraContextBlock,
 } from '../lib/claraContext';
 import { localClaraReply } from '../lib/claraLocal';
+import { openRouterClaraChat } from './openrouter';
 
 const GROQ_BASE = 'https://api.groq.com/openai/v1';
 /** Client model hint — worker uses Cloudflare Workers AI (Llama 3.1) server-side */
@@ -157,11 +158,20 @@ export async function claraChat(
     { role: 'user', content: userMessage },
   ];
 
+  // Try OpenRouter first (Claude Haiku — best quality, fast)
+  try {
+    const raw = await openRouterClaraChat(messages);
+    return { reply: sanitizeClaraReply(raw, firstName), fromLlm: true };
+  } catch (openRouterErr) {
+    console.warn('[Clara] OpenRouter failed, trying Groq:', openRouterErr);
+  }
+
+  // Fall back to Groq (Llama 3.3 70B)
   try {
     const raw = await groqChatWithFallback(messages);
     return { reply: sanitizeClaraReply(raw, firstName), fromLlm: true };
   } catch (err) {
-    console.warn('Clara LLM unavailable, using local context reply:', err);
+    console.warn('[Clara] All LLMs unavailable, using local context reply:', err);
     const chatHistory = history
       .filter((m): m is Message & { role: 'user' | 'assistant' } => m.role === 'user' || m.role === 'assistant')
       .map((m) => ({ role: m.role, content: m.content }));

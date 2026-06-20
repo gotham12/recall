@@ -23,20 +23,18 @@ import LiveActivityFeed from '../components/supervisor/LiveActivityFeed';
 import MedicationAdherence from '../components/supervisor/MedicationAdherence';
 import SupervisorCareKit from '../components/supervisor/SupervisorCareKit';
 import WeeklyInsights from '../components/supervisor/WeeklyInsights';
-import SleepClinicalDashboard from '../components/supervisor/SleepClinicalDashboard';
 import AlertHistory from '../components/supervisor/AlertHistory';
 import { logout } from '../lib/session';
 import { useAppStore } from '../store/appStore';
 import SettingsSheet from '../components/SettingsSheet';
 import { db, type Event, type User } from '../db/db';
 
-type Tab = 'home' | 'events' | 'medications' | 'sleep' | 'stats' | 'profile';
+type Tab = 'home' | 'events' | 'medications' | 'stats' | 'profile';
 
 const TAB_FLOWER_KEYS: Record<Tab, FlowerKey> = {
   home: 'supervisorApp',
   events: 'landing',
   medications: 'patientEnter',
-  sleep: 'landing',
   stats: 'supervisor',
   profile: 'home',
 };
@@ -45,7 +43,6 @@ const TABS: { id: Tab; label: string; icon: IconName }[] = [
   { id: 'home',        label: 'Home',    icon: 'home' },
   { id: 'events',      label: 'Events',  icon: 'events' },
   { id: 'medications', label: 'Meds',    icon: 'meds' },
-  { id: 'sleep',       label: 'Sleep',   icon: 'moon' },
   { id: 'stats',       label: 'Stats',   icon: 'score' },
   { id: 'profile',     label: 'Profile', icon: 'profile' },
 ];
@@ -119,11 +116,6 @@ export default function SupervisorView() {
       {activeTab === 'home'        && <SupervisorHomeTab user={user} />}
       {activeTab === 'events'      && <EventsTab user={user} />}
       {activeTab === 'medications' && <MedicationsTab user={user} />}
-      {activeTab === 'sleep'       && (
-        <div className="sleep-tab studio-scroll">
-          <SleepClinicalDashboard />
-        </div>
-      )}
       {activeTab === 'stats'       && <StatsTab user={user} />}
       {activeTab === 'profile'     && <ProfileTab />}
       <SettingsSheet open={settingsOpen} onClose={() => setSettingsOpen(false)} />

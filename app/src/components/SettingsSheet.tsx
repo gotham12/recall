@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { createPortal } from 'react-dom';
 import { useAppStore } from '../store/appStore';
 import { type FontScale } from '../lib/settings';
 import { requestNotificationPermission } from '../lib/notifications';
@@ -48,11 +49,6 @@ export default function SettingsSheet({ open, onClose }: Props) {
     } else {
       setNotifStatus(Notification.permission as 'granted' | 'denied' | 'default');
     }
-    const prev = document.body.style.overflow;
-    document.body.style.overflow = 'hidden';
-    return () => {
-      document.body.style.overflow = prev;
-    };
   }, [open, refresh]);
 
   useEffect(() => {
@@ -78,18 +74,35 @@ export default function SettingsSheet({ open, onClose }: Props) {
     update({ medReminders: false });
   };
 
-  return (
-    <div className="settings-overlay" onClick={onClose} role="presentation">
+  const handleBackdropPointerUp = (e: React.PointerEvent<HTMLDivElement>) => {
+    if (e.target === e.currentTarget) onClose();
+  };
+
+  const sheet = (
+    <div
+      className="settings-overlay"
+      onPointerUp={handleBackdropPointerUp}
+      onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}
+      role="presentation"
+      style={{ touchAction: 'none' }}
+    >
       <div
         className="settings-sheet card"
         onClick={(e) => e.stopPropagation()}
+        onPointerUp={(e) => e.stopPropagation()}
         role="dialog"
         aria-label="Settings"
         aria-modal="true"
       >
         <div className="settings-sheet__header">
           <h2 className="settings-sheet__title">Settings</h2>
-          <button type="button" className="studio-icon-btn tap-feedback" onClick={onClose} aria-label="Close">
+          <button
+            type="button"
+            className="studio-icon-btn tap-feedback"
+            onClick={onClose}
+            onPointerUp={(e) => { e.stopPropagation(); onClose(); }}
+            aria-label="Close"
+          >
             <StudioIcon name="close" size={20} />
           </button>
         </div>
@@ -151,4 +164,6 @@ export default function SettingsSheet({ open, onClose }: Props) {
       </div>
     </div>
   );
+
+  return createPortal(sheet, document.body);
 }
