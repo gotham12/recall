@@ -15,6 +15,16 @@ let speakGeneration = 0;
 let interruptPlayback: (() => void) | null = null;
 let speakChain: Promise<void> = Promise.resolve();
 
+function isIOSDevice(): boolean {
+  if (typeof navigator === 'undefined') return false;
+  return /iPhone|iPad|iPod/i.test(navigator.userAgent);
+}
+
+/** iOS Safari blocks HTMLAudioElement autoplay after async gaps — speechSynthesis is reliable. */
+function prefersBrowserTTS(): boolean {
+  return isIOSDevice();
+}
+
 export interface SpeakOptions {
   /** Softer, more affectionate delivery for memory recap */
   warm?: boolean;
@@ -91,6 +101,13 @@ export async function speak(text: string, options?: SpeakOptions): Promise<void>
   try {
     stopSpeaking();
     const myGen = speakGeneration;
+
+    // iOS: use device voice — HTMLAudioElement often fails after async LLM delay
+    if (prefersBrowserTTS()) {
+      if (myGen !== speakGeneration) return;
+      await speakBrowser(trimmed, myGen, options);
+      return;
+    }
 
     if (usesApiProxy()) {
       try {
@@ -189,7 +206,7 @@ async function playAudioBlob(blob: Blob, gen: number): Promise<void> {
 
   const url = URL.createObjectURL(blob);
 
-  await new Promise<void>((resolve) => {
+  await new Promise<void>((resolve, reject) => {
     if (gen !== speakGeneration) {
       URL.revokeObjectURL(url);
       resolve();
@@ -207,6 +224,13 @@ async function playAudioBlob(blob: Blob, gen: number): Promise<void> {
       resolve();
     };
 
+    const fail = (err?: unknown) => {
+      URL.revokeObjectURL(url);
+      if (currentAudio === audio) currentAudio = null;
+      if (interruptPlayback === interrupt) interruptPlayback = null;
+      reject(err instanceof Error ? err : new Error('Audio playback blocked'));
+    };
+
     const interrupt = () => {
       audio.pause();
       audio.onended = null;
@@ -216,8 +240,8 @@ async function playAudioBlob(blob: Blob, gen: number): Promise<void> {
 
     interruptPlayback = interrupt;
     audio.onended = finish;
-    audio.onerror = finish;
-    audio.play().catch(finish);
+    audio.onerror = () => fail(new Error('Audio element error'));
+    void audio.play().catch(fail);
   });
 }
 
@@ -282,14 +306,13 @@ async function speakBrowser(text: string, gen: number, options?: SpeakOptions): 
   if (!('speechSynthesis' in window)) return;
   if (gen !== speakGeneration) return;
 
-  console.log('[TTS] Using browser speechSynthesis fallback');
+  console.log('[TTS] Using browser speechSynthesis');
 
   const voices = await loadVoices();
   if (gen !== speakGeneration) return;
 
   window.speechSynthesis.cancel();
 
-  // Split into sentences for iOS — single long utterances get silently cut off
   const sentences = text.match(/[^.!?]+[.!?]*/g) ?? [text];
 
   let interrupted = false;
@@ -300,42 +323,53 @@ async function speakBrowser(text: string, gen: number, options?: SpeakOptions): 
   };
   interruptPlayback = interrupt;
 
-  await new Promise<void>((resolve) => {
-    if (gen !== speakGeneration) { resolve(); return; }
+  // iOS Safari pauses long speechSynthesis queues — keep it alive
+  const keepAlive = isIOSDevice()
+    ? window.setInterval(() => {
+        if (window.speechSynthesis.speaking) {
+          window.speechSynthesis.pause();
+          window.speechSynthesis.resume();
+        }
+      }, 8000)
+    : null;
 
-    let index = 0;
+  try {
+    await new Promise<void>((resolve) => {
+      if (gen !== speakGeneration) { resolve(); return; }
 
-    const speakNext = () => {
-      if (interrupted || gen !== speakGeneration) { resolve(); return; }
-      if (index >= sentences.length) { resolve(); return; }
+      let index = 0;
 
-      const sentence = sentences[index++].trim();
-      if (!sentence) { speakNext(); return; }
+      const speakNext = () => {
+        if (interrupted || gen !== speakGeneration) { resolve(); return; }
+        if (index >= sentences.length) { resolve(); return; }
 
-      const utterance = new SpeechSynthesisUtterance(sentence);
-      utterance.rate = options?.clara ? 0.88 : options?.warm ? 0.88 : 0.9;
-      utterance.pitch = 1.1;
-      utterance.volume = 1;
-      utterance.lang = 'en-US';
+        const sentence = sentences[index++].trim();
+        if (!sentence) { speakNext(); return; }
 
-      const preferred =
-        voices.find((v) => v.lang.startsWith('en') && /female|samantha|victoria|karen|moira|fiona/i.test(v.name)) ??
-        voices.find((v) => v.name === 'Samantha' && v.lang.startsWith('en')) ??
-        voices.find((v) => v.lang.startsWith('en') && v.name.includes('Karen')) ??
-        voices.find((v) => v.lang.startsWith('en-US')) ??
-        voices.find((v) => v.lang.startsWith('en'));
+        const utterance = new SpeechSynthesisUtterance(sentence);
+        utterance.rate = options?.clara ? 0.88 : options?.warm ? 0.88 : 0.9;
+        utterance.pitch = 1.1;
+        utterance.volume = 1;
+        utterance.lang = 'en-US';
 
-      if (preferred) utterance.voice = preferred;
+        const preferred =
+          voices.find((v) => v.lang.startsWith('en') && /samantha|victoria|karen|moira|fiona/i.test(v.name)) ??
+          voices.find((v) => v.name === 'Samantha' && v.lang.startsWith('en')) ??
+          voices.find((v) => v.lang.startsWith('en-US')) ??
+          voices.find((v) => v.lang.startsWith('en'));
 
-      utterance.onend = speakNext;
-      utterance.onerror = speakNext;
+        if (preferred) utterance.voice = preferred;
 
-      window.speechSynthesis.speak(utterance);
-    };
+        utterance.onend = speakNext;
+        utterance.onerror = speakNext;
 
-    // iOS needs a short delay after cancel()
-    setTimeout(speakNext, 50);
-  });
+        window.speechSynthesis.speak(utterance);
+      };
 
-  if (interruptPlayback === interrupt) interruptPlayback = null;
+      setTimeout(speakNext, 80);
+    });
+  } finally {
+    if (keepAlive) clearInterval(keepAlive);
+    if (interruptPlayback === interrupt) interruptPlayback = null;
+  }
 }

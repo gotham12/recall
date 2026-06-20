@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useAppStore } from '../store/appStore';
+import { LOGO_URL } from '../lib/assets';
 
 export default function LoadingScreen() {
   const setScreen = useAppStore(s => s.setScreen);
@@ -20,12 +21,12 @@ export default function LoadingScreen() {
       <div className="sl-splash-flower-wrap" aria-hidden>
         <div className="sl-splash-ring" />
         <img
-          src="/logo.png"
-          alt=""
+          src={LOGO_URL}
+          alt="Recall flower"
           className="sl-splash-logo"
           width={140}
           height={140}
-          onError={(e) => console.error('[LoadingScreen] logo.png failed to load', e)}
+          onError={() => console.error('[LoadingScreen] logo failed:', LOGO_URL)}
         />
       </div>
 

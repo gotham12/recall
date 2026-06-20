@@ -24,6 +24,7 @@ import GoldenPathDemo from '../components/GoldenPathDemo';
 import MemoryPhotoRecap from '../components/MemoryPhotoRecap';
 import DashHero from '../components/DashHero';
 import SimpleRoutineChecklist from '../components/SimpleRoutineChecklist';
+import { LOGO_URL } from '../lib/assets';
 
 type Tab = 'home' | 'voice' | 'meds' | 'events' | 'routine';
 
@@ -96,7 +97,7 @@ export default function PatientView() {
             <RecallLogo size="sm" />
           </button>
           <img
-            src="/logo.png"
+            src={LOGO_URL}
             alt=""
             style={{ width: 40, height: 40, objectFit: 'contain', position: 'absolute', right: 16, top: 12, borderRadius: 10 }}
           />
