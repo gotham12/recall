@@ -7349,8 +7349,9 @@ html, body {
   box-shadow: 0 0 12px rgba(255,80,160,0.20) !important;
 }
 
-/* ── Comfort mode ── */
-[class*="comfort"] {
+/* ── Comfort mode (legacy cards only — NOT comfort-mode-v2 fullscreen) ── */
+.comfort-mode__card,
+.comfort-mode__content {
   background: rgba(255,255,255,0.65) !important;
   backdrop-filter: var(--lg-blur-heavy) !important;
   -webkit-backdrop-filter: var(--lg-blur-heavy) !important;
@@ -8630,7 +8631,7 @@ button .studio-icon { color: rgba(0,0,0,0.70); }
 
 /* Any element whose color was set to white for a colored bg */
 /* Force ALL text dark unless inside the Clara speech or dark buttons */
-body *:not(.cv2-speech__line):not(.cv2-speech__line *):not(.med-tracker__take-btn):not(.studio-btn--primary):not(.disclaimer-card__cta) {
+body *:not(.cv2-speech__line):not(.cv2-speech__line *):not(.med-tracker__take-btn):not(.studio-btn--primary):not(.disclaimer-card__cta):not(.comfort-mode-v2):not(.comfort-mode-v2 *) {
   color: rgba(0,0,0,0.82);
 }
 /* Re-apply specific muted tones */
@@ -8966,9 +8967,9 @@ body, body * {
   inset: 0;
   background: linear-gradient(
     180deg,
-    rgba(6,13,26,0.55) 0%,
-    rgba(6,13,26,0.25) 50%,
-    rgba(6,13,26,0.65) 100%
+    rgba(6,13,26,0.22) 0%,
+    rgba(6,13,26,0.06) 50%,
+    rgba(6,13,26,0.32) 100%
   );
   z-index: 1;
   pointer-events: none;
@@ -9028,10 +9029,10 @@ body, body * {
 
 .comfort-mode-v2__card {
   width: 100%;
-  background: rgba(255,255,255,0.07);
-  backdrop-filter: blur(24px);
-  -webkit-backdrop-filter: blur(24px);
-  border: 1px solid rgba(255,255,255,0.14);
+  background: rgba(8, 24, 48, 0.52) !important;
+  backdrop-filter: blur(28px);
+  -webkit-backdrop-filter: blur(28px);
+  border: 1px solid rgba(255,255,255,0.18);
   border-radius: 24px;
   padding: 28px 24px;
   display: flex;
@@ -9097,6 +9098,24 @@ body, body * {
   animation: bell-pulse 1.8s ease-in-out infinite;
 }
 
+.comfort-mode-v2__text,
+.comfort-mode-v2__breathe-heading {
+  color: rgba(255,255,255,0.94) !important;
+}
+.comfort-mode-v2__btn--primary {
+  background: linear-gradient(135deg, rgba(74,144,217,0.92), rgba(46,109,180,0.95)) !important;
+  color: #fff !important;
+  border: 1px solid rgba(255,255,255,0.25) !important;
+}
+.comfort-mode-v2__btn--ghost {
+  color: rgba(255,255,255,0.88) !important;
+  border-color: rgba(255,255,255,0.28) !important;
+}
+.comfort-mode-v2 .studio-icon {
+  color: rgba(255,255,255,0.88) !important;
+  stroke: rgba(255,255,255,0.88) !important;
+}
+
 /* ── Nature Backdrop ─────────────────────────────────────────────── */
 
 .nature-backdrop {
@@ -9105,6 +9124,53 @@ body, body * {
   z-index: 0;
   overflow: hidden;
   pointer-events: none;
+  background: #0a1628;
+}
+
+@keyframes natureKenBurns {
+  0%   { transform: scale(1.05) translate(0, 0); }
+  100% { transform: scale(1.18) translate(-1.5%, -1%); }
+}
+
+@keyframes natureSceneFade {
+  0%, 8%   { opacity: 0; }
+  18%, 75% { opacity: 1; }
+  92%, 100% { opacity: 0; }
+}
+
+.nature-backdrop__scene {
+  position: absolute;
+  inset: -8%;
+  background-size: cover;
+  background-position: center;
+  animation: natureKenBurns 24s ease-in-out infinite alternate;
+  opacity: 0;
+}
+.nature-backdrop__scene--0 {
+  background-image: url('https://images.unsplash.com/photo-1448375240586-882707db888b?auto=format&fit=crop&w=1200&q=80');
+  animation: natureKenBurns 26s ease-in-out infinite alternate, natureSceneFade 36s ease-in-out infinite;
+  animation-delay: 0s, 0s;
+}
+.nature-backdrop__scene--1 {
+  background-image: url('https://images.unsplash.com/photo-1506905925346-21bda4d32df4?auto=format&fit=crop&w=1200&q=80');
+  animation: natureKenBurns 28s ease-in-out infinite alternate, natureSceneFade 36s ease-in-out infinite;
+  animation-delay: 0s, 12s;
+}
+.nature-backdrop__scene--2 {
+  background-image: url('https://images.unsplash.com/photo-1470071459604-3b5ec3a7fe05?auto=format&fit=crop&w=1200&q=80');
+  animation: natureKenBurns 30s ease-in-out infinite alternate, natureSceneFade 36s ease-in-out infinite;
+  animation-delay: 0s, 24s;
+}
+
+.nature-backdrop__veil {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    180deg,
+    rgba(8,20,40,0.35) 0%,
+    rgba(8,20,40,0.15) 45%,
+    rgba(8,20,40,0.55) 100%
+  );
 }
 
 @keyframes aurora-shift {

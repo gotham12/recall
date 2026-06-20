@@ -7,7 +7,7 @@ const BOWL_FREQS = [108, 216, 324, 432, 540, 648];
 function buildTibetanBellEngine(ctx: AudioContext): { master: GainNode; stop: () => void } {
   const nodes: AudioNode[] = [];
   const master = ctx.createGain();
-  master.gain.setValueAtTime(0.18, ctx.currentTime);
+  master.gain.setValueAtTime(0.42, ctx.currentTime);
   master.connect(ctx.destination);
   nodes.push(master);
 
@@ -59,8 +59,8 @@ function buildTibetanBellEngine(ctx: AudioContext): { master: GainNode; stop: ()
 
   const scheduleNext = () => {
     const freq = BOWL_FREQS[Math.floor(Math.random() * BOWL_FREQS.length)];
-    strike(freq, t, 0.20);
-    if (Math.random() > 0.5) strike(BOWL_FREQS[Math.floor(Math.random() * BOWL_FREQS.length)], t + 0.15, 0.09);
+    strike(freq, t, 0.38);
+    if (Math.random() > 0.5) strike(BOWL_FREQS[Math.floor(Math.random() * BOWL_FREQS.length)], t + 0.15, 0.18);
     t += 3.5 + Math.random() * 4.5;
   };
 

@@ -16,9 +16,10 @@ let interruptPlayback: (() => void) | null = null;
 let speakChain: Promise<void> = Promise.resolve();
 
 /** Clara's calming delivery — slow, warm, gentle */
-const CLARA_SPEECH_RATE = 0.72;
-const CLARA_SPEECH_PITCH = 0.92;
+const CLARA_SPEECH_RATE = 0.58;
+const CLARA_SPEECH_PITCH = 0.82;
 const CLARA_SPEECH_VOLUME = 1.0;
+const CLARA_SENTENCE_PAUSE_MS = 480;
 
 function isIOSDevice(): boolean {
   if (typeof navigator === 'undefined') return false;
@@ -51,9 +52,10 @@ export function primeSpeechSynthesis(): void {
   if (!('speechSynthesis' in window)) return;
   try {
     window.speechSynthesis.cancel();
-    const u = new SpeechSynthesisUtterance(' ');
+    const u = new SpeechSynthesisUtterance('Hello');
     u.volume = 0.01;
-    u.rate = 2;
+    u.rate = CLARA_SPEECH_RATE;
+    u.pitch = CLARA_SPEECH_PITCH;
     window.speechSynthesis.speak(u);
   } catch {
     // ignore
@@ -184,7 +186,7 @@ async function fetchElevenLabsAudio(text: string, modelId: string, options?: Spe
   const warm = options?.warm ?? false;
   const voiceId = clara ? CLARA_VOICE_ID : VOICE_ID;
   const voice_settings = clara
-    ? { stability: 0.42, similarity_boost: 0.88, style: 0.55, use_speaker_boost: true, speed: 0.82 }
+    ? { stability: 0.48, similarity_boost: 0.86, style: 0.45, use_speaker_boost: true, speed: 0.76 }
     : warm
       ? { stability: 0.4, similarity_boost: 0.88, style: 0.6, use_speaker_boost: true, speed: 0.94 }
       : { stability: 0.55, similarity_boost: 0.8, style: 0.25, use_speaker_boost: true };
@@ -290,16 +292,26 @@ function loadVoices(): Promise<SpeechSynthesisVoice[]> {
   return voicesReady;
 }
 
+function pickClaraVoice(voices: SpeechSynthesisVoice[]): SpeechSynthesisVoice | undefined {
+  const prefer = ['Samantha', 'Karen', 'Serena', 'Moira', 'Victoria', 'Fiona', 'Allison'];
+  for (const name of prefer) {
+    const hit = voices.find((v) => v.lang.startsWith('en') && v.name.includes(name));
+    if (hit) return hit;
+  }
+  return voices.find((v) => v.lang.startsWith('en-US')) ?? voices.find((v) => v.lang.startsWith('en'));
+}
+
+function pause(ms: number): Promise<void> {
+  return new Promise((r) => setTimeout(r, ms));
+}
+
 export async function speakWithBrowserTTS(text: string): Promise<void> {
   if (!('speechSynthesis' in window)) return;
   window.speechSynthesis.cancel();
   await new Promise((r) => setTimeout(r, 100));
 
   const voices = await loadVoices();
-  const preferred =
-    voices.find((v) => v.lang.startsWith('en') && /samantha|karen|serena|moira|victoria/i.test(v.name)) ??
-    voices.find((v) => v.lang.startsWith('en-US')) ??
-    voices.find((v) => v.lang.startsWith('en'));
+  const preferred = pickClaraVoice(voices);
 
   const sentences = text.match(/[^.!?]+[.!?]*/g) ?? [text];
   for (const raw of sentences) {
@@ -312,12 +324,13 @@ export async function speakWithBrowserTTS(text: string): Promise<void> {
       utterance.pitch = CLARA_SPEECH_PITCH;
       utterance.volume = CLARA_SPEECH_VOLUME;
       if (preferred) utterance.voice = preferred;
-      const timer = setTimeout(resolve, Math.max(3000, sentence.length * 120));
+      const timer = setTimeout(resolve, Math.max(4000, sentence.length * 150));
       const done = () => { clearTimeout(timer); resolve(); };
       utterance.onend = done;
       utterance.onerror = done;
       window.speechSynthesis.speak(utterance);
     });
+    await pause(CLARA_SENTENCE_PAUSE_MS);
   }
 }
 
@@ -335,11 +348,7 @@ async function speakBrowser(text: string, gen: number, options?: SpeakOptions): 
   if (gen !== speakGeneration) return;
 
   const sentences = text.match(/[^.!?]+[.!?]*/g) ?? [text];
-  const preferred =
-    voices.find((v) => v.lang.startsWith('en') && /samantha|karen|serena|moira|victoria/i.test(v.name)) ??
-    voices.find((v) => v.name === 'Samantha') ??
-    voices.find((v) => v.lang.startsWith('en-US')) ??
-    voices.find((v) => v.lang.startsWith('en'));
+  const preferred = pickClaraVoice(voices);
 
   let interrupted = false;
   const interrupt = () => {
@@ -358,6 +367,8 @@ async function speakBrowser(text: string, gen: number, options?: SpeakOptions): 
       }, 1000)
     : null;
 
+  const claraMode = options?.clara ?? false;
+
   try {
     for (let i = 0; i < sentences.length; i++) {
       if (interrupted || gen !== speakGeneration) break;
@@ -366,14 +377,13 @@ async function speakBrowser(text: string, gen: number, options?: SpeakOptions): 
 
       await new Promise<void>((resolve) => {
         const utterance = new SpeechSynthesisUtterance(sentence);
-        const clara = options?.clara ?? false;
-        utterance.rate = clara ? CLARA_SPEECH_RATE : options?.warm ? 0.78 : 0.85;
-        utterance.pitch = clara ? CLARA_SPEECH_PITCH : 1.0;
+        utterance.rate = claraMode ? CLARA_SPEECH_RATE : options?.warm ? 0.78 : 0.85;
+        utterance.pitch = claraMode ? CLARA_SPEECH_PITCH : 1.0;
         utterance.volume = CLARA_SPEECH_VOLUME;
         utterance.lang = 'en-US';
         if (preferred) utterance.voice = preferred;
 
-        const maxMs = Math.max(3500, sentence.length * (clara ? 130 : 90));
+        const maxMs = Math.max(4500, sentence.length * (claraMode ? 150 : 90));
         const timer = window.setTimeout(() => {
           console.warn('[TTS] utterance timeout, continuing');
           resolve();
@@ -387,6 +397,10 @@ async function speakBrowser(text: string, gen: number, options?: SpeakOptions): 
         utterance.onerror = done;
         window.speechSynthesis.speak(utterance);
       });
+
+      if (claraMode && i < sentences.length - 1) {
+        await pause(CLARA_SENTENCE_PAUSE_MS);
+      }
     }
   } finally {
     if (keepAlive) clearInterval(keepAlive);

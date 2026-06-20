@@ -3,7 +3,7 @@ import BreathingCircle from '../components/BreathingCircle';
 import StudioIcon from '../components/StudioIcon';
 import { useAppStore } from '../store/appStore';
 import { generateGrounding, generateNarrative } from '../services/groq';
-import { speak, stopSpeaking } from '../services/elevenlabs';
+import { speak, stopSpeaking, unlockAudioPlayback, primeSpeechSynthesis } from '../services/elevenlabs';
 import { db } from '../db/db';
 
 type Phase = 'grounding' | 'breathing' | 'narrative' | 'done';
@@ -11,7 +11,7 @@ type Phase = 'grounding' | 'breathing' | 'narrative' | 'done';
 // ── Tibetan Bell Synthesizer ─────────────────────────────────────────────────
 // Authentic Tibetan bowl frequencies (multiples of 108Hz) + 40Hz gamma binaural layer
 
-function startTibetanBells(volumeTarget = 0.22): () => void {
+function startTibetanBells(volumeTarget = 0.48): () => void {
   let ctx: AudioContext | null = null;
   const nodes: AudioNode[] = [];
   let loopId: ReturnType<typeof setInterval> | null = null;
@@ -36,7 +36,7 @@ function startTibetanBells(volumeTarget = 0.22): () => void {
     binauralMod.type = 'sine';
     binauralMod.frequency.setValueAtTime(40, ctx.currentTime);
     const binauralGain = ctx.createGain();
-    binauralGain.gain.setValueAtTime(0.06, ctx.currentTime);
+    binauralGain.gain.setValueAtTime(0.12, ctx.currentTime);
     const modGain = ctx.createGain();
     modGain.gain.setValueAtTime(0.04, ctx.currentTime);
     binauralMod.connect(modGain);
@@ -104,11 +104,11 @@ function startTibetanBells(volumeTarget = 0.22): () => void {
     const scheduleNext = () => {
       if (!ctx) return;
       const freq = BOWL_FREQS[Math.floor(Math.random() * BOWL_FREQS.length)];
-      strike(freq, t, 0.22);
+      strike(freq, t, 0.42);
       // Occasional harmony
       if (Math.random() > 0.55) {
         const harmFreq = BOWL_FREQS[Math.floor(Math.random() * BOWL_FREQS.length)];
-        strike(harmFreq, t + 0.12, 0.10);
+        strike(harmFreq, t + 0.12, 0.20);
       }
       t += 3.5 + Math.random() * 5;
     };
@@ -155,17 +155,12 @@ const PARTICLES = [
 function NatureBackdrop() {
   return (
     <div className="nature-backdrop" aria-hidden>
-      {/* Layered aurora gradients */}
+      <div className="nature-backdrop__scene nature-backdrop__scene--0" />
+      <div className="nature-backdrop__scene nature-backdrop__scene--1" />
+      <div className="nature-backdrop__scene nature-backdrop__scene--2" />
+      <div className="nature-backdrop__veil" />
       <div className="nature-backdrop__aurora nature-backdrop__aurora--1" />
       <div className="nature-backdrop__aurora nature-backdrop__aurora--2" />
-      <div className="nature-backdrop__aurora nature-backdrop__aurora--3" />
-
-      {/* Expanding ripple rings */}
-      <div className="nature-backdrop__ripple nature-backdrop__ripple--1" />
-      <div className="nature-backdrop__ripple nature-backdrop__ripple--2" />
-      <div className="nature-backdrop__ripple nature-backdrop__ripple--3" />
-
-      {/* Floating petals / light motes */}
       {PARTICLES.map((p, i) => (
         <div
           key={i}
@@ -199,9 +194,11 @@ export default function ComfortMode() {
     deactivateComfortMode();
   }, [deactivateComfortMode]);
 
-  // Start Tibetan bells immediately on mount
+  // Start Tibetan bells + prime voice immediately on mount
   useEffect(() => {
-    const stopFn = startTibetanBells(0.18);
+    unlockAudioPlayback();
+    primeSpeechSynthesis();
+    const stopFn = startTibetanBells(0.48);
     stopBellsRef.current = stopFn;
     return () => {
       stopFn();
