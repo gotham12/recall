@@ -88,37 +88,48 @@ export default function ProView() {
       <StudioShell
         contentKey={activeTab}
         header={
-          <div className="studio-header" style={{ background: PRO_SURFACE, borderBottom: `1px solid ${GOLD_DIM}` }}>
-            <button type="button" className="recall-logo-tap tap-feedback" onClick={handleLogoTap} aria-label="Recall Pro">
-              <RecallLogo size="sm" />
-            </button>
-            {/* PRO badge */}
-            <span style={{
-              fontSize: 10, fontWeight: 800, letterSpacing: '0.1em',
-              color: GOLD, background: GOLD_DIM,
-              border: `1px solid ${GOLD}40`,
-              borderRadius: 6, padding: '2px 7px',
-              textTransform: 'uppercase',
-            }}>
-              ✦ Pro
-            </span>
-            <div className="studio-header__actions">
+          <div
+            className="studio-header"
+            style={{
+              background: PRO_SURFACE,
+              borderBottom: `1px solid ${GOLD_DIM}`,
+              flexWrap: 'wrap',
+              gap: 8,
+              paddingTop: 10,
+              paddingBottom: 10,
+            }}
+          >
+            {/* Row 1: logo + badge + exit/logout */}
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8, flex: 1, minWidth: 0 }}>
+              <button type="button" className="recall-logo-tap tap-feedback" onClick={handleLogoTap} aria-label="Recall Pro" style={{ flexShrink: 0 }}>
+                <RecallLogo size="sm" />
+              </button>
+              <span style={{
+                fontSize: 10, fontWeight: 800, letterSpacing: '0.1em',
+                color: GOLD, background: GOLD_DIM,
+                border: `1px solid ${GOLD}40`,
+                borderRadius: 6, padding: '2px 7px',
+                textTransform: 'uppercase', flexShrink: 0,
+              }}>
+                ✦ Pro
+              </span>
+            </div>
+            {/* Actions: compact icon row */}
+            <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexShrink: 0 }}>
               <EmergencySOS inline />
-              <ThemeToggle />
               <button onClick={() => setSettingsOpen(true)} className="studio-icon-btn tap-feedback" aria-label="Settings">
                 <StudioIcon name="settings" size={18} />
               </button>
-              {/* Exit Pro (demo) */}
               <button
                 onClick={() => setPro(false)}
                 style={{
                   fontSize: 11, fontWeight: 700, color: GOLD,
                   background: GOLD_DIM, border: `1px solid ${GOLD}40`,
-                  borderRadius: 8, padding: '4px 10px', cursor: 'pointer',
+                  borderRadius: 8, padding: '4px 8px', cursor: 'pointer', whiteSpace: 'nowrap',
                 }}
                 aria-label="Exit Pro"
               >
-                Exit Pro
+                Exit
               </button>
               <button onClick={logout} className="studio-icon-btn tap-feedback" aria-label="Log out">
                 <StudioIcon name="logout" size={18} />

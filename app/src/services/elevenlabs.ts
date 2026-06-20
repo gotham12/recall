@@ -258,8 +258,8 @@ async function speakBrowser(text: string, gen: number, options?: SpeakOptions): 
     }
 
     const utterance = new SpeechSynthesisUtterance(text);
-    utterance.rate = options?.clara ? 0.74 : options?.warm ? 0.82 : 0.9;
-    utterance.pitch = options?.clara ? 1.04 : options?.warm ? 1.12 : 1.05;
+    utterance.rate = options?.clara ? 0.88 : options?.warm ? 0.88 : 0.9;
+    utterance.pitch = options?.clara ? 1.1 : options?.warm ? 1.1 : 1.1;
     utterance.volume = 1;
     utterance.lang = 'en-US';
 

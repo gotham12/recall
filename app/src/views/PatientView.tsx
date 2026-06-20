@@ -23,16 +23,16 @@ import SettingsSheet from '../components/SettingsSheet';
 import GoldenPathDemo from '../components/GoldenPathDemo';
 import MemoryPhotoRecap from '../components/MemoryPhotoRecap';
 import DashHero from '../components/DashHero';
-import SoundSanctuary from '../components/SoundSanctuary';
+import SimpleRoutineChecklist from '../components/SimpleRoutineChecklist';
 
-type Tab = 'home' | 'voice' | 'meds' | 'events' | 'sanctuary';
+type Tab = 'home' | 'voice' | 'meds' | 'events' | 'routine';
 
 const TABS: { id: Tab; label: string; icon: IconName }[] = [
-  { id: 'home',      label: 'Home',     icon: 'home' },
-  { id: 'voice',     label: 'Clara',    icon: 'clara' },
-  { id: 'meds',      label: 'Meds',     icon: 'meds' },
-  { id: 'events',    label: 'Today',    icon: 'events' },
-  { id: 'sanctuary', label: 'Calm',     icon: 'music' },
+  { id: 'home',    label: 'Home',    icon: 'home' },
+  { id: 'voice',   label: 'Clara',   icon: 'clara' },
+  { id: 'meds',    label: 'Meds',    icon: 'meds' },
+  { id: 'events',  label: 'Today',   icon: 'events' },
+  { id: 'routine', label: 'Routine', icon: 'routine' },
 ];
 
 function eventIcon(type: Event['type']): IconName {
@@ -161,7 +161,7 @@ export default function PatientView() {
       {activeTab === 'voice' && <VoiceAgent />}
       {activeTab === 'meds' && <MedTracker />}
       {activeTab === 'events' && <EventsTab events={events ?? []} />}
-      {activeTab === 'sanctuary' && <SoundSanctuary />}
+      {activeTab === 'routine' && <SimpleRoutineChecklist />}
       <SettingsSheet open={settingsOpen} onClose={() => setSettingsOpen(false)} />
       {demoMode && (
         <GoldenPathDemo
@@ -175,10 +175,10 @@ export default function PatientView() {
 }
 
 const QUICK_ACTIONS: { icon: IconName; label: string; color: string; tab?: Tab; action?: string }[] = [
-  { icon: 'clara',  label: 'Clara',      color: 'transparent', tab: 'voice' },
-  { icon: 'meds',   label: 'Meds',       color: 'transparent', tab: 'meds' },
-  { icon: 'events', label: 'Today',      color: 'transparent', tab: 'events' },
-  { icon: 'music',  label: 'Calm',       color: 'transparent', tab: 'sanctuary' },
+  { icon: 'clara',   label: 'Clara',   color: 'transparent', tab: 'voice' },
+  { icon: 'meds',    label: 'Meds',    color: 'transparent', tab: 'meds' },
+  { icon: 'events',  label: 'Today',   color: 'transparent', tab: 'events' },
+  { icon: 'routine', label: 'Routine', color: 'transparent', tab: 'routine' },
 ];
 
 function QuickTile({ icon, label, color, onClick }: { icon: IconName; label: string; color: string; onClick: () => void }) {

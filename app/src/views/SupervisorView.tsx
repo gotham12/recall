@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { useLiveQuery } from 'dexie-react-hooks';
+import RoutineManager from '../components/RoutineManager';
 import {
   ComposedChart, AreaChart, Area, LineChart, Line, BarChart, Bar,
   XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
@@ -29,7 +30,7 @@ import { useAppStore } from '../store/appStore';
 import SettingsSheet from '../components/SettingsSheet';
 import { db, type Event, type User } from '../db/db';
 
-type Tab = 'home' | 'events' | 'medications' | 'stats' | 'profile';
+type Tab = 'home' | 'events' | 'medications' | 'stats' | 'profile' | 'routine';
 
 const TAB_FLOWER_KEYS: Record<Tab, FlowerKey> = {
   home: 'supervisorApp',
@@ -37,14 +38,15 @@ const TAB_FLOWER_KEYS: Record<Tab, FlowerKey> = {
   medications: 'patientEnter',
   stats: 'supervisor',
   profile: 'home',
+  routine: 'supervisorApp',
 };
 
 const TABS: { id: Tab; label: string; icon: IconName }[] = [
   { id: 'home',        label: 'Home',    icon: 'home' },
   { id: 'events',      label: 'Events',  icon: 'events' },
   { id: 'medications', label: 'Meds',    icon: 'meds' },
+  { id: 'routine',     label: 'Routine', icon: 'routine' },
   { id: 'stats',       label: 'Stats',   icon: 'score' },
-  { id: 'profile',     label: 'Profile', icon: 'profile' },
 ];
 
 export default function SupervisorView() {
@@ -116,6 +118,7 @@ export default function SupervisorView() {
       {activeTab === 'home'        && <SupervisorHomeTab user={user} />}
       {activeTab === 'events'      && <EventsTab user={user} />}
       {activeTab === 'medications' && <MedicationsTab user={user} />}
+      {activeTab === 'routine'     && <RoutineManager />}
       {activeTab === 'stats'       && <StatsTab user={user} />}
       {activeTab === 'profile'     && <ProfileTab />}
       <SettingsSheet open={settingsOpen} onClose={() => setSettingsOpen(false)} />
