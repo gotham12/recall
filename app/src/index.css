@@ -9710,3 +9710,260 @@ h1, h2, h3, h4,
     transition-duration: 0.01ms !important;
   }
 }
+
+/* ═══════════════════════════════════════════════════════════════
+   LIQUID GLASS — iOS 26 / Apple Design Language
+   Frosted glass cards · Specular rim · Gradient backdrop
+   Vibrant sky-blue accent · Deep navy text
+   ═══════════════════════════════════════════════════════════════ */
+
+:root {
+  /* ── Liquid glass accent — vibrant sky blue (iOS 26 style) ── */
+  --ios-accent:          #0EA5E9;
+  --ios-accent-soft:     rgba(14,165,233,0.12);
+  --ios-accent-border:   rgba(14,165,233,0.25);
+  --ios-blue:            #0EA5E9;
+  --ios-blue-soft:       rgba(14,165,233,0.12);
+  --ios-separator:       rgba(14,165,233,0.10);
+  --ios-fill:            rgba(14,165,233,0.07);
+
+  /* ── Page background — rich gradient so glass has depth ── */
+  --ios-bg:              #DBF0FF;
+  --ios-bg-deep:         #BAE6FD;
+
+  /* ── Text — deeper navy for contrast on glass ── */
+  --ios-text:            #0C2340;
+  --ios-text-secondary:  #2563A8;
+  --ios-text-muted:      #6A93B0;
+
+  /* ── Studio token overrides ── */
+  --studio-bg:           #DBF0FF;
+  --studio-bg-deep:      #BAE6FD;
+  --studio-text:         #0C2340;
+  --studio-text-muted:   #4A7899;
+  --studio-text-bright:  #0C2340;
+  --studio-accent:       #0EA5E9;
+  --studio-accent-soft:  rgba(14,165,233,0.12);
+  --studio-border:       rgba(255,255,255,0.60);
+  --studio-shadow:       rgba(14,165,233,0.10);
+  --studio-glow-rgb:     14,165,233;
+  --studio-scrim-rgb:    219,240,255;
+  --studio-smoke-rgb:    14,165,233;
+
+  /* ── Glass card surfaces ── */
+  --studio-card-bg:      rgba(255,255,255,0.62);
+  --studio-card-border:  rgba(255,255,255,0.80);
+  --studio-card-inset:   rgba(255,255,255,0.95);
+  --studio-surface:      rgba(255,255,255,0.62);
+  --studio-surface-soft: rgba(255,255,255,0.50);
+
+  /* ── Glass chrome ── */
+  --studio-chrome-bg:     rgba(240,250,255,0.88);
+  --studio-header-fade:   rgba(219,240,255,0.90);
+  --studio-tabbar-bg:     rgba(240,250,255,0.82);
+
+  /* ── Interactive states ── */
+  --studio-input-bg:             rgba(14,165,233,0.07);
+  --studio-input-placeholder:    #6A93B0;
+  --studio-btn-hover-bg:         rgba(14,165,233,0.08);
+  --studio-btn-hover-border:     rgba(14,165,233,0.25);
+  --studio-btn-primary-bg:       #0EA5E9;
+  --studio-btn-primary-border:   #0EA5E9;
+  --studio-tab-active-bg:        rgba(14,165,233,0.12);
+  --studio-chip-active-bg:       rgba(14,165,233,0.12);
+  --studio-chip-active-border:   rgba(14,165,233,0.28);
+  --studio-focus-ring:           rgba(14,165,233,0.45);
+  --studio-progress-fill:        #0EA5E9;
+  --studio-score-ring-active:    #0EA5E9;
+  --studio-score-ring-track:     rgba(14,165,233,0.12);
+  --studio-mic-pulse:            rgba(14,165,233,0.22);
+  --studio-skeleton-a:           rgba(14,165,233,0.05);
+  --studio-skeleton-b:           rgba(14,165,233,0.10);
+  --studio-highlight-border:     rgba(14,165,233,0.12);
+
+  /* ── Flower / dash tokens ── */
+  --fm-blue:             #0EA5E9;
+  --fm-blue-deep:        #0369A1;
+  --fm-blue-light:       #38BDF8;
+  --fm-blue-soft:        rgba(14,165,233,0.12);
+  --fm-blue-sky:         #E0F2FE;
+  --recall-coral:        #0EA5E9;
+  --recall-coral-soft:   rgba(14,165,233,0.12);
+  --recall-lavender:     #38BDF8;
+  --dash-bg:             #DBF0FF;
+  --dash-accent:         #0EA5E9;
+
+  /* ── Glass specular constants ── */
+  --glass-blur:          blur(24px) saturate(180%);
+  --glass-rim:           inset 0 1px 0 rgba(255,255,255,0.9);
+  --glass-shadow:        0 4px 20px rgba(14,165,233,0.14), 0 1px 3px rgba(0,0,0,0.06);
+  --glass-border:        1px solid rgba(255,255,255,0.72);
+}
+
+/* ── Gradient page background — glass needs depth behind it ── */
+html, body, #root {
+  background: linear-gradient(160deg, #E0F2FE 0%, #BAE6FD 35%, #DBF0FF 65%, #EFF9FF 100%) !important;
+  background-attachment: fixed !important;
+}
+
+/* ── Glass card style — applied universally ── */
+.quick-tile,
+.metric-card,
+.ios-list-cards,
+.mind-game-card,
+.where-am-i-card,
+.state-recon-card,
+.familiar-face-card,
+.safety-circle-card,
+.card,
+.studio-card,
+.event-card,
+.disclaimer-card,
+.memory-thread-card {
+  background: rgba(255, 255, 255, 0.62) !important;
+  backdrop-filter: var(--glass-blur) !important;
+  -webkit-backdrop-filter: var(--glass-blur) !important;
+  border: var(--glass-border) !important;
+  box-shadow: var(--glass-shadow), var(--glass-rim) !important;
+}
+
+/* ── Frosted tab bar ── */
+.studio-tab-bar {
+  background: rgba(240, 250, 255, 0.82) !important;
+  backdrop-filter: blur(40px) saturate(200%) !important;
+  -webkit-backdrop-filter: blur(40px) saturate(200%) !important;
+  border-top: 1px solid rgba(255, 255, 255, 0.70) !important;
+}
+
+/* ── Frosted header ── */
+.studio-header {
+  background: rgba(219, 240, 255, 0.88) !important;
+  backdrop-filter: blur(30px) saturate(160%) !important;
+  -webkit-backdrop-filter: blur(30px) saturate(160%) !important;
+  border-bottom: 1px solid rgba(255,255,255,0.65) !important;
+}
+
+/* ── Active tab pill — vivid sky blue ── */
+.studio-tab--active::before {
+  background: #0EA5E9 !important;
+}
+
+.studio-tab--active .studio-tab__label {
+  color: #0EA5E9 !important;
+}
+
+.studio-tab--active .studio-tab__icon {
+  color: #0EA5E9 !important;
+}
+
+/* ── Quick tile icon container backgrounds ── */
+.quick-tile:nth-child(1) .quick-tile__icon {
+  background: linear-gradient(135deg, #38BDF8 0%, #0EA5E9 100%) !important;
+}
+.quick-tile:nth-child(2) .quick-tile__icon {
+  background: linear-gradient(135deg, #FDBA74 0%, #F97316 100%) !important;
+}
+.quick-tile:nth-child(3) .quick-tile__icon {
+  background: linear-gradient(135deg, #86EFAC 0%, #22C55E 100%) !important;
+}
+.quick-tile:nth-child(4) .quick-tile__icon {
+  background: linear-gradient(135deg, #C4B5FD 0%, #8B5CF6 100%) !important;
+}
+
+/* ── Clara mic button — glass pill ── */
+.cv2-mic {
+  background: rgba(255,255,255,0.65) !important;
+  backdrop-filter: blur(16px) !important;
+  -webkit-backdrop-filter: blur(16px) !important;
+  border: 1px solid rgba(255,255,255,0.80) !important;
+  box-shadow: var(--glass-shadow), var(--glass-rim) !important;
+}
+
+/* ── Input fields — glass style ── */
+.cv2-text-field,
+.studio-input,
+input[type="text"],
+input[type="email"],
+input[type="password"],
+textarea {
+  background: rgba(255,255,255,0.55) !important;
+  backdrop-filter: blur(12px) !important;
+  -webkit-backdrop-filter: blur(12px) !important;
+  border: 1px solid rgba(255,255,255,0.72) !important;
+}
+
+/* ── Alert strip — glass tinted ── */
+.home-alert-strip {
+  background: rgba(254, 243, 199, 0.70) !important;
+  backdrop-filter: blur(12px) !important;
+  -webkit-backdrop-filter: blur(12px) !important;
+  border: 1px solid rgba(255,255,255,0.75) !important;
+  box-shadow: var(--glass-shadow), var(--glass-rim) !important;
+}
+
+/* ── Meds alert tint ── */
+.home-alert-strip--meds {
+  background: rgba(254, 226, 226, 0.68) !important;
+}
+
+/* ── iOS event list ── */
+.ios-list-cards {
+  border-radius: 20px !important;
+}
+
+/* ── Section label — airy ── */
+.ios-section-label {
+  color: #0C2340 !important;
+  opacity: 0.55;
+  font-weight: 800 !important;
+}
+
+/* ── DashHero glass pill ── */
+.dash-hero__greeting,
+.dash-hero__date {
+  color: #0C2340 !important;
+}
+
+/* ── Dark mode — deeper glass ── */
+[data-theme='dark'] {
+  --ios-bg:              #061224;
+  --ios-bg-deep:         #0A1A34;
+  --ios-accent:          #38BDF8;
+  --ios-text:            #EFF9FF;
+  --studio-bg:           #061224;
+  --studio-bg-deep:      #0A1A34;
+  --studio-accent:       #38BDF8;
+  --studio-text:         #EFF9FF;
+  --studio-text-muted:   #7CBCD8;
+  --studio-card-bg:      rgba(14, 42, 78, 0.70);
+  --studio-card-border:  rgba(56,189,248,0.18);
+  --studio-tabbar-bg:    rgba(6, 18, 36, 0.88);
+  --studio-chrome-bg:    rgba(6, 18, 36, 0.90);
+  --studio-header-fade:  rgba(6, 18, 36, 0.90);
+  --glass-border:        1px solid rgba(56,189,248,0.22);
+  --glass-rim:           inset 0 1px 0 rgba(56,189,248,0.25);
+  --glass-shadow:        0 4px 20px rgba(0,0,0,0.35), 0 1px 3px rgba(0,0,0,0.20);
+  --fm-blue:             #38BDF8;
+  --fm-blue-deep:        #0EA5E9;
+  --fm-blue-light:       #7DD3FC;
+  --dash-accent:         #38BDF8;
+  --recall-coral:        #38BDF8;
+}
+
+[data-theme='dark'] html,
+[data-theme='dark'] body,
+[data-theme='dark'] #root,
+html[data-theme='dark'],
+body[data-theme='dark'] {
+  background: linear-gradient(160deg, #061224 0%, #0A1A34 35%, #0D2040 65%, #061224 100%) !important;
+}
+
+[data-theme='dark'] .quick-tile,
+[data-theme='dark'] .metric-card,
+[data-theme='dark'] .ios-list-cards,
+[data-theme='dark'] .mind-game-card,
+[data-theme='dark'] .card,
+[data-theme='dark'] .studio-card {
+  background: rgba(14, 42, 78, 0.68) !important;
+  border: 1px solid rgba(56,189,248,0.20) !important;
+}
