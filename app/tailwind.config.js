@@ -46,7 +46,8 @@ export default {
         },
       },
       fontFamily: {
-        sans: ['-apple-system', 'BlinkMacSystemFont', 'SF Pro Display', 'Segoe UI', 'sans-serif'],
+        sans: ['"DM Sans"', '-apple-system', 'BlinkMacSystemFont', 'Segoe UI', 'sans-serif'],
+        display: ['"Fraunces"', 'Georgia', 'serif'],
       },
       fontSize: {
         'base': ['20px', { lineHeight: '1.5' }],

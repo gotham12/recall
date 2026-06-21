@@ -112,6 +112,21 @@
   --studio-highlight-border: rgba(74,144,217,0.12);
   --studio-icon-surface-border: rgba(74,144,217,0.10);
   -webkit-tap-highlight-color: transparent;
+  --font-sans: 'DM Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  --font-display: 'Fraunces', Georgia, serif;
+}
+
+body {
+  font-family: var(--font-sans);
+}
+
+h1, h2, h3,
+.dash-hero__greeting,
+.dash-login__wordmark,
+.dash-login__title,
+.studio-section__title {
+  font-family: var(--font-display);
+  font-weight: 600;
 }
 
 .selectable,
@@ -5257,8 +5272,8 @@ html[data-easy-mode='true'] .home-widget__label { font-size: 16px; }
   border: none; font-size: 14px; font-weight: 600; cursor: pointer; text-align: left;
 }
 .home-alert-strip--meds {
-  background: linear-gradient(135deg, rgba(74, 144, 217, 0.15), rgba(74, 144, 217, 0.08));
-  color: var(--fm-blue-deep); border: 1px solid rgba(74, 144, 217, 0.35);
+  background: rgba(74,144,217,0.12);
+  color: var(--ios-accent); border: 1px solid rgba(74,144,217,0.25);
 }
 .home-alert-strip--wellness {
   background: rgba(245, 158, 11, 0.12); color: #B45309;
@@ -6112,7 +6127,7 @@ body, html { background: var(--studio-bg) !important; font-family: -apple-system
   text-align: left;
   -webkit-tap-highlight-color: transparent;
 }
-.home-alert-strip--meds { background: rgba(255,149,0,0.12); color: #FF9500; }
+.home-alert-strip--meds { background: rgba(74,144,217,0.12); color: var(--ios-accent); border: 1px solid rgba(74,144,217,0.25); }
 .home-alert-strip--wellness { background: var(--studio-accent-soft); color: var(--studio-accent); }
 .home-alert-strip--low { background: rgba(255,59,48,0.10); color: #FF3B30; }
 
@@ -9632,7 +9647,9 @@ h1, h2, h3, h4,
   text-transform: uppercase;
   letter-spacing: 0.06em;
   color: var(--studio-text-muted);
-  padding: 18px 16px 6px;
+  padding: 18px 16px 14px;
+  position: relative;
+  z-index: 1;
 }
 
 /* ── Card depth improvement ── */
@@ -9903,7 +9920,9 @@ textarea {
 
 /* ── Meds alert tint ── */
 .home-alert-strip--meds {
-  background: rgba(254, 226, 226, 0.68) !important;
+  background: rgba(74, 144, 217, 0.12) !important;
+  color: var(--ios-accent) !important;
+  border: 1px solid rgba(74, 144, 217, 0.25) !important;
 }
 
 /* ── iOS event list ── */
