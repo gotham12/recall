@@ -9432,3 +9432,281 @@ body *:not(.cv2-speech__line):not(.cv2-speech__line *):not(.med-tracker__take-bt
 .studio-icon { color: #2E6DB4 !important; stroke: #2E6DB4 !important; }
 
 .cv2-flower { filter: drop-shadow(0 6px 20px rgba(46, 109, 180, 0.2)) !important; opacity: 1 !important; }
+
+/* ═══════════════════════════════════════════════════════════════
+   UI/UX PRO MAX IMPROVEMENTS — Healthcare-grade design system
+   Figtree headings · Noto Sans body · Bento cards · Better tabs
+   ═══════════════════════════════════════════════════════════════ */
+
+/* ── Font stack upgrade ── */
+:root {
+  --font-display: 'Figtree', -apple-system, BlinkMacSystemFont, sans-serif;
+  --font-body: 'Noto Sans', -apple-system, BlinkMacSystemFont, sans-serif;
+
+  /* Elevation scale (UI Pro Max: Dimensional Layering) */
+  --elev-1: 0 1px 3px rgba(0,0,0,0.07), 0 0 0 0.5px rgba(0,0,0,0.04);
+  --elev-2: 0 4px 12px rgba(0,0,0,0.09), 0 0 0 0.5px rgba(0,0,0,0.04);
+  --elev-3: 0 8px 24px rgba(0,0,0,0.12), 0 0 0 0.5px rgba(0,0,0,0.04);
+}
+
+html, body, #root {
+  font-family: var(--font-body);
+}
+
+h1, h2, h3, h4,
+.home-tab__title,
+.studio-page-title,
+.login-brand-title,
+.splash-loader__title,
+.clara-room__name,
+.disclaimer-card__title,
+.dash-hero__title,
+.metric-card__value,
+.quick-tile__label,
+.mind-game-card__title {
+  font-family: var(--font-display) !important;
+}
+
+/* ── Tab bar — cleaner pill active state ── */
+.studio-tab-bar--dense .studio-tab {
+  padding: 8px 2px 6px;
+  min-height: 60px;
+  gap: 3px;
+}
+
+.studio-tab-bar--dense .studio-tab__label {
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  text-transform: none;
+  transition: color 0.2s ease;
+}
+
+.studio-tab-bar--dense .studio-tab__icon svg {
+  width: 22px;
+  height: 22px;
+}
+
+/* Replace the square bg with a slender top-pill indicator */
+.studio-tab--active::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 28px;
+  height: 3px;
+  border-radius: 0 0 3px 3px;
+  background: var(--studio-accent);
+  inset: unset;
+  border: none;
+  z-index: 1;
+}
+
+.studio-tab--active {
+  transform: none;
+}
+
+.studio-tab--active .studio-tab__label {
+  color: var(--studio-accent);
+  font-weight: 800;
+}
+
+.studio-tab--active .studio-tab__icon {
+  color: var(--studio-accent);
+  opacity: 1;
+  filter: none;
+}
+
+/* ── Quick tiles — coloured icon backgrounds ── */
+.quick-grid {
+  grid-template-columns: repeat(2, 1fr);
+  gap: 10px;
+  padding: 0 16px 4px;
+}
+
+.quick-tile {
+  border-radius: 20px;
+  padding: 16px 14px;
+  gap: 12px;
+  min-height: 68px;
+  box-shadow: var(--elev-2);
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+
+.quick-tile:active {
+  transform: scale(0.97) !important;
+  box-shadow: var(--elev-1) !important;
+}
+
+/* Clara tile */
+.quick-tile:nth-child(1) .quick-tile__icon {
+  background: linear-gradient(135deg, #5BA3E8 0%, #4A90D9 100%);
+  border-radius: 14px;
+  width: 48px; height: 48px;
+}
+
+/* Meds tile */
+.quick-tile:nth-child(2) .quick-tile__icon {
+  background: linear-gradient(135deg, #FF9500 0%, #F57C00 100%);
+  border-radius: 14px;
+  width: 48px; height: 48px;
+}
+
+/* Games tile */
+.quick-tile:nth-child(3) .quick-tile__icon {
+  background: linear-gradient(135deg, #6AAA64 0%, #4CAF50 100%);
+  border-radius: 14px;
+  width: 48px; height: 48px;
+}
+
+/* Routine tile */
+.quick-tile:nth-child(4) .quick-tile__icon {
+  background: linear-gradient(135deg, #BA81C5 0%, #9C67AF 100%);
+  border-radius: 14px;
+  width: 48px; height: 48px;
+}
+
+.quick-tile__label {
+  font-size: 16px;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+}
+
+/* ── Metric cards — bento grid depth ── */
+.metric-row {
+  gap: 8px;
+  padding: 0 16px 4px;
+}
+
+.metric-card {
+  border-radius: 18px;
+  padding: 14px 14px 12px;
+  box-shadow: var(--elev-2);
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+  position: relative;
+  overflow: hidden;
+}
+
+.metric-card::before {
+  content: '';
+  position: absolute;
+  top: 0; left: 0; right: 0;
+  height: 2px;
+  background: currentColor;
+  opacity: 0.15;
+  border-radius: 18px 18px 0 0;
+}
+
+.metric-card:active {
+  transform: scale(0.97) !important;
+  box-shadow: var(--elev-1) !important;
+}
+
+.metric-card__label {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+
+.metric-card__value {
+  font-size: 30px;
+  font-weight: 800;
+  line-height: 1;
+  letter-spacing: -0.03em;
+  margin-top: 4px;
+}
+
+.metric-card__bar {
+  height: 4px;
+  border-radius: 99px;
+  margin-top: 10px;
+  background: rgba(0,0,0,0.06);
+}
+
+/* ── Section labels — cleaner hierarchy ── */
+.ios-section-label {
+  font-size: 13px;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--studio-text-muted);
+  padding: 18px 16px 6px;
+}
+
+/* ── Card depth improvement ── */
+.card {
+  box-shadow: var(--elev-2) !important;
+  border-radius: 20px !important;
+}
+
+/* ── iOS event rows — more breathing room ── */
+.ios-event-row {
+  padding: 12px 16px;
+  gap: 12px;
+}
+
+.ios-event-title {
+  font-size: 16px;
+  font-weight: 600;
+}
+
+.ios-event-time {
+  font-size: 13px;
+}
+
+/* ── Home alert strip — bolder ── */
+.home-alert-strip {
+  margin: 0 16px 8px;
+  border-radius: 14px;
+  padding: 14px 16px;
+  font-size: 15px;
+  font-weight: 600;
+  min-height: 48px;
+}
+
+/* ── Mind game cards — richer look ── */
+.mind-game-card {
+  border-radius: 20px !important;
+  box-shadow: var(--elev-2) !important;
+  padding: 18px 16px !important;
+}
+
+.mind-game-card__title {
+  font-size: 17px !important;
+  font-weight: 700 !important;
+  letter-spacing: -0.01em !important;
+}
+
+.mind-game-card__sub {
+  font-size: 13px !important;
+}
+
+/* ── Timeline improvements ── */
+.timeline__item {
+  padding-bottom: 20px;
+}
+
+.event-card__title {
+  font-size: 16px;
+  font-weight: 600;
+  font-family: var(--font-display);
+}
+
+/* ── Studio page title ── */
+.studio-page-title {
+  font-size: 26px !important;
+  font-weight: 800 !important;
+  letter-spacing: -0.03em !important;
+  padding: 20px 16px 12px !important;
+}
+
+/* ── Reduced motion support ── */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
