@@ -6896,7 +6896,7 @@ body, html { background: var(--studio-bg) !important; font-family: -apple-system
   --studio-chip-active-bg: rgba(255,255,255,0.58);
   --studio-chip-active-border: rgba(255,255,255,0.80);
   --studio-btn-ghost-bg:   rgba(255,255,255,0.42);
-  --studio-progress-track: rgba(0,0,0,0.08);
+  --studio-progress-track: rgba(74,144,217,0.15);
   --ios-bg:                transparent;
   --ios-bg-deep:           transparent;
   --ios-surface:           rgba(255,255,255,0.42);
@@ -7125,11 +7125,14 @@ html, body {
 .mind-game-card__title { color: var(--lg-text) !important; font-family: var(--lg-font) !important; }
 .mind-game-card__sub   { color: var(--lg-text-muted) !important; }
 .mind-game-card__emoji {
-  background: rgba(255,255,255,0.58) !important;
-  border: 1px solid rgba(255,255,255,0.80) !important;
-  border-radius: 16px !important;
-  padding: 8px !important;
-  box-shadow: var(--lg-inset) !important;
+  border: none !important;
+  border-radius: 14px !important;
+  padding: 10px 14px !important;
+  color: #fff !important;
+  font-weight: 800 !important;
+  font-size: 18px !important;
+  line-height: 1 !important;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.15) !important;
 }
 .mind-game-card__tag {
   background: rgba(255,255,255,0.50) !important;
@@ -7874,13 +7877,17 @@ button .studio-icon { color: rgba(0,0,0,0.70); }
 .event-card__meta   { color: rgba(0,0,0,0.44) !important; }
 .timeline__desc     { color: rgba(0,0,0,0.52) !important; }
 .timeline__badge {
-  background: rgba(255,255,255,0.50) !important;
-  border: 1px solid rgba(255,255,255,0.72) !important;
-  color: rgba(0,0,0,0.55) !important;
+  background: rgba(52,199,89,0.12) !important;
+  border: 1px solid rgba(52,199,89,0.28) !important;
+  color: rgba(22,140,52,0.90) !important;
   font-size: 0.72rem !important;
   border-radius: 8px !important;
   padding: 2px 8px !important;
-  font-family: -apple-system,"SF Pro Text",sans-serif !important;
+}
+.timeline__badge--future {
+  background: rgba(74,144,217,0.12) !important;
+  border: 1px solid rgba(74,144,217,0.28) !important;
+  color: var(--ios-accent) !important;
 }
 
 /* ── Ensure text on glass is always dark ── */
@@ -8402,9 +8409,9 @@ button .studio-icon { color: rgba(0,0,0,0.70); }
   color: rgba(0,0,0,0.60) !important;
 }
 .med-tracker__due-badge {
-  background: rgba(200,50,50,0.12) !important;
-  color: rgba(160,30,30,0.80) !important;
-  border: 1px solid rgba(200,50,50,0.20) !important;
+  background: rgba(74,144,217,0.14) !important;
+  color: var(--ios-accent) !important;
+  border: 1px solid rgba(74,144,217,0.28) !important;
   border-radius: 8px !important;
   font-size: 0.75rem !important;
   font-weight: 600 !important;
@@ -8590,10 +8597,10 @@ button .studio-icon { color: rgba(0,0,0,0.70); }
    LIQUID GLASS — PASS 7  (icon/emoji color fix + misc invisible text)
    ═══════════════════════════════════════════════════════════════════════════ */
 
-/* Mind game card emoji/letter icons — were white on white bg */
+/* Mind game card emoji/letter icons */
 .mind-game-card__emoji {
-  color: rgba(0,0,0,0.70) !important;
-  font-weight: 700 !important;
+  color: #fff !important;
+  font-weight: 800 !important;
   font-size: 1.2rem !important;
   display: flex !important;
   align-items: center !important;
@@ -9985,4 +9992,458 @@ body[data-theme='dark'] {
 [data-theme='dark'] .studio-card {
   background: rgba(14, 42, 78, 0.68) !important;
   border: 1px solid rgba(56,189,248,0.20) !important;
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   LIQUID GLASS MAX — Apple visionOS / iOS 26 Level
+   ═══════════════════════════════════════════════════════════════ */
+
+/* ── Shimmer sweep keyframe ── */
+@keyframes lg-shimmer-sweep {
+  0%   { background-position:  200% center; opacity: 0; }
+  10%  { opacity: 1; }
+  90%  { opacity: 1; }
+  100% { background-position: -200% center; opacity: 0; }
+}
+
+/* ── Caustic light pulse ── */
+@keyframes lg-caustic-pulse {
+  0%, 100% { opacity: 0.06; transform: scale(1)    translate(-50%, -50%) rotate(0deg);   }
+  33%       { opacity: 0.11; transform: scale(1.20) translate(-50%, -50%) rotate(120deg); }
+  66%       { opacity: 0.07; transform: scale(0.85) translate(-50%, -50%) rotate(240deg); }
+}
+
+/* ── Orb float ── */
+@keyframes lg-orb-drift {
+  0%, 100% { transform: translateY(0px)   scale(1);    filter: blur(60px); }
+  40%       { transform: translateY(-30px) scale(1.08); filter: blur(50px); }
+  70%       { transform: translateY(-15px) scale(0.95); filter: blur(65px); }
+}
+
+/* ── Push glass tokens ── */
+:root {
+  --glass-blur:    blur(28px) saturate(180%);
+  --glass-rim:     inset 0 1.5px 0 rgba(255,255,255,0.96),
+                   inset 0 -1px  0 rgba(255,255,255,0.18),
+                   inset 1px 0   0 rgba(255,255,255,0.12),
+                   inset -1px 0  0 rgba(255,255,255,0.08);
+  --glass-shadow:  0 8px 32px rgba(14,165,233,0.14),
+                   0 2px 8px  rgba(0,0,0,0.05),
+                   0 1px 2px  rgba(0,0,0,0.04);
+  --glass-border:  1px solid rgba(255,255,255,0.82);
+}
+
+/* ── Richer background depth — must show through every layer ── */
+html, body, #root {
+  background:
+    radial-gradient(ellipse 90% 70% at 15% 5%,  rgba(56,189,248,0.22) 0%, transparent 55%),
+    radial-gradient(ellipse 55% 45% at 85% 15%, rgba(99,102,241,0.13) 0%, transparent 50%),
+    radial-gradient(ellipse 70% 65% at 55% 85%, rgba(14,165,233,0.18) 0%, transparent 55%),
+    radial-gradient(ellipse 45% 40% at 5%  75%, rgba(139,92,246,0.09) 0%, transparent 45%),
+    radial-gradient(ellipse 60% 50% at 90% 60%, rgba(6,182,212,0.12)  0%, transparent 50%),
+    linear-gradient(160deg, #E8F6FF 0%, #BAE6FD 28%, #C7EEFF 58%, #EEF9FF 100%) !important;
+  background-attachment: fixed !important;
+}
+
+/* ── Make shell transparent so root gradient shows through ── */
+.studio-screen,
+.studio-app,
+.studio-app.dash-shell,
+.ios-shell,
+.dash-shell,
+.studio-app-content,
+.home-tab,
+.studio-scroll {
+  background: transparent !important;
+}
+
+/* ── Maximum glass card surface — individual cards only, never section wrappers ── */
+.quick-tile,
+.metric-card,
+.mind-game-card,
+.where-am-i-card,
+.familiar-face-card,
+.safety-circle-card,
+.event-card,
+.disclaimer-card,
+.memory-thread-card {
+  position: relative !important;
+  background: rgba(255,255,255,0.82) !important;
+  backdrop-filter: var(--glass-blur) !important;
+  -webkit-backdrop-filter: var(--glass-blur) !important;
+  border: var(--glass-border) !important;
+  box-shadow: var(--glass-shadow), var(--glass-rim) !important;
+  border-radius: 22px !important;
+  transition: box-shadow 0.28s ease, transform 0.22s ease, background 0.22s ease !important;
+}
+
+/* ── Section wrappers — solid white glass, NO backdrop-filter (avoids stacked blur) ── */
+.ios-list-cards,
+.studio-card,
+.state-recon-card,
+.card {
+  background: rgba(255,255,255,0.86) !important;
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+  border: 1px solid rgba(255,255,255,0.90) !important;
+  box-shadow: 0 4px 20px rgba(14,165,233,0.10), 0 1px 3px rgba(0,0,0,0.04) !important;
+  border-radius: 20px !important;
+}
+
+/* ── Hover: lift + glow aura ── */
+.quick-tile:hover,
+.metric-card:hover,
+.studio-card:hover,
+.mind-game-card:hover,
+.where-am-i-card:hover,
+.state-recon-card:hover {
+  transform: translateY(-3px) scale(1.006) !important;
+  background: rgba(255,255,255,0.88) !important;
+  box-shadow:
+    0 20px 60px rgba(14,165,233,0.22),
+    0 6px 16px rgba(0,0,0,0.06),
+    0 0 0 1px rgba(255,255,255,0.85),
+    inset 0 1.5px 0 rgba(255,255,255,0.98),
+    inset 0 -1px 0 rgba(255,255,255,0.20) !important;
+}
+
+/* ── Shimmer sweep on hover ── */
+.quick-tile,
+.metric-card,
+.mind-game-card {
+  overflow: hidden !important;
+}
+
+.quick-tile::after,
+.metric-card::after,
+.mind-game-card::after {
+  content: '' !important;
+  position: absolute !important;
+  inset: 0 !important;
+  background: linear-gradient(
+    108deg,
+    transparent      30%,
+    rgba(255,255,255,0.60) 48%,
+    rgba(255,255,255,0.30) 52%,
+    transparent      70%) !important;
+  background-size: 250% 100% !important;
+  background-position: 200% center !important;
+  border-radius: inherit !important;
+  pointer-events: none !important;
+  z-index: 2 !important;
+  opacity: 0 !important;
+  transition: background-position 0.55s ease, opacity 0.3s ease !important;
+}
+
+.quick-tile:hover::after,
+.metric-card:hover::after,
+.mind-game-card:hover::after {
+  background-position: -200% center !important;
+  opacity: 1 !important;
+}
+
+/* ── Hero card — crystal pane ── */
+.dash-hero {
+  background: rgba(255,255,255,0.76) !important;
+  backdrop-filter: blur(32px) saturate(190%) !important;
+  -webkit-backdrop-filter: blur(32px) saturate(190%) !important;
+  border: 1px solid rgba(255,255,255,0.84) !important;
+  box-shadow:
+    0 12px 44px rgba(14,165,233,0.16),
+    0 3px 10px rgba(0,0,0,0.05),
+    inset 0 1.5px 0 rgba(255,255,255,0.97),
+    inset 0 -1px 0 rgba(255,255,255,0.20) !important;
+  border-radius: 26px !important;
+}
+
+/* ── Ultra-blur tab bar ── */
+.studio-tab-bar {
+  background: rgba(232,248,255,0.84) !important;
+  backdrop-filter: blur(64px) saturate(220%) brightness(1.04) !important;
+  -webkit-backdrop-filter: blur(64px) saturate(220%) brightness(1.04) !important;
+  border-top: 1px solid rgba(255,255,255,0.90) !important;
+  box-shadow:
+    0 -6px 30px rgba(14,165,233,0.08),
+    inset 0 1px 0 rgba(255,255,255,0.96) !important;
+}
+
+/* ── Ultra-blur header ── */
+.studio-header {
+  background: rgba(225,245,255,0.86) !important;
+  backdrop-filter: blur(64px) saturate(200%) brightness(1.03) !important;
+  -webkit-backdrop-filter: blur(64px) saturate(200%) brightness(1.03) !important;
+  border-bottom: 1px solid rgba(255,255,255,0.82) !important;
+  box-shadow:
+    0 4px 28px rgba(14,165,233,0.09),
+    inset 0 -1px 0 rgba(255,255,255,0.72) !important;
+}
+
+/* ── Login card — deepest glass ── */
+.dash-login__card {
+  background: rgba(255,255,255,0.82) !important;
+  backdrop-filter: blur(40px) saturate(200%) !important;
+  -webkit-backdrop-filter: blur(40px) saturate(200%) !important;
+  border: 1px solid rgba(255,255,255,0.86) !important;
+  box-shadow:
+    0 40px 100px rgba(14,165,233,0.18),
+    0 10px 30px rgba(0,0,0,0.06),
+    inset 0 2px 0 rgba(255,255,255,0.99),
+    inset 0 -1px 0 rgba(255,255,255,0.22) !important;
+  border-radius: 30px !important;
+}
+
+/* ── Icon buttons — glass pill ── */
+.studio-icon-btn {
+  background: rgba(255,255,255,0.64) !important;
+  backdrop-filter: blur(24px) saturate(180%) !important;
+  -webkit-backdrop-filter: blur(24px) saturate(180%) !important;
+  border: 1px solid rgba(255,255,255,0.80) !important;
+  box-shadow:
+    0 2px 10px rgba(0,0,0,0.06),
+    inset 0 1.5px 0 rgba(255,255,255,0.92) !important;
+  transition: background 0.2s ease, box-shadow 0.2s ease, transform 0.15s ease !important;
+}
+
+.studio-icon-btn:hover {
+  background: rgba(255,255,255,0.82) !important;
+  transform: translateY(-1px) scale(1.04) !important;
+  box-shadow:
+    0 6px 20px rgba(14,165,233,0.18),
+    inset 0 1.5px 0 rgba(255,255,255,0.96) !important;
+}
+
+/* ── Quick-tile icon bubble ── */
+.quick-tile__icon {
+  border-radius: 16px !important;
+  box-shadow: 0 2px 10px rgba(0,0,0,0.15), inset 0 1px 0 rgba(255,255,255,0.45) !important;
+}
+
+/* ── Metric fill glow ── */
+.metric-card__fill {
+  filter: brightness(1.08) !important;
+  box-shadow: 0 0 10px currentColor !important;
+}
+
+/* ── Alert strip — vivid glass ── */
+.home-alert-strip {
+  backdrop-filter: blur(36px) saturate(200%) !important;
+  -webkit-backdrop-filter: blur(36px) saturate(200%) !important;
+  box-shadow:
+    0 4px 24px rgba(14,165,233,0.12),
+    inset 0 1.5px 0 rgba(255,255,255,0.82) !important;
+  border-radius: 20px !important;
+}
+
+/* ── Input deep glass ── */
+.cv2-text-field,
+.studio-input,
+input[type="text"],
+input[type="email"],
+input[type="password"],
+.dash-input,
+textarea {
+  background: rgba(255,255,255,0.62) !important;
+  backdrop-filter: blur(22px) saturate(160%) !important;
+  -webkit-backdrop-filter: blur(22px) saturate(160%) !important;
+  border: 1px solid rgba(255,255,255,0.82) !important;
+  box-shadow:
+    inset 0 1px 4px rgba(0,0,0,0.05),
+    inset 0 0 0 1px rgba(255,255,255,0.36) !important;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease !important;
+}
+
+input:focus,
+textarea:focus,
+.dash-input:focus {
+  outline: none !important;
+  border-color: rgba(14,165,233,0.55) !important;
+  box-shadow:
+    0 0 0 4px rgba(14,165,233,0.10),
+    inset 0 1px 4px rgba(0,0,0,0.04) !important;
+}
+
+/* ── Buttons: lift on hover ── */
+.dash-btn {
+  transition: transform 0.2s ease, box-shadow 0.2s ease, background 0.2s ease !important;
+}
+
+.dash-btn:hover {
+  transform: translateY(-1px) !important;
+}
+
+.dash-btn--primary:hover {
+  box-shadow: 0 8px 28px rgba(14,165,233,0.35) !important;
+}
+
+/* ── Game modal backdrop & panel ── */
+.game-modal__backdrop {
+  backdrop-filter: blur(28px) saturate(180%) !important;
+  -webkit-backdrop-filter: blur(28px) saturate(180%) !important;
+  background: rgba(5,15,30,0.58) !important;
+}
+
+/* ── Reduced motion safety ── */
+@media (prefers-reduced-motion: reduce) {
+  .quick-tile::after,
+  .metric-card::after,
+  .mind-game-card::after {
+    display: none !important;
+  }
+  .quick-tile:hover,
+  .metric-card:hover,
+  .studio-card:hover,
+  .mind-game-card:hover {
+    transform: none !important;
+  }
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   DARK MODE — Deep Dark Crystal
+   ═══════════════════════════════════════════════════════════════ */
+
+[data-theme='dark'] {
+  --glass-blur:    blur(28px) saturate(180%);
+  --glass-rim:     inset 0 1.5px 0 rgba(56,189,248,0.30),
+                   inset 0 -1px  0 rgba(56,189,248,0.08),
+                   inset 1px 0   0 rgba(56,189,248,0.06),
+                   inset -1px 0  0 rgba(56,189,248,0.04);
+  --glass-shadow:  0 8px 40px rgba(0,0,0,0.48),
+                   0 2px 8px  rgba(0,0,0,0.28),
+                   0 0 60px   rgba(56,189,248,0.05);
+  --glass-border:  1px solid rgba(56,189,248,0.22);
+}
+
+[data-theme='dark'] html,
+[data-theme='dark'] body,
+[data-theme='dark'] #root,
+html[data-theme='dark'],
+body[data-theme='dark'] {
+  background:
+    radial-gradient(ellipse 90% 70% at 15% 5%,  rgba(14,165,233,0.16) 0%, transparent 55%),
+    radial-gradient(ellipse 55% 45% at 85% 15%, rgba(99,102,241,0.10) 0%, transparent 50%),
+    radial-gradient(ellipse 70% 65% at 55% 85%, rgba(56,189,248,0.12) 0%, transparent 55%),
+    radial-gradient(ellipse 45% 40% at 5%  75%, rgba(139,92,246,0.08) 0%, transparent 45%),
+    linear-gradient(160deg, #040D1A 0%, #071626 30%, #0A1E38 65%, #050F1E 100%) !important;
+  background-attachment: fixed !important;
+}
+
+/* ── Dark mode shell transparent ── */
+[data-theme='dark'] .studio-screen,
+[data-theme='dark'] .studio-app,
+[data-theme='dark'] .studio-app.dash-shell,
+[data-theme='dark'] .ios-shell,
+[data-theme='dark'] .dash-shell,
+[data-theme='dark'] .studio-app-content,
+[data-theme='dark'] .home-tab,
+[data-theme='dark'] .studio-scroll {
+  background: transparent !important;
+}
+
+[data-theme='dark'] .quick-tile,
+[data-theme='dark'] .metric-card,
+[data-theme='dark'] .mind-game-card,
+[data-theme='dark'] .where-am-i-card,
+[data-theme='dark'] .familiar-face-card,
+[data-theme='dark'] .event-card,
+[data-theme='dark'] .disclaimer-card {
+  background: rgba(10, 28, 58, 0.82) !important;
+  border: 1px solid rgba(56,189,248,0.20) !important;
+  box-shadow: var(--glass-shadow), var(--glass-rim) !important;
+}
+
+[data-theme='dark'] .ios-list-cards,
+[data-theme='dark'] .studio-card,
+[data-theme='dark'] .state-recon-card,
+[data-theme='dark'] .card {
+  background: rgba(8, 22, 48, 0.90) !important;
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+  border: 1px solid rgba(56,189,248,0.16) !important;
+  box-shadow: 0 4px 20px rgba(0,0,0,0.30) !important;
+}
+
+[data-theme='dark'] .quick-tile:hover,
+[data-theme='dark'] .metric-card:hover,
+[data-theme='dark'] .studio-card:hover,
+[data-theme='dark'] .mind-game-card:hover {
+  background: rgba(14, 42, 88, 0.75) !important;
+  box-shadow:
+    0 20px 60px rgba(0,0,0,0.52),
+    0 0 50px  rgba(56,189,248,0.12),
+    inset 0 1.5px 0 rgba(56,189,248,0.32) !important;
+}
+
+[data-theme='dark'] .studio-tab-bar {
+  background: rgba(4, 12, 24, 0.88) !important;
+  border-top: 1px solid rgba(56,189,248,0.18) !important;
+  box-shadow:
+    0 -6px 30px rgba(0,0,0,0.40),
+    inset 0 1px 0 rgba(56,189,248,0.20) !important;
+}
+
+[data-theme='dark'] .studio-header {
+  background: rgba(5, 14, 28, 0.90) !important;
+  border-bottom: 1px solid rgba(56,189,248,0.18) !important;
+  box-shadow: 0 4px 28px rgba(0,0,0,0.40) !important;
+}
+
+[data-theme='dark'] .studio-icon-btn {
+  background: rgba(14, 40, 78, 0.72) !important;
+  border: 1px solid rgba(56,189,248,0.22) !important;
+  box-shadow: inset 0 1.5px 0 rgba(56,189,248,0.16) !important;
+}
+
+[data-theme='dark'] .studio-icon-btn:hover {
+  background: rgba(20, 60, 105, 0.82) !important;
+  box-shadow:
+    0 6px 20px rgba(56,189,248,0.20),
+    inset 0 1.5px 0 rgba(56,189,248,0.28) !important;
+}
+
+[data-theme='dark'] .dash-hero {
+  background: rgba(10, 28, 58, 0.62) !important;
+  border: 1px solid rgba(56,189,248,0.22) !important;
+}
+
+[data-theme='dark'] .dash-login__card {
+  background: rgba(8, 22, 48, 0.75) !important;
+  border: 1px solid rgba(56,189,248,0.26) !important;
+  box-shadow:
+    0 48px 110px rgba(0,0,0,0.60),
+    0 0 80px rgba(56,189,248,0.07),
+    inset 0 1.5px 0 rgba(56,189,248,0.22) !important;
+}
+
+[data-theme='dark'] .home-alert-strip {
+  backdrop-filter: blur(36px) saturate(200%) brightness(1.1) !important;
+  -webkit-backdrop-filter: blur(36px) saturate(200%) brightness(1.1) !important;
+}
+
+[data-theme='dark'] input,
+[data-theme='dark'] textarea,
+[data-theme='dark'] .dash-input {
+  background: rgba(10, 28, 58, 0.68) !important;
+  border: 1px solid rgba(56,189,248,0.24) !important;
+  color: #EFF9FF !important;
+  box-shadow: inset 0 1px 4px rgba(0,0,0,0.25) !important;
+}
+
+[data-theme='dark'] input:focus,
+[data-theme='dark'] textarea:focus,
+[data-theme='dark'] .dash-input:focus {
+  border-color: rgba(56,189,248,0.55) !important;
+  box-shadow:
+    0 0 0 4px rgba(56,189,248,0.10),
+    inset 0 1px 4px rgba(0,0,0,0.20) !important;
+}
+
+[data-theme='dark'] .quick-tile::after,
+[data-theme='dark'] .metric-card::after,
+[data-theme='dark'] .mind-game-card::after {
+  background: linear-gradient(
+    108deg,
+    transparent      30%,
+    rgba(56,189,248,0.18) 48%,
+    rgba(56,189,248,0.08) 52%,
+    transparent      70%) !important;
 }

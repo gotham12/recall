@@ -77,7 +77,7 @@ export default function GameHub({ onGameComplete, compact }: GameHubProps) {
               style={{ '--game-gradient': game.gradient } as CSSProperties}
               onClick={() => setActive(game.id)}
             >
-              <span className="mind-game-card__emoji">{game.emoji}</span>
+              <span className="mind-game-card__emoji" style={{ background: game.gradient }}>{game.emoji}</span>
               <div className="mind-game-card__body">
                 <p className="mind-game-card__title">{game.title}</p>
                 <p className="mind-game-card__sub">{game.subtitle}</p>
