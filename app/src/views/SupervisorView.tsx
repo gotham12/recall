@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { useLiveQuery } from 'dexie-react-hooks';
+import HomeIconGrid from '../components/HomeIconGrid';
 import RoutineManager from '../components/RoutineManager';
 import {
   ComposedChart, AreaChart, Area, LineChart, Line, BarChart, Bar,
@@ -49,80 +50,80 @@ const TABS: { id: Tab; label: string; icon: IconName }[] = [
   { id: 'stats',       label: 'Stats',   icon: 'score' },
 ];
 
-export default function SupervisorView() {
-  const [activeTab, setActiveTab] = useState<Tab>('home');
-  const [settingsOpen, setSettingsOpen] = useState(false);
-  const { user, supervisorAlerts, clearSupervisorAlert, theme } = useAppStore();
-  const flowers = getFlowers(theme);
+const SUP_FEATURE_LABELS: Record<string, string> = {
+  home:        'Overview',
+  events:      'Alerts & Events',
+  medications: 'Medications',
+  routine:     'Routine',
+  stats:       'Stats',
+  journal:     'Care Journal',
+};
 
+export default function SupervisorView() {
+  const [activeFeature, setActiveFeature] = useState<string | null>(null);
+  const [settingsOpen, setSettingsOpen] = useState(false);
+  const { user, supervisorAlerts, clearSupervisorAlert } = useAppStore();
+  const setScreen = useAppStore((s) => s.setScreen);
+
+  const firstName = user?.name?.split(' ')[0] ?? 'Supervisor';
+
+  const openFeature = (id: string) => setActiveFeature(id);
+  const goHome = () => setActiveFeature(null);
+
+  // ── visionOS home grid ──────────────────────────────────────────────────────
+  if (!activeFeature) {
+    return (
+      <>
+        <HomeIconGrid
+          role="supervisor"
+          userName={`Hi, ${firstName}`}
+          onSelect={openFeature}
+          onSwitchRole={() => setScreen('login')}
+        />
+        <SettingsSheet open={settingsOpen} onClose={() => setSettingsOpen(false)} />
+      </>
+    );
+  }
+
+  // ── Feature panel ────────────────────────────────────────────────────────────
   return (
-    <StudioShell
-      flowerSrc={flowers[TAB_FLOWER_KEYS[activeTab]]}
-      contentKey={activeTab}
-      dimOverlay={0.76}
-      header={
-        <>
-          <div className="studio-header">
-            <RecallLogo size="sm" />
-            <div className="studio-header__actions">
-              <ThemeToggle />
-              <button
-                onClick={() => setSettingsOpen(true)}
-                className="studio-icon-btn tap-feedback"
-                aria-label="Settings"
-              >
-                <StudioIcon name="settings" size={18} />
-              </button>
-              <button
-                onClick={logout}
-                className="studio-icon-btn tap-feedback"
-                aria-label="Log out"
-              >
-                <StudioIcon name="logout" size={18} />
-              </button>
-            </div>
-          </div>
-          {supervisorAlerts.length > 0 && (
-            <div className="alert-banner" style={{ position: 'relative', zIndex: 4, borderRadius: 0, display: 'flex', alignItems: 'center', gap: 10 }}>
-              <StudioIcon name="alert" size={20} />
-              <span style={{ flex: 1 }}>{supervisorAlerts[0].message}</span>
-              <button
-                onClick={() => clearSupervisorAlert(supervisorAlerts[0].id)}
-                className="studio-icon-btn tap-feedback alert-banner__dismiss"
-                aria-label="Dismiss alert"
-              >
-                <StudioIcon name="close" size={16} />
-              </button>
-            </div>
-          )}
-        </>
-      }
-      footer={
-        <nav className="studio-tab-bar studio-tab-bar--dense tab-bar" aria-label="Supervisor navigation">
-          {TABS.map((tab) => (
-            <button
-              key={tab.id}
-              onClick={() => setActiveTab(tab.id)}
-              className={`studio-tab tap-feedback ${activeTab === tab.id ? 'studio-tab--active' : ''}`}
-              aria-current={activeTab === tab.id ? 'page' : undefined}
-            >
-              <span className="studio-tab__icon">
-                <StudioIcon name={tab.icon} size={22} />
-              </span>
-              <span className="studio-tab__label">{tab.label}</span>
-            </button>
-          ))}
-        </nav>
-      }
-    >
-      {activeTab === 'home'        && <SupervisorHomeTab user={user} />}
-      {activeTab === 'events'      && <EventsTab user={user} />}
-      {activeTab === 'medications' && <MedicationsTab user={user} />}
-      {activeTab === 'routine'     && <RoutineManager />}
-      {activeTab === 'stats'       && <StatsTab user={user} />}
-      {activeTab === 'profile'     && <ProfileTab />}
+    <div className="vis-feature-wrap">
+      <div className="vis-feature-header">
+        <button className="vis-back-btn" onClick={goHome} aria-label="Back to home">
+          <svg viewBox="0 0 24 24" fill="none" width="20" height="20">
+            <path d="M15 18l-6-6 6-6" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" />
+          </svg>
+          Back
+        </button>
+        <span className="vis-feature-title">{SUP_FEATURE_LABELS[activeFeature] ?? activeFeature}</span>
+        <button className="studio-icon-btn tap-feedback" onClick={() => setSettingsOpen(true)} aria-label="Settings"
+          style={{ marginLeft: 'auto' }}>
+          <StudioIcon name="settings" size={18} />
+        </button>
+      </div>
+
+      {supervisorAlerts.length > 0 && (
+        <div className="alert-banner" style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '10px 16px' }}>
+          <StudioIcon name="alert" size={18} />
+          <span style={{ flex: 1, fontSize: 14 }}>{supervisorAlerts[0].message}</span>
+          <button onClick={() => clearSupervisorAlert(supervisorAlerts[0].id)}
+            className="studio-icon-btn tap-feedback" aria-label="Dismiss">
+            <StudioIcon name="close" size={14} />
+          </button>
+        </div>
+      )}
+
+      <div className="vis-feature-content studio-scroll">
+        {activeFeature === 'home'        && <SupervisorHomeTab user={user} />}
+        {activeFeature === 'events'      && <EventsTab user={user} />}
+        {activeFeature === 'medications' && <MedicationsTab user={user} />}
+        {activeFeature === 'routine'     && <RoutineManager />}
+        {activeFeature === 'stats'       && <StatsTab user={user} />}
+        {activeFeature === 'journal'     && <div className="vis-feature-scroll-inner"><CareJournal /></div>}
+      </div>
+
       <SettingsSheet open={settingsOpen} onClose={() => setSettingsOpen(false)} />
-    </StudioShell>
+    </div>
   );
 }
 

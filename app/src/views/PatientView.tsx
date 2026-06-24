@@ -1,18 +1,14 @@
-import { useEffect, useRef, useState } from 'react';
+import { useState } from 'react';
 import { useLiveQuery } from 'dexie-react-hooks';
 import StateReconCard from '../components/StateReconCard';
 import VoiceAgent from '../components/VoiceAgent';
 import MedTracker from '../components/MedTracker';
 import ACSEDashboard from '../components/ACSEDashboard';
-import StudioShell from '../components/StudioShell';
-import RecallLogo from '../components/RecallLogo';
 import StudioIcon, { type IconName } from '../components/StudioIcon';
 import { useACSE } from '../hooks/useACSE';
 import { useAppStore } from '../store/appStore';
 import { db, type Event, type Medication } from '../db/db';
-import ThemeToggle from '../components/ThemeToggle';
 import { isMedicationDueSoon } from '../lib/schedule';
-import { logout } from '../lib/session';
 import WhereAmICard from '../components/WhereAmICard';
 import FamiliarFaces from '../components/FamiliarFaces';
 import SafetyCircle from '../components/SafetyCircle';
@@ -23,8 +19,8 @@ import DashHero from '../components/DashHero';
 import RoutineChecklist from '../components/RoutineChecklist';
 import GameHub from '../components/games/GameHub';
 import { markGameRoutineComplete } from '../components/RoutineChecklist';
+import HomeIconGrid from '../components/HomeIconGrid';
 import FlowerGarden from '../components/FlowerGarden';
-import { LOGO_URL } from '../lib/assets';
 
 type Tab = 'home' | 'voice' | 'meds' | 'events' | 'routine' | 'games';
 
@@ -55,30 +51,23 @@ function formatTime(ts: string): string {
   return new Date(ts).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
 }
 
+const FEATURE_LABELS: Record<string, string> = {
+  voice: 'Clara',
+  meds: 'Medications',
+  games: 'Mind Games',
+  routine: 'Routine',
+  events: 'Today',
+  memory: 'Memory',
+  safety: 'Safety',
+  faces: 'Familiar Faces',
+};
+
 export default function PatientView() {
-  const [activeTab, setActiveTab] = useState<Tab>('home');
+  const [activeFeature, setActiveFeature] = useState<string | null>(null);
   const [settingsOpen, setSettingsOpen] = useState(false);
-  const logoTaps = useRef(0);
-  const logoTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const { user, acseScore, demoMode, setDemoMode, comfortModeActive, triggerMemoryRecap } = useAppStore();
+  const { user, acseScore, demoMode, setDemoMode, triggerMemoryRecap } = useAppStore();
   const { recordNavigation } = useACSE();
-
-  // Activity is recorded on tab navigation only — not on every tap.
-
-  const handleTabChange = (tab: Tab) => {
-    recordNavigation();
-    setActiveTab(tab);
-  };
-
-  const handleLogoTap = () => {
-    logoTaps.current += 1;
-    if (logoTimer.current) clearTimeout(logoTimer.current);
-    logoTimer.current = setTimeout(() => { logoTaps.current = 0; }, 800);
-    if (logoTaps.current >= 3) {
-      logoTaps.current = 0;
-      setDemoMode(true);
-    }
-  };
+  const setScreen = useAppStore((s) => s.setScreen);
 
   const events = useLiveQuery<Event[]>(
     () => user?.id ? db.events.where('userId').equals(user.id).sortBy('timestamp') : Promise.resolve([]),
@@ -87,82 +76,86 @@ export default function PatientView() {
 
   const firstName = user?.name?.split(' ')[0] ?? 'there';
 
-  return (
-    <StudioShell
-      contentKey={activeTab}
-      header={
-        <div className="studio-header" style={{ position: 'relative' }}>
-          <button type="button" className="recall-logo-tap tap-feedback" onClick={handleLogoTap} aria-label="Recall">
-            <RecallLogo size="sm" />
-          </button>
-          <img
-            src={LOGO_URL}
-            alt=""
-            style={{ width: 40, height: 40, objectFit: 'contain', position: 'absolute', right: 16, top: 12, borderRadius: 10 }}
+  const openFeature = (id: string) => { recordNavigation(); setActiveFeature(id); };
+  const goHome = () => setActiveFeature(null);
+
+  // ── visionOS home grid ──────────────────────────────────────────────────────
+  if (!activeFeature) {
+    return (
+      <>
+        <HomeIconGrid
+          role="patient"
+          userName={`Hi, ${firstName}`}
+          onSelect={openFeature}
+          onSwitchRole={() => setScreen('login')}
+        />
+        <SettingsSheet open={settingsOpen} onClose={() => setSettingsOpen(false)} />
+        <MemoryPhotoRecap />
+        {demoMode && (
+          <GoldenPathDemo
+            onNavigate={(tab) => openFeature(tab)}
+            onClose={() => setDemoMode(false)}
           />
-          <div className="studio-header__actions" style={{ paddingRight: 56 }}>
-            <ThemeToggle />
-            <button
-              onClick={() => setSettingsOpen(true)}
-              className="studio-icon-btn tap-feedback"
-              aria-label="Settings"
-            >
-              <StudioIcon name="settings" size={18} />
-            </button>
-            <button
-              onClick={logout}
-              className="studio-icon-btn tap-feedback"
-              aria-label="Log out"
-            >
-              <StudioIcon name="logout" size={18} />
-            </button>
+        )}
+      </>
+    );
+  }
+
+  // ── Feature panel ────────────────────────────────────────────────────────────
+  return (
+    <div className="vis-feature-wrap">
+      <div className="vis-feature-header">
+        <button className="vis-back-btn" onClick={goHome} aria-label="Back to home">
+          <svg viewBox="0 0 24 24" fill="none" width="20" height="20">
+            <path d="M15 18l-6-6 6-6" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" />
+          </svg>
+          Back
+        </button>
+        <span className="vis-feature-title">{FEATURE_LABELS[activeFeature] ?? activeFeature}</span>
+        <button className="studio-icon-btn tap-feedback" onClick={() => setSettingsOpen(true)} aria-label="Settings"
+          style={{ marginLeft: 'auto' }}>
+          <StudioIcon name="settings" size={18} />
+        </button>
+      </div>
+
+      <div className="vis-feature-content studio-scroll">
+        {activeFeature === 'voice'   && <VoiceAgent />}
+        {activeFeature === 'meds'    && <MedTracker />}
+        {activeFeature === 'events'  && <EventsTab events={events ?? []} />}
+        {activeFeature === 'games'   && user?.id && <GamesTab userId={user.id} />}
+        {activeFeature === 'routine' && <RoutineChecklist />}
+        {activeFeature === 'memory'  && (
+          <div className="vis-feature-scroll-inner">
+            <DashHero greeting="Memory" firstName={firstName} dateLabel={new Date().toLocaleDateString([], { weekday: 'long', month: 'long', day: 'numeric' })} />
+            <StateReconCard />
+            <WhereAmICard />
+            <ACSEDashboard />
+            <div style={{ padding: '0 16px' }}>
+              <button
+                type="button"
+                className="vis-memory-recap-btn tap-feedback"
+                onClick={() => triggerMemoryRecap('manual')}
+              >
+                Start memory recap
+              </button>
+            </div>
           </div>
-        </div>
-      }
-      footer={
-        <nav className="studio-tab-bar studio-tab-bar--dense tab-bar" aria-label="Main navigation">
-          {TABS.map((tab) => (
-            <button
-              key={tab.id}
-              onClick={() => handleTabChange(tab.id)}
-              className={`studio-tab tap-feedback ${activeTab === tab.id ? 'studio-tab--active' : ''}`}
-              aria-current={activeTab === tab.id ? 'page' : undefined}
-            >
-              <span className="studio-tab__icon">
-                <StudioIcon name={tab.icon} size={22} />
-              </span>
-              <span className="studio-tab__label">{tab.label}</span>
-            </button>
-          ))}
-        </nav>
-      }
-    >
-      {activeTab === 'home' && (
-        <HomeTab
-          events={events ?? []}
-          onNavigate={handleTabChange}
-          firstName={firstName}
-          acseScore={acseScore}
-          medications={user?.medications ?? []}
-          onMemoryRecap={() => triggerMemoryRecap('manual')}
-        />
-      )}
-      {activeTab === 'voice' && <VoiceAgent />}
-      {activeTab === 'meds' && <MedTracker />}
-      {activeTab === 'events' && <EventsTab events={events ?? []} />}
-      {activeTab === 'games' && user?.id && (
-        <GamesTab userId={user.id} />
-      )}
-      {activeTab === 'routine' && <RoutineChecklist />}
+        )}
+        {activeFeature === 'safety' && (
+          <div className="vis-feature-scroll-inner">
+            <SafetyCircle />
+          </div>
+        )}
+        {activeFeature === 'faces' && (
+          <div className="vis-feature-scroll-inner">
+            <FamiliarFaces />
+          </div>
+        )}
+      </div>
+
       <SettingsSheet open={settingsOpen} onClose={() => setSettingsOpen(false)} />
-      {demoMode && (
-        <GoldenPathDemo
-          onNavigate={(tab) => setActiveTab(tab)}
-          onClose={() => setDemoMode(false)}
-        />
-      )}
       <MemoryPhotoRecap />
-    </StudioShell>
+    </div>
   );
 }
 
