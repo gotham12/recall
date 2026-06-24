@@ -11482,3 +11482,310 @@ html, body, #root {
 @media (prefers-reduced-motion: reduce) {
   .panel-enter { animation: none; opacity: 1; transform: none; }
 }
+
+/* ═══════════════════════════════════════════════════════════════════
+   APPLE LIQUID GLASS — WHITE CIRCLE PUCK SYSTEM
+   No color tints. Icons are pure white discs floating on #F2F2F7.
+   The puck shadow creates all depth — no gradients, no aurora.
+   ═══════════════════════════════════════════════════════════════════ */
+
+/* ── 1. Clean room background — replace all aurora gradients ── */
+html, body, #root {
+  background: #F2F2F7 !important;
+  background-attachment: unset !important;
+  background-image: none !important;
+}
+
+/* ── Remove full-screen overlay blur — it blurs the whole page ── */
+.disclaimer-overlay {
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+  background: transparent !important;
+}
+
+/* ── Kill gradient backgrounds on all screen wrappers ── */
+.dash-login,
+.login-screen,
+.sl-splash,
+[class*="login"],
+[class*="splash"] {
+  background: #F2F2F7 !important;
+  background-image: none !important;
+}
+
+/* ── 2. Quick-tile icon → white circle puck ── */
+.quick-tile__icon {
+  width: 60px !important;
+  height: 60px !important;
+  border-radius: 50% !important;
+  background: #ffffff !important;
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+  border: 0.5px solid rgba(0,0,0,0.08) !important;
+  box-shadow:
+    inset 0 1.5px 0 rgba(255,255,255,1.0),
+    inset 0 -1px 0 rgba(0,0,0,0.05),
+    0 4px 16px rgba(0,0,0,0.11),
+    0 1.5px 4px rgba(0,0,0,0.07) !important;
+  color: rgba(0,0,0,0.75) !important;
+}
+.quick-tile__icon .studio-icon {
+  color: rgba(0,0,0,0.72) !important;
+  stroke: rgba(0,0,0,0.72) !important;
+}
+
+/* ── 3. Tab bar active icon → white circle puck ── */
+.studio-tab--active .studio-tab__icon {
+  background: #ffffff !important;
+  border-radius: 14px !important;
+  border: 0.5px solid rgba(0,0,0,0.08) !important;
+  box-shadow:
+    inset 0 1.5px 0 rgba(255,255,255,1.0),
+    inset 0 -1px 0 rgba(0,0,0,0.05),
+    0 4px 16px rgba(0,0,0,0.11),
+    0 1.5px 4px rgba(0,0,0,0.07) !important;
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+}
+
+/* ── 4. All cards: pure white, no glass blur ── */
+.studio-card,
+.quick-tile,
+.metric-card,
+.mind-game-card,
+.event-card,
+.familiar-face-card,
+.where-am-i-card,
+.state-recon-card,
+.routine-card,
+.care-journal,
+.sleep-tracker,
+.memory-bead,
+.ios-list-cards,
+[class*="med-card"],
+[class*="sleep"][class*="card"] {
+  background: #ffffff !important;
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+  border: 0.5px solid rgba(0,0,0,0.08) !important;
+  box-shadow:
+    0 1px 3px rgba(0,0,0,0.06),
+    0 4px 16px rgba(0,0,0,0.06) !important;
+}
+
+/* ── 5. Remove specular ::before overlays (not needed on white) ── */
+.quick-tile::before,
+.metric-card::before,
+.mind-game-card::before,
+.where-am-i-card::before,
+.familiar-face-card::before,
+.card::before,
+.ios-list-cards::before,
+.studio-card::before {
+  display: none !important;
+}
+
+/* ── 6. Header: clean white frosted bar ── */
+.studio-header {
+  background: rgba(242,242,247,0.94) !important;
+  backdrop-filter: blur(20px) saturate(160%) !important;
+  -webkit-backdrop-filter: blur(20px) saturate(160%) !important;
+  border-bottom: 0.5px solid rgba(0,0,0,0.12) !important;
+  box-shadow: 0 0.5px 0 rgba(0,0,0,0.08) !important;
+}
+.studio-header,
+.studio-header * { color: rgba(0,0,0,0.82) !important; }
+
+/* ── 7. Tab bar: clean white frosted bar ── */
+.studio-tab-bar,
+.tab-bar {
+  background: rgba(242,242,247,0.94) !important;
+  backdrop-filter: blur(20px) saturate(160%) !important;
+  -webkit-backdrop-filter: blur(20px) saturate(160%) !important;
+  border-top: 0.5px solid rgba(0,0,0,0.12) !important;
+  box-shadow: none !important;
+}
+.studio-tab { color: rgba(0,0,0,0.36) !important; }
+.studio-tab--active { color: rgba(0,0,0,0.84) !important; }
+
+/* ── 8. Loading splash: clean room ── */
+.sl-splash {
+  background: #F2F2F7 !important;
+}
+.sl-bg-orb { display: none !important; }
+.sl-logo-glow { display: none !important; }
+.sl-logo-ring { display: none !important; }
+
+.sl-ceramic-orb {
+  width: 160px !important;
+  height: 160px !important;
+  border-radius: 50% !important;
+  background: #ffffff !important;
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+  border: 0.5px solid rgba(0,0,0,0.08) !important;
+  box-shadow:
+    inset 0 2px 0 rgba(255,255,255,1.0),
+    inset 0 -1.5px 0 rgba(0,0,0,0.05),
+    0 20px 60px rgba(0,0,0,0.12),
+    0 6px 16px rgba(0,0,0,0.08) !important;
+}
+.sl-ceramic-orb__glaze { display: none !important; }
+.sl-ceramic-orb__rim   { display: none !important; }
+
+.sl-brand {
+  color: rgba(0,0,0,0.85) !important;
+  background: none !important;
+  -webkit-background-clip: unset !important;
+  background-clip: unset !important;
+  -webkit-text-fill-color: rgba(0,0,0,0.85) !important;
+}
+.sl-tagline {
+  background: rgba(255,255,255,0.70) !important;
+  border: 0.5px solid rgba(0,0,0,0.10) !important;
+  color: rgba(0,0,0,0.44) !important;
+  backdrop-filter: blur(10px) !important;
+  -webkit-backdrop-filter: blur(10px) !important;
+  -webkit-text-fill-color: rgba(0,0,0,0.44) !important;
+}
+
+/* ── 9. Disclaimer card: white puck ── */
+.disclaimer-card,
+.dash-login__card {
+  background: #ffffff !important;
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+  border: 0.5px solid rgba(0,0,0,0.08) !important;
+  box-shadow:
+    inset 0 1.5px 0 rgba(255,255,255,1.0),
+    0 24px 80px rgba(0,0,0,0.12),
+    0 8px 24px rgba(0,0,0,0.08) !important;
+}
+.disclaimer-card *,
+.dash-login__card * { color: rgba(0,0,0,0.82) !important; }
+
+/* ── 10. Buttons: white puck style ── */
+.dash-btn {
+  background: #ffffff !important;
+  border: 0.5px solid rgba(0,0,0,0.10) !important;
+  box-shadow:
+    inset 0 1.5px 0 rgba(255,255,255,1.0),
+    0 4px 14px rgba(0,0,0,0.09),
+    0 1px 3px rgba(0,0,0,0.06) !important;
+  color: rgba(0,0,0,0.82) !important;
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+}
+.dash-btn::before { display: none !important; }
+.dash-btn--primary {
+  background: #007AFF !important;
+  color: #ffffff !important;
+  border: none !important;
+  box-shadow:
+    inset 0 1.5px 0 rgba(255,255,255,0.28),
+    0 4px 16px rgba(0,122,255,0.32),
+    0 1px 4px rgba(0,122,255,0.20) !important;
+}
+.dash-btn--primary * { color: #ffffff !important; }
+
+/* ── 11. Login wordmark: clean dark text ── */
+.dash-login__wordmark,
+.recall-logo__word {
+  background: none !important;
+  -webkit-background-clip: unset !important;
+  background-clip: unset !important;
+  -webkit-text-fill-color: rgba(0,0,0,0.85) !important;
+  color: rgba(0,0,0,0.85) !important;
+}
+
+/* ── 12. Icon buttons (header icons): white circle puck ── */
+.studio-icon-btn {
+  background: #ffffff !important;
+  border: 0.5px solid rgba(0,0,0,0.08) !important;
+  box-shadow:
+    inset 0 1.5px 0 rgba(255,255,255,1.0),
+    0 3px 10px rgba(0,0,0,0.09),
+    0 1px 3px rgba(0,0,0,0.06) !important;
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+  color: rgba(0,0,0,0.72) !important;
+}
+.studio-icon-btn .studio-icon {
+  color: rgba(0,0,0,0.72) !important;
+  stroke: rgba(0,0,0,0.72) !important;
+}
+
+/* ── 13. Mind-game card emoji badge: white circle puck ── */
+.mind-game-card__emoji {
+  width: 52px !important;
+  height: 52px !important;
+  border-radius: 50% !important;
+  background: #ffffff !important;
+  border: 0.5px solid rgba(0,0,0,0.08) !important;
+  box-shadow:
+    inset 0 1.5px 0 rgba(255,255,255,1.0),
+    0 4px 14px rgba(0,0,0,0.10),
+    0 1px 3px rgba(0,0,0,0.06) !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  flex-shrink: 0 !important;
+}
+
+/* ── 14. Text: always dark on light background ── */
+.studio-text,
+.studio-card *,
+.quick-tile__label,
+.metric-card__label,
+.metric-card__value,
+.metric-card__sub {
+  color: rgba(0,0,0,0.82) !important;
+}
+
+/* ── 15. Clara orb: clean white puck ── */
+.lg-clara-orb__sphere {
+  background: #ffffff !important;
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+  border: 0.5px solid rgba(0,0,0,0.08) !important;
+  box-shadow:
+    inset 0 1.5px 0 rgba(255,255,255,1.0),
+    0 6px 20px rgba(0,0,0,0.10),
+    0 2px 6px rgba(0,0,0,0.06) !important;
+}
+
+/* ── 16. Address / location text: dark, not bright blue ── */
+.where-am-i-card *,
+.where-am-i * {
+  color: rgba(0,0,0,0.82) !important;
+}
+[class*="where-am-i"] [class*="address"],
+[class*="where-am-i"] [class*="location"],
+[class*="where-am-i"] [class*="city"],
+[class*="where-am-i"] [class*="street"],
+[class*="where-am-i"] [class*="time"] {
+  color: rgba(0,0,0,0.82) !important;
+}
+
+/* ── 17. Alert / banner strips: white not blue ── */
+.home-alert-strip,
+[class*="alert-strip"],
+[class*="alert-bar"],
+[class*="med-alert"],
+[class*="medication-banner"] {
+  background: #ffffff !important;
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+  border: 0.5px solid rgba(0,0,0,0.08) !important;
+  box-shadow: 0 1px 4px rgba(0,0,0,0.06) !important;
+  color: rgba(0,0,0,0.82) !important;
+}
+.home-alert-strip *,
+[class*="alert-strip"] * { color: rgba(0,0,0,0.82) !important; }
+
+/* ── 18. Kill any remaining colored text in cards ── */
+.where-am-i__address,
+.where-am-i__city,
+.where-am-i__time,
+.home-time,
+.dash-address { color: rgba(0,0,0,0.84) !important; }
