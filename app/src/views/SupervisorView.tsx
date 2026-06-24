@@ -103,7 +103,7 @@ export default function SupervisorView() {
       </div>
 
       {supervisorAlerts.length > 0 && (
-        <div className="alert-banner" style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '10px 16px' }}>
+        <div className="alert-banner" style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '10px 16px', flexShrink: 0 }}>
           <StudioIcon name="alert" size={18} />
           <span style={{ flex: 1, fontSize: 14 }}>{supervisorAlerts[0].message}</span>
           <button onClick={() => clearSupervisorAlert(supervisorAlerts[0].id)}
@@ -113,7 +113,7 @@ export default function SupervisorView() {
         </div>
       )}
 
-      <div className="vis-feature-content studio-scroll">
+      <div className="vis-feature-content">
         {activeFeature === 'home'        && <SupervisorHomeTab user={user} />}
         {activeFeature === 'events'      && <EventsTab user={user} />}
         {activeFeature === 'medications' && <MedicationsTab user={user} />}
@@ -162,14 +162,12 @@ function SupervisorHomeTab({ user }: { user: User | null }) {
   };
 
   return (
-    <div className="supervisor-home studio-scroll">
+    <div className="supervisor-home">
       <CareCommandCenter />
 
       <LiveActivityFeed limit={6} />
 
       <StormRadar userId={user?.id} />
-
-      <CareJournal />
 
       <div className="card quick-event-card">
         <p className="studio-section-title">Add event now</p>
@@ -298,7 +296,7 @@ function EventsTab({ user }: { user: User | null }) {
   };
 
   return (
-    <div className="events-tab studio-scroll">
+    <div className="events-tab">
       {/* Caregiver quick message */}
       <div className="card" style={{ padding: 16, marginBottom: 16 }}>
         <p className="studio-section-title">Quick Caregiver Note</p>
@@ -479,7 +477,7 @@ function MedicationsTab({ user }: { user: User | null }) {
   if (!user) return null;
 
   return (
-    <div className="supervisor-meds studio-scroll">
+    <div className="supervisor-meds">
       <div className="card supervisor-meds__patient">
         {user.familyPhotoUrl ? (
           <img src={user.familyPhotoUrl} alt={user.name} className="supervisor-meds__photo" />
@@ -635,7 +633,7 @@ function StatsTab({ user }: { user: User | null }) {
   };
 
   return (
-    <div className="stats-tab studio-scroll">
+    <div className="stats-tab">
       <VitalsDashboard patientName={user?.name} />
       <ACSESignalAudit />
       <WeeklyInsights />
@@ -643,7 +641,7 @@ function StatsTab({ user }: { user: User | null }) {
       <h2 className="studio-page-title" style={{ marginTop: 8 }}>ACSE — Cognitive Score</h2>
 
       {/* Score summary row */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 10, marginBottom: 16 }}>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 10, marginBottom: 16 }}>
         {[
           { label: 'Now', value: acseScore, color },
           { label: 'High today', value: maxScore, color: '#10B981' },
@@ -832,7 +830,7 @@ function ProfileTab() {
   );
 
   return (
-    <div className="profile-tab studio-scroll">
+    <div className="profile-tab">
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
         <h2 className="studio-page-title" style={{ margin: 0 }}>Patient Profile</h2>
         <button

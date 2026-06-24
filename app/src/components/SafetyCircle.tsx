@@ -25,7 +25,17 @@ export default function SafetyCircle() {
 
   const allContacts = buildSafetyContacts(caregiver, contacts);
 
-  if (allContacts.length === 0) return null;
+  if (allContacts.length === 0) return (
+    <section className="safety-circle card">
+      <div className="safety-circle__header">
+        <StudioIcon name="shield" size={22} />
+        <h3 className="studio-section-title" style={{ margin: 0 }}>Your safety circle</h3>
+      </div>
+      <p style={{ padding: '16px', color: 'rgba(0,0,0,0.45)', fontSize: 15, textAlign: 'center' }}>
+        No contacts added yet. Ask your caregiver to set up your safety circle.
+      </p>
+    </section>
+  );
 
   return (
     <section className="safety-circle card">

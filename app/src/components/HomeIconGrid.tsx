@@ -215,6 +215,7 @@ function RoomBackground() {
       viewBox="0 0 390 780"
       fill="none"
       xmlns="http://www.w3.org/2000/svg"
+      preserveAspectRatio="xMidYMid slice"
       style={{ position: 'absolute', inset: 0, width: '100%', height: '100%' }}
       aria-hidden
     >
@@ -327,6 +328,7 @@ function IconPuck({ def, onTap }: { def: IconDef; onTap: () => void }) {
         onPointerDown={() => setActive(true)}
         onPointerUp={() => { setActive(false); onTap(); }}
         onPointerLeave={() => setActive(false)}
+        onPointerCancel={() => setActive(false)}
       >
         <def.icon />
       </button>

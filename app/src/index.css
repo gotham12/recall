@@ -11960,7 +11960,8 @@ html, body, #root {
   font-weight: 400;
   font-family: inherit;
   cursor: pointer;
-  padding: 4px 0;
+  padding: 4px 8px 4px 0;
+  min-height: 44px;
   -webkit-tap-highlight-color: transparent;
   white-space: nowrap;
 }
@@ -12008,3 +12009,111 @@ html, body, #root {
   margin-top: 8px;
 }
 .vis-memory-recap-btn:active { opacity: 0.80; transform: scale(0.98); }
+
+/* ═══ SWARM BUG FIXES ═══════════════════════════════════════════════════════ */
+
+/* 1. Wordle keyboard keys — 44px minimum touch target */
+.wordle-key { min-width: 36px !important; min-height: 48px !important; }
+
+/* 2. Sudoku numpad keys — 44px minimum */
+.sudoku-numpad__key { min-height: 44px !important; min-width: 36px !important; }
+
+/* 3. Game modal — allow more height on small screens */
+.game-modal__panel { max-height: 96dvh !important; }
+.game-modal__body { overflow-y: auto !important; -webkit-overflow-scrolling: touch; }
+
+/* 4. Safety contact font sizes — 13px floor */
+.safety-contact__rel  { font-size: 13px !important; }
+.safety-contact__call { font-size: 13px !important; }
+
+/* 5. Events tab top padding */
+.events-tab { padding-top: 16px !important; }
+
+/* 6. WhereAmICard address overflow */
+.where-am-i__place,
+.where-am-i__address,
+.where-am-i__city {
+  overflow: hidden !important;
+  text-overflow: ellipsis !important;
+  white-space: nowrap !important;
+}
+
+/* 7. Alert banner — never shrink */
+.alert-banner { flex-shrink: 0 !important; }
+
+/* 8. Fix 100vh → 100dvh */
+.game-modal,
+.disclaimer-overlay,
+.dash-login {
+  max-height: 100dvh !important;
+  min-height: 100dvh !important;
+}
+
+/* 9. Replace layout-triggering width transitions with transform */
+.metric-card__fill {
+  transition: transform 0.8s ease !important;
+  transform-origin: left center !important;
+}
+
+/* 10. Vis-greeting above icon grid */
+.vis-greeting { z-index: 11 !important; pointer-events: none; }
+
+/* 11. VoiceAgent — status bar replaces removed header */
+.cv2-status-bar {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  padding: 8px 16px 0;
+  flex-shrink: 0;
+}
+
+/* 12. FamiliarFaces — hide horizontal scrollbar */
+.familiar-faces__scroll {
+  scrollbar-width: none !important;
+}
+.familiar-faces__scroll::-webkit-scrollbar { height: 0 !important; width: 0 !important; }
+
+/* 13. FamiliarFaces initials avatar */
+.familiar-face__photo--initials {
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  background: #E5E5EA !important;
+  color: rgba(0,0,0,0.60) !important;
+  font-size: 24px !important;
+  font-weight: 600 !important;
+  border-radius: 50% !important;
+}
+
+/* 14. Supervisor vis-feature-content must scroll */
+.vis-feature-content {
+  flex: 1 !important;
+  overflow-y: auto !important;
+  -webkit-overflow-scrolling: touch !important;
+  overscroll-behavior: contain !important;
+}
+
+/* 15. Restore semantic colors in stats tab (undo overly broad override) */
+.stats-tab [style*="color: #EF"],
+.stats-tab [style*="color: #10"],
+.stats-tab [style*="color: #F5"] { color: unset !important; }
+
+/* 16. Landscape mode — reposition icon grid */
+@media (orientation: landscape) and (max-height: 500px) {
+  .vis-greeting { top: 8px !important; }
+  .vis-time { font-size: 32px !important; }
+  .vis-date, .vis-name { display: none !important; }
+  .vis-icon-grid {
+    top: 50% !important;
+    transform: translate(-50%, -50%) scale(0.75) !important;
+    gap: 12px 10px !important;
+  }
+}
+
+/* 17. vis-feature-content needs overflow-y: auto on .studio-scroll children */
+.vis-feature-content .studio-scroll {
+  flex: unset !important;
+  overflow-y: unset !important;
+  height: auto !important;
+}

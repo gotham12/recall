@@ -92,7 +92,6 @@ export default function LoginScreen() {
       <div className="dash-login__card">
         {role === null && (
           <div className="dash-login__step">
-            <GlassOrbs />
             <p className="dash-login__eyebrow">Welcome back</p>
             <p className="dash-login__title">Who's using Recall?</p>
             <div className="dash-login__actions">
@@ -117,7 +116,6 @@ export default function LoginScreen() {
         {role === 'patient' && !selectedPatient && (
           <div className="dash-login__step">
             <button className="dash-back" onClick={() => setRole(null)}>← Back</button>
-            <GlassOrbs small />
             <p className="dash-login__eyebrow">Patient</p>
             <p className="dash-login__title">Who are you today?</p>
             <div className="dash-login__actions">
@@ -140,7 +138,6 @@ export default function LoginScreen() {
         {role === 'patient' && selectedPatient && (
           <div className="dash-login__step">
             <button className="dash-back" onClick={() => { setSelectedPatient(null); setPatientPin(''); setPinError(''); }}>← Back</button>
-            <GlassOrbs small />
             <p className="dash-login__eyebrow">Patient</p>
             <p className="dash-login__title">Welcome back,<br />{selectedPatient.name.split(' ')[0]}</p>
             <div className="dash-login__actions">
@@ -163,7 +160,6 @@ export default function LoginScreen() {
         {role === 'supervisor' && !supervisorPatient && (
           <div className="dash-login__step">
             <button className="dash-back" onClick={() => setRole(null)}>← Back</button>
-            <GlassOrbs small />
             <p className="dash-login__eyebrow">Supervisor</p>
             <p className="dash-login__title">Who are you caring for?</p>
             <div className="dash-login__actions">
@@ -183,7 +179,6 @@ export default function LoginScreen() {
         {role === 'supervisor' && supervisorPatient && (
           <div className="dash-login__step">
             <button className="dash-back" onClick={() => { setSupervisorPatient(null); setPassword(''); setError(''); }}>← Back</button>
-            <GlassOrbs small />
             <p className="dash-login__eyebrow">Supervisor</p>
             <p className="dash-login__title">Signing in for {supervisorPatient.name.split(' ')[0]}</p>
             <div className="dash-login__actions">

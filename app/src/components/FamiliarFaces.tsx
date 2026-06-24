@@ -13,7 +13,17 @@ export default function FamiliarFaces() {
     [user?.id]
   ) ?? [];
 
-  if (faces.length === 0) return null;
+  if (faces.length === 0) return (
+    <section className="familiar-faces">
+      <div className="familiar-faces__header">
+        <StudioIcon name="heart" size={20} />
+        <h3 className="studio-section-title" style={{ margin: 0 }}>People who love you</h3>
+      </div>
+      <p style={{ padding: '16px 0', color: 'rgba(0,0,0,0.45)', fontSize: 15 }}>
+        No familiar faces added yet.
+      </p>
+    </section>
+  );
 
   return (
     <section className="familiar-faces">
@@ -23,7 +33,7 @@ export default function FamiliarFaces() {
       </div>
       <div className="familiar-faces__scroll">
         {faces.map((face) => {
-          const photo = photoForContact(face.name) ?? face.photoUrl;
+          const photo = photoForContact(face.name) ?? face.photoUrl ?? null;
           return (
             <button
               key={face.id}
@@ -32,7 +42,13 @@ export default function FamiliarFaces() {
               onClick={() => void speak(face.memoryPrompt)}
               aria-label={`${face.name}, ${face.relationship}. Tap to hear a memory.`}
             >
-              <img src={photo} alt={face.name} className="familiar-face__photo" loading="lazy" />
+              {photo ? (
+                <img src={photo} alt={face.name} className="familiar-face__photo" loading="lazy" />
+              ) : (
+                <div className="familiar-face__photo familiar-face__photo--initials" aria-hidden>
+                  {face.name.charAt(0).toUpperCase()}
+                </div>
+              )}
               <p className="familiar-face__name">{face.name}</p>
               <p className="familiar-face__rel">{face.relationship}</p>
             </button>

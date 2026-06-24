@@ -251,16 +251,15 @@ export default function VoiceAgent() {
 
   return (
     <div className="cv2-room">
-      <header className="cv2-header">
-        <div className="cv2-header__dot cv2-header__dot--idle" />
-        <span className="cv2-header__name">Clara</span>
+      {/* Status pill — replaces duplicate header; real title is in vis-feature-header */}
+      <div className="cv2-status-bar">
         <span className={`cv2-status cv2-status--${state}`}>
           {state === 'listening' ? '● Listening' :
            state === 'thinking'  ? '◌ Thinking…' :
            state === 'speaking'  ? '▶ Speaking'  : 'Ready'}
         </span>
         {llmConnected === false && <span className="cv2-offline">Offline</span>}
-      </header>
+      </div>
 
       <div className="cv2-body studio-scroll">
         <div className="cv2-stage">

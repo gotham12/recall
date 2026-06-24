@@ -35,7 +35,7 @@ export default function ACSEDashboard() {
   ];
 
   return (
-    <div className="acse-dashboard studio-scroll">
+    <div className="acse-dashboard">
       <h2 className="studio-page-title">How you're doing</h2>
 
       <div className="card acse-dashboard__hero">

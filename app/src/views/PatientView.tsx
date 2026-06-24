@@ -20,7 +20,6 @@ import RoutineChecklist from '../components/RoutineChecklist';
 import GameHub from '../components/games/GameHub';
 import { markGameRoutineComplete } from '../components/RoutineChecklist';
 import HomeIconGrid from '../components/HomeIconGrid';
-import FlowerGarden from '../components/FlowerGarden';
 
 type Tab = 'home' | 'voice' | 'meds' | 'events' | 'routine' | 'games';
 
@@ -206,7 +205,6 @@ function HomeTab({
 
   return (
     <div className="home-tab studio-scroll">
-      <FlowerGarden />
       <DashHero greeting={timeGreeting()} firstName={firstName} dateLabel={dateLabel} />
 
       {dueMeds.length > 0 && (

@@ -61,9 +61,9 @@ export function buildEmergencySms(user: User, contacts: EmergencyContact[], loca
 }
 
 export function dialNumber(phone: string): void {
-  window.location.href = `tel:${phone.replace(/\s/g, '')}`;
+  window.open(`tel:${phone.replace(/\s/g, '')}`, '_self');
 }
 
 export function dial911(): void {
-  window.location.href = 'tel:911';
+  window.open('tel:911', '_self');
 }
