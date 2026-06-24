@@ -116,14 +116,15 @@ export default function SupervisorView() {
           Back
         </button>
         <span className="vis-feature-title">{SUP_FEATURE_LABELS[activeFeature] ?? activeFeature}</span>
-        <button className="studio-icon-btn tap-feedback" onClick={() => setSettingsOpen(true)} aria-label="Settings"
-          style={{ marginLeft: 'auto' }}>
-          <StudioIcon name="settings" size={18} />
-        </button>
+        <div className="vis-feature-settings">
+          <button className="studio-icon-btn tap-feedback" onClick={() => setSettingsOpen(true)} aria-label="Settings">
+            <StudioIcon name="settings" size={18} />
+          </button>
+        </div>
       </div>
 
       {supervisorAlerts.length > 0 && (
-        <div className="alert-banner" style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '10px 16px', flexShrink: 0 }}>
+        <div className="alert-banner">
           <StudioIcon name="alert" size={18} />
           <span style={{ flex: 1, fontSize: 14 }}>{supervisorAlerts[0].message}</span>
           <button onClick={() => clearSupervisorAlert(supervisorAlerts[0].id)}

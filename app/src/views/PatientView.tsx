@@ -132,13 +132,14 @@ export default function PatientView() {
           Back
         </button>
         <span className="vis-feature-title">{FEATURE_LABELS[activeFeature] ?? activeFeature}</span>
-        <button className="studio-icon-btn tap-feedback" onClick={() => setSettingsOpen(true)} aria-label="Settings"
-          style={{ marginLeft: 'auto' }}>
-          <StudioIcon name="settings" size={18} />
-        </button>
+        <div className="vis-feature-settings">
+          <button className="studio-icon-btn tap-feedback" onClick={() => setSettingsOpen(true)} aria-label="Settings">
+            <StudioIcon name="settings" size={18} />
+          </button>
+        </div>
       </div>
 
-      <div className="vis-feature-content studio-scroll">
+      <div className="vis-feature-content">
         {activeFeature === 'voice'   && <VoiceAgent />}
         {activeFeature === 'meds'    && <MedTracker />}
         {activeFeature === 'events'  && <EventsTab events={events ?? []} />}

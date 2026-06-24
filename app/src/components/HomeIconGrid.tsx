@@ -330,7 +330,7 @@ function IconPuck({ def, onTap, index }: { def: IconDef; onTap: () => void; inde
 
   return (
     <div className="vis-puck-wrap" data-puck-index={index}>
-      <div className="vis-puck-wall-shadow" style={{ '--glow': def.glow } as React.CSSProperties} />
+      <div className="vis-puck-shadow" style={{ '--glow': def.glow } as React.CSSProperties} />
       <button
         ref={btnRef}
         type="button"
@@ -390,32 +390,20 @@ export default function HomeIconGrid({ role, userName, onSelect, onSwitchRole }:
     const ctx = gsap.context(() => {
       const tl = gsap.timeline({ defaults: { ease: 'power3.out' } });
 
-      // Room fades in
-      tl.from('.vis-home-bg', { opacity: 0, duration: 0.6 }, 0);
-
-      // Clock drops in from above
-      tl.from('.vis-greeting', { y: -40, opacity: 0, duration: 0.7 }, 0.1);
-
-      // Role badge slides from right
-      tl.from('.vis-role-badge', { x: 24, opacity: 0, duration: 0.5 }, 0.25);
-
-      // Pucks stagger up with spring
+      tl.from('.vis-home-bg', { opacity: 0, duration: 0.55 }, 0);
+      tl.from('.vis-clock',   { y: -28, opacity: 0, duration: 0.65 }, 0.08);
+      tl.from('.vis-role-badge', { x: 20, opacity: 0, duration: 0.45 }, 0.20);
       tl.from('.vis-puck-wrap', {
-        y: 70,
-        opacity: 0,
-        scale: 0.65,
-        duration: 0.65,
-        stagger: { amount: 0.45, from: 'start' },
+        y: 60, opacity: 0, scale: 0.68,
+        duration: 0.60,
+        stagger: { amount: 0.40, from: 'start' },
         ease: 'back.out(1.8)',
-      }, 0.30);
-
-      // Shadow blobs stagger in slightly after pucks
-      tl.from('.vis-puck-wall-shadow', {
-        opacity: 0,
-        scaleX: 0.3,
-        duration: 0.45,
-        stagger: { amount: 0.35, from: 'start' },
-      }, 0.55);
+      }, 0.28);
+      tl.from('.vis-puck-shadow', {
+        opacity: 0, scaleX: 0.2, duration: 0.40,
+        stagger: { amount: 0.30, from: 'start' },
+      }, 0.50);
+      tl.from('.vis-name-bar', { opacity: 0, y: 12, duration: 0.40 }, 0.55);
     }, containerRef);
 
     return () => ctx.revert();
@@ -423,28 +411,36 @@ export default function HomeIconGrid({ role, userName, onSelect, onSwitchRole }:
 
   return (
     <div ref={containerRef} className="vis-home" role="main" aria-label="Home">
-      <div className="vis-home-bg">
+
+      {/* Background — purely decorative, sits at z-index 0 */}
+      <div className="vis-home-bg" aria-hidden>
         <RoomBackground />
       </div>
 
-      {/* Time + greeting */}
-      <div className="vis-greeting">
-        <div className="vis-time">{timeStr}</div>
-        <div className="vis-date">{dateStr}</div>
-        {userName && <div className="vis-name">Hello, {userName}</div>}
+      {/* Top bar: clock left, role badge right — z-index 1, no overlap */}
+      <div className="vis-topbar">
+        <div className="vis-clock">
+          <div className="vis-time">{timeStr}</div>
+          <div className="vis-date">{dateStr}</div>
+        </div>
+        <div className="vis-role-badge">
+          {role === 'patient' ? 'Patient' : 'Supervisor'}
+        </div>
       </div>
 
-      {/* Role badge */}
-      <div className="vis-role-badge">
-        <span>{role === 'patient' ? 'Patient' : 'Supervisor'}</span>
+      {/* Icon grid — flex: 1, centered both axes */}
+      <div className="vis-grid-area">
+        <div className="vis-icon-grid">
+          {icons.map((icon, i) => (
+            <IconPuck key={icon.id} def={icon} index={i} onTap={() => handleTap(icon.id)} />
+          ))}
+        </div>
       </div>
 
-      {/* Icon grid */}
-      <div className="vis-icon-grid">
-        {icons.map((icon, i) => (
-          <IconPuck key={icon.id} def={icon} index={i} onTap={() => handleTap(icon.id)} />
-        ))}
-      </div>
+      {/* Name bar at bottom */}
+      {userName && (
+        <div className="vis-name-bar">{userName}</div>
+      )}
     </div>
   );
 }

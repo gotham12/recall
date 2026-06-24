@@ -11790,162 +11790,219 @@ html, body, #root {
 .home-time,
 .dash-address { color: rgba(0,0,0,0.84) !important; }
 
+
 /* ═══════════════════════════════════════════════════════════════════
-   VISIONOS HOME — Room + Icon Puck System
+   VISIONOS HOME — Clean flex-column layout (no absolute overlap)
    ═══════════════════════════════════════════════════════════════════ */
 
-/* ── Room container ── */
+/* ── Container: full-screen flex column ── */
 .vis-home {
   position: fixed;
   inset: 0;
+  display: flex;
+  flex-direction: column;
   overflow: hidden;
   font-family: -apple-system, 'SF Pro Display', 'SF Pro Text', BlinkMacSystemFont, 'Helvetica Neue', sans-serif;
   -webkit-font-smoothing: antialiased;
-  background: #EBEBEA; /* match room base so no white flash on load */
+  background: #EBEBEA;
 }
 
-/* ── Time / greeting overlay ── */
-.vis-greeting {
+/* ── Room background: truly behind everything ── */
+.vis-home-bg {
   position: absolute;
-  top: 52px;
-  left: 0;
-  right: 0;
-  text-align: center;
-  z-index: 10;
+  inset: 0;
+  z-index: 0;
   pointer-events: none;
 }
-.vis-time {
-  font-size: 52px;
-  font-weight: 200;
-  letter-spacing: -2px;
-  color: rgba(0,0,0,0.68);
-  line-height: 1;
-}
-.vis-date {
-  font-size: 13px;
-  font-weight: 400;
-  color: rgba(0,0,0,0.38);
-  margin-top: 4px;
-  letter-spacing: 0.02em;
-}
-.vis-name {
-  font-size: 15px;
-  font-weight: 500;
-  color: rgba(0,0,0,0.50);
-  margin-top: 6px;
+.vis-home-bg svg {
+  width: 100%;
+  height: 100%;
+  display: block;
 }
 
-/* ── Role badge ── */
+/* ── Top bar: clock left, role badge right ── */
+.vis-topbar {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  padding: calc(env(safe-area-inset-top, 44px) + 12px) 20px 0;
+  flex-shrink: 0;
+  pointer-events: none; /* badge is pointer-events: auto below */
+}
+
+.vis-clock {
+  display: flex;
+  flex-direction: column;
+}
+
+.vis-time {
+  font-size: 44px;
+  font-weight: 200;
+  letter-spacing: -2px;
+  color: rgba(0,0,0,0.72);
+  line-height: 1;
+  text-shadow: 0 1px 8px rgba(255,255,255,0.60);
+}
+
+.vis-date {
+  font-size: 12px;
+  font-weight: 400;
+  color: rgba(0,0,0,0.42);
+  margin-top: 4px;
+  letter-spacing: 0.01em;
+  text-shadow: 0 1px 4px rgba(255,255,255,0.50);
+}
+
 .vis-role-badge {
-  position: absolute;
-  top: 18px;
-  right: 18px;
-  z-index: 20;
-  background: rgba(255,255,255,0.70);
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
-  border: 0.5px solid rgba(0,0,0,0.10);
+  pointer-events: auto;
+  background: rgba(255,255,255,0.72);
+  backdrop-filter: blur(14px) saturate(160%);
+  -webkit-backdrop-filter: blur(14px) saturate(160%);
+  border: 0.5px solid rgba(255,255,255,0.90);
   border-radius: 99px;
-  padding: 4px 12px;
+  padding: 5px 14px;
   font-size: 12px;
   font-weight: 500;
   color: rgba(0,0,0,0.55);
   letter-spacing: 0.02em;
+  margin-top: 6px;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.10);
+}
+
+/* ── Grid area: flex-1 centered ── */
+.vis-grid-area {
+  position: relative;
+  z-index: 1;
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 8px 0;
 }
 
 /* ── Icon grid ── */
 .vis-icon-grid {
-  position: absolute;
-  top: 50%;
-  left: 50%;
-  transform: translate(-50%, -54%);
   display: grid;
-  grid-template-columns: repeat(3, 96px);
-  gap: 28px 20px;
-  z-index: 10;
+  grid-template-columns: repeat(3, 88px);
+  gap: 22px 18px;
 }
 
-/* ── Individual puck wrapper ── */
+/* ── Name bar at bottom ── */
+.vis-name-bar {
+  position: relative;
+  z-index: 1;
+  flex-shrink: 0;
+  text-align: center;
+  padding: 8px 20px calc(env(safe-area-inset-bottom, 0px) + 20px);
+  font-size: 14px;
+  font-weight: 400;
+  color: rgba(0,0,0,0.42);
+  text-shadow: 0 1px 4px rgba(255,255,255,0.50);
+}
+
+/* ── Puck wrapper ── */
 .vis-puck-wrap {
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 8px;
+  gap: 7px;
   position: relative;
 }
 
-/* Wall shadow (ellipse below icon, like a 3D object casting shadow on the wall) */
-.vis-puck-wall-shadow {
+/* ── Wall shadow ── */
+.vis-puck-shadow {
   position: absolute;
-  bottom: 22px;
+  bottom: 21px;
   left: 50%;
   transform: translateX(-50%);
-  width: 76px;
-  height: 22px;
-  background: var(--glow, rgba(0,0,0,0.20));
+  width: 68px;
+  height: 18px;
+  background: var(--glow, rgba(0,0,0,0.18));
   border-radius: 50%;
-  filter: blur(10px);
-  opacity: 0.75;
+  filter: blur(9px);
+  opacity: 0.70;
   pointer-events: none;
-  z-index: -1;
+  z-index: 0;
 }
 
 /* ── Puck button ── */
 .vis-puck {
-  width: 96px;
-  height: 96px;
+  position: relative;
+  z-index: 1;
+  width: 88px;
+  height: 88px;
   border-radius: 50%;
+  border: none;
+  outline: none;
   display: flex;
   align-items: center;
   justify-content: center;
   cursor: pointer;
   -webkit-tap-highlight-color: transparent;
-  border: none;
-  outline: none;
-  transition: transform 0.14s cubic-bezier(0.34, 1.56, 0.64, 1);
-  position: relative;
-  z-index: 1;
+  will-change: transform;
+  transition: transform 0.18s cubic-bezier(0.34,1.56,0.64,1),
+              box-shadow 0.18s ease;
 }
-.vis-puck:hover {
-  transform: scale(1.06) translateY(-2px);
-}
-.vis-puck--active {
-  transform: scale(0.90) !important;
-  transition: transform 0.08s ease !important;
-}
+.vis-puck:hover { transform: scale(1.07) translateY(-3px); }
 
-/* ── Label under puck ── */
+/* ── Label ── */
 .vis-puck-label {
-  font-size: 11.5px;
+  font-size: 11px;
   font-weight: 500;
   letter-spacing: 0.01em;
   text-align: center;
   line-height: 1;
   pointer-events: none;
+  text-shadow: 0 1px 4px rgba(255,255,255,0.45);
+  max-width: 80px;
 }
 
-/* ── Feature panel (replaces the tab-bar view) ── */
+/* ══════════════════════════════════════════════════════════════════
+   FEATURE PANELS — iOS slide-over
+   ══════════════════════════════════════════════════════════════════ */
+
 .vis-feature-wrap {
   position: fixed;
   inset: 0;
   display: flex;
   flex-direction: column;
   background: #F2F2F7;
-  font-family: -apple-system, 'SF Pro Display', 'SF Pro Text', BlinkMacSystemFont, sans-serif;
+  overflow: hidden;
+  will-change: transform, opacity;
+  font-family: -apple-system, 'SF Pro Text', BlinkMacSystemFont, 'Helvetica Neue', sans-serif;
   -webkit-font-smoothing: antialiased;
+
+  /* Force light palette regardless of stored theme */
+  --studio-bg: #F2F2F7;
+  --studio-bg-deep: #E5E5EA;
+  --studio-card-bg: #FFFFFF;
+  --studio-surface: #FFFFFF;
+  --studio-text: #1C1C1E;
+  --studio-text-muted: rgba(60,60,67,0.55);
+  --studio-border: rgba(60,60,67,0.12);
+  --studio-accent: #007AFF;
+  --studio-accent-soft: rgba(0,122,255,0.10);
+  --studio-input-bg: rgba(60,60,67,0.06);
+  --studio-input-placeholder: rgba(60,60,67,0.35);
+  --ios-bg: #F2F2F7;
+  --ios-surface: #FFFFFF;
+  --ios-text: #1C1C1E;
+  color: #1C1C1E;
 }
 
 /* ── Feature header ── */
 .vis-feature-header {
+  flex-shrink: 0;
   display: flex;
   align-items: center;
   gap: 8px;
-  padding: 52px 16px 12px;
-  background: rgba(242,242,247,0.92);
+  padding: calc(env(safe-area-inset-top, 44px) + 8px) 16px 12px;
+  background: rgba(242,242,247,0.94);
   backdrop-filter: blur(20px) saturate(160%);
   -webkit-backdrop-filter: blur(20px) saturate(160%);
-  border-bottom: 0.5px solid rgba(0,0,0,0.10);
-  flex-shrink: 0;
+  border-bottom: 0.5px solid rgba(60,60,67,0.12);
   z-index: 10;
 }
 
@@ -11953,7 +12010,7 @@ html, body, #root {
 .vis-back-btn {
   display: flex;
   align-items: center;
-  gap: 4px;
+  gap: 3px;
   background: none;
   border: none;
   color: #007AFF;
@@ -11963,230 +12020,60 @@ html, body, #root {
   cursor: pointer;
   padding: 4px 8px 4px 0;
   min-height: 44px;
+  min-width: 44px;
   -webkit-tap-highlight-color: transparent;
-  white-space: nowrap;
+  flex-shrink: 0;
 }
-.vis-back-btn:active { opacity: 0.60; }
+.vis-back-btn:active { opacity: 0.55; }
 
 /* ── Feature title ── */
 .vis-feature-title {
   font-size: 17px;
   font-weight: 600;
-  color: rgba(0,0,0,0.85);
+  color: #1C1C1E;
   flex: 1;
   text-align: center;
   letter-spacing: -0.01em;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
-/* ── Scrollable feature content ── */
+/* ── Settings button placeholder ── */
+.vis-feature-settings {
+  min-width: 44px;
+  display: flex;
+  justify-content: flex-end;
+}
+
+/* ── Scrollable content ── */
 .vis-feature-content {
   flex: 1;
   overflow-y: auto;
   -webkit-overflow-scrolling: touch;
   overscroll-behavior: contain;
+  background: #F2F2F7;
 }
 
+/* ── Inner padding wrapper ── */
 .vis-feature-scroll-inner {
-  padding: 16px 16px 40px;
+  padding: 16px 16px calc(env(safe-area-inset-bottom, 0px) + 40px);
   display: flex;
   flex-direction: column;
   gap: 12px;
 }
 
-/* ── Memory recap button ── */
-.vis-memory-recap-btn {
-  width: 100%;
-  padding: 16px;
-  background: #007AFF;
-  color: #ffffff;
-  border: none;
-  border-radius: 14px;
-  font-size: 16px;
-  font-weight: 600;
-  font-family: inherit;
-  cursor: pointer;
-  box-shadow: 0 4px 16px rgba(0,122,255,0.30);
-  -webkit-tap-highlight-color: transparent;
-  margin-top: 8px;
-}
-.vis-memory-recap-btn:active { opacity: 0.80; transform: scale(0.98); }
-
-/* ═══ SWARM BUG FIXES ═══════════════════════════════════════════════════════ */
-
-/* 1. Wordle keyboard keys — 44px minimum touch target */
-.wordle-key { min-width: 36px !important; min-height: 48px !important; }
-
-/* 2. Sudoku numpad keys — 44px minimum */
-.sudoku-numpad__key { min-height: 44px !important; min-width: 36px !important; }
-
-/* 3. Game modal — allow more height on small screens */
-.game-modal__panel { max-height: 96dvh !important; }
-.game-modal__body { overflow-y: auto !important; -webkit-overflow-scrolling: touch; }
-
-/* 4. Safety contact font sizes — 13px floor */
-.safety-contact__rel  { font-size: 13px !important; }
-.safety-contact__call { font-size: 13px !important; }
-
-/* 5. Events tab top padding */
-.events-tab { padding-top: 16px !important; }
-
-/* 6. WhereAmICard address overflow */
-.where-am-i__place,
-.where-am-i__address,
-.where-am-i__city {
-  overflow: hidden !important;
-  text-overflow: ellipsis !important;
-  white-space: nowrap !important;
-}
-
-/* 7. Alert banner — never shrink */
-.alert-banner { flex-shrink: 0 !important; }
-
-/* 8. Fix 100vh → 100dvh */
-.game-modal,
-.disclaimer-overlay,
-.dash-login {
-  max-height: 100dvh !important;
-  min-height: 100dvh !important;
-}
-
-/* 9. Replace layout-triggering width transitions with transform */
-.metric-card__fill {
-  transition: transform 0.8s ease !important;
-  transform-origin: left center !important;
-}
-
-/* 10. Vis-greeting above icon grid */
-.vis-greeting { z-index: 11 !important; pointer-events: none; }
-
-/* 11. VoiceAgent — status bar replaces removed header */
-.cv2-status-bar {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 12px;
-  padding: 8px 16px 0;
-  flex-shrink: 0;
-}
-
-/* 12. FamiliarFaces — hide horizontal scrollbar */
-.familiar-faces__scroll {
-  scrollbar-width: none !important;
-}
-.familiar-faces__scroll::-webkit-scrollbar { height: 0 !important; width: 0 !important; }
-
-/* 13. FamiliarFaces initials avatar */
-.familiar-face__photo--initials {
-  display: flex !important;
-  align-items: center !important;
-  justify-content: center !important;
-  background: #E5E5EA !important;
-  color: rgba(0,0,0,0.60) !important;
-  font-size: 24px !important;
-  font-weight: 600 !important;
-  border-radius: 50% !important;
-}
-
-/* 14. Supervisor vis-feature-content must scroll */
-.vis-feature-content {
-  flex: 1 !important;
-  overflow-y: auto !important;
-  -webkit-overflow-scrolling: touch !important;
-  overscroll-behavior: contain !important;
-}
-
-/* 15. Restore semantic colors in stats tab (undo overly broad override) */
-.stats-tab [style*="color: #EF"],
-.stats-tab [style*="color: #10"],
-.stats-tab [style*="color: #F5"] { color: unset !important; }
-
-/* 16. Landscape mode — reposition icon grid */
-@media (orientation: landscape) and (max-height: 500px) {
-  .vis-greeting { top: 8px !important; }
-  .vis-time { font-size: 32px !important; }
-  .vis-date, .vis-name { display: none !important; }
-  .vis-icon-grid {
-    top: 50% !important;
-    transform: translate(-50%, -50%) scale(0.75) !important;
-    gap: 12px 10px !important;
-  }
-}
-
-/* 17. vis-feature-content needs overflow-y: auto on .studio-scroll children */
-.vis-feature-content .studio-scroll {
-  flex: unset !important;
-  overflow-y: unset !important;
-  height: auto !important;
-}
-
-/* ═══ GSAP TRANSITION SUPPORT ═══════════════════════════════════════════════ */
-.vis-feature-wrap {
-  will-change: transform, opacity;
-  overflow: hidden; /* clip during slide */
-}
-
-/* ── Home background wrapper ── */
-.vis-home-bg {
-  position: absolute;
-  inset: 0;
-  z-index: 0;
-}
-
-/* ═══ GLOBAL COLOR NORMALIZATION ════════════════════════════════════════════ */
-
-/*
- * Force light-mode palette inside every feature panel.
- * This overrides any component that was built against the old dark-mode defaults.
- */
-.vis-feature-wrap {
-  --studio-bg: #F2F2F7 !important;
-  --studio-bg-deep: #E5E5EA !important;
-  --studio-card-bg: #FFFFFF !important;
-  --studio-surface: rgba(255,255,255,0.95) !important;
-  --studio-text: #1C1C1E !important;
-  --studio-text-muted: rgba(60,60,67,0.60) !important;
-  --studio-border: rgba(60,60,67,0.12) !important;
-  --studio-accent: #007AFF !important;
-  --studio-accent-soft: rgba(0,122,255,0.10) !important;
-  --ios-bg: #F2F2F7 !important;
-  --ios-surface: #FFFFFF !important;
-  --ios-text: #1C1C1E !important;
-  background: #F2F2F7 !important;
-  color: #1C1C1E !important;
-}
-
-/* Card baseline — always white, never dark */
+/* ── Cards inside panels ── */
 .vis-feature-wrap .card,
-.vis-feature-wrap [class*="card"],
-.vis-feature-wrap [class*="-card"],
-.vis-feature-wrap [class*="__card"],
-.vis-feature-wrap [class*="panel"],
-.vis-feature-wrap [class*="-panel"] {
-  background: var(--studio-card-bg, #FFFFFF) !important;
-  color: var(--studio-text, #1C1C1E) !important;
-  border-color: var(--studio-border, rgba(60,60,67,0.12)) !important;
+.vis-feature-wrap .studio-card {
+  background: #FFFFFF !important;
+  color: #1C1C1E !important;
+  border-radius: 14px !important;
+  box-shadow: 0 1px 4px rgba(0,0,0,0.07), 0 0 0 0.5px rgba(60,60,67,0.10) !important;
 }
 
-/* Studio section headers — consistent weight + spacing */
-.vis-feature-wrap .studio-section__title,
-.vis-feature-wrap .studio-page-title {
-  font-size: 13px !important;
-  font-weight: 600 !important;
-  letter-spacing: 0.04em !important;
-  text-transform: uppercase !important;
-  color: rgba(60,60,67,0.45) !important;
-  margin-bottom: 8px !important;
-}
-
-/* Muted text always consistent */
-.vis-feature-wrap .studio-text-muted,
-.vis-feature-wrap [class*="-muted"],
-.vis-feature-wrap [class*="__muted"] {
-  color: rgba(60,60,67,0.55) !important;
-}
-
-/* Inputs light */
-.vis-feature-wrap input,
+/* ── Inputs inside panels ── */
+.vis-feature-wrap input:not([type=range]),
 .vis-feature-wrap textarea,
 .vis-feature-wrap select {
   background: rgba(60,60,67,0.06) !important;
@@ -12198,65 +12085,114 @@ html, body, #root {
   color: rgba(60,60,67,0.35) !important;
 }
 
-/* Keep accent buttons blue */
-.vis-feature-wrap .studio-btn-primary,
-.vis-feature-wrap [class*="btn--primary"],
-.vis-feature-wrap [class*="btn-primary"] {
-  background: #007AFF !important;
-  color: #FFFFFF !important;
-  border-color: #007AFF !important;
+/* ── Section labels ── */
+.vis-feature-wrap .studio-section__title,
+.vis-feature-wrap .studio-page-title {
+  font-size: 12px !important;
+  font-weight: 600 !important;
+  letter-spacing: 0.04em !important;
+  text-transform: uppercase !important;
+  color: rgba(60,60,67,0.44) !important;
 }
 
-/* Kill any remaining dark backgrounds that sneak through */
-.vis-feature-wrap [style*="background: #1C"],
-.vis-feature-wrap [style*="background:#1C"],
-.vis-feature-wrap [style*="background: #0A"],
-.vis-feature-wrap [style*="background:#0A"],
-.vis-feature-wrap [style*="background: rgb(28"],
-.vis-feature-wrap [style*="background: rgb(10"] {
-  background: #FFFFFF !important;
-  color: #1C1C1E !important;
+/* ── Alert banner ── */
+.alert-banner {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 16px;
+  background: rgba(255,214,10,0.15);
+  border-bottom: 0.5px solid rgba(60,60,67,0.10);
 }
 
-/* ─── Card radius inside panels ─── */
-.vis-feature-content .card,
-.vis-feature-content .studio-card {
-  border-radius: 14px !important;
-}
-
-/* ─── Section label style for feature panels ─── */
-.vis-section-label {
-  font-size: 12px;
+/* ── Memory recap button ── */
+.vis-memory-recap-btn {
+  width: 100%;
+  padding: 15px;
+  background: #007AFF;
+  color: #FFFFFF;
+  border: none;
+  border-radius: 14px;
+  font-size: 16px;
   font-weight: 600;
-  letter-spacing: 0.05em;
-  text-transform: uppercase;
-  color: rgba(60,60,67,0.42);
-  padding: 0 4px;
-  margin-top: 8px;
-  margin-bottom: 4px;
+  font-family: inherit;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+  transition: opacity 0.12s ease, transform 0.12s ease;
+}
+.vis-memory-recap-btn:active { opacity: 0.80; transform: scale(0.98); }
+
+/* ═══════════════════════════════════════════════════════════════════
+   BUG FIXES (swarm audit)
+   ═══════════════════════════════════════════════════════════════════ */
+
+/* Touch targets */
+.wordle-key      { min-width: 36px !important; min-height: 48px !important; }
+.sudoku-numpad__key { min-height: 44px !important; min-width: 36px !important; }
+
+/* Game modal */
+.game-modal__panel { max-height: 96dvh !important; }
+.game-modal__body  { overflow-y: auto !important; }
+
+/* Safety contact fonts */
+.safety-contact__rel  { font-size: 13px !important; }
+.safety-contact__call { font-size: 13px !important; }
+
+/* Events tab spacing */
+.events-tab { padding-top: 16px !important; }
+
+/* WhereAmICard text overflow */
+.where-am-i__place,
+.where-am-i__address,
+.where-am-i__city {
+  overflow: hidden !important;
+  text-overflow: ellipsis !important;
+  white-space: nowrap !important;
 }
 
-/* ─── Consistent card shadow inside panels ─── */
-.vis-feature-wrap .card,
-.vis-feature-wrap .studio-card {
-  box-shadow: 0 1px 6px rgba(0,0,0,0.07), 0 0 0 0.5px rgba(60,60,67,0.10) !important;
+/* dvh fixes */
+.game-modal, .disclaimer-overlay, .dash-login {
+  max-height: 100dvh !important;
+  min-height: 100dvh !important;
 }
 
-/* ─── Pull-to-scroll bounce feel ─── */
-.vis-feature-content {
-  scroll-behavior: smooth;
+/* FamiliarFaces scrollbar hidden */
+.familiar-faces__scroll { scrollbar-width: none !important; }
+.familiar-faces__scroll::-webkit-scrollbar { height: 0 !important; }
+
+/* FamiliarFaces initials avatar */
+.familiar-face__photo--initials {
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  background: #E5E5EA !important;
+  color: rgba(0,0,0,0.60) !important;
+  font-size: 24px !important;
+  font-weight: 600 !important;
+  border-radius: 50% !important;
 }
 
-/* ─── Puck hover — CSS handles hover, GSAP handles press ─── */
-.vis-puck {
-  transition: transform 0.18s cubic-bezier(0.34, 1.56, 0.64, 1),
-              box-shadow 0.18s ease;
+/* VoiceAgent slim status bar */
+.cv2-status-bar {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  padding: 8px 16px 0;
+  flex-shrink: 0;
 }
-.vis-puck:hover {
-  transform: scale(1.07) translateY(-3px);
-}
-.vis-puck--active {
-  /* GSAP overrides inline, but fallback for non-JS */
-  transform: scale(0.88) !important;
-  transition: transform 0.10s ease !important;
+
+/* Stats grid 2-col */
+.stats-tab .grid-4 { grid-template-columns: repeat(2,1fr) !important; }
+
+/* Landscape reflow */
+@media (orientation: landscape) and (max-height: 500px) {
+  .vis-time { font-size: 28px !important; }
+  .vis-date { display: none !important; }
+  .vis-icon-grid {
+    grid-template-columns: repeat(5, 72px) !important;
+    gap: 14px 10px !important;
+  }
+  .vis-puck { width: 72px !important; height: 72px !important; }
 }
