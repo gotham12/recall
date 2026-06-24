@@ -1,4 +1,5 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
+import { gsap } from 'gsap';
 import { useLiveQuery } from 'dexie-react-hooks';
 import { useAppStore } from '../store/appStore';
 import { db, type User } from '../db/db';
@@ -36,15 +37,32 @@ export default function LoginScreen() {
   const [showOnboarding, setShowOnboarding] = useState(false);
   const [patientPin, setPatientPin] = useState('');
   const [pinError, setPinError] = useState('');
-  const [visible, setVisible] = useState(false);
+  const containerRef = useRef<HTMLDivElement>(null);
+  const stepRef = useRef<HTMLDivElement>(null);
 
   const patients = useLiveQuery(() => db.users.toArray(), []) ?? [];
 
+  // Entrance animation
   useEffect(() => {
     void seedIfEmpty();
-    const t = setTimeout(() => setVisible(true), 60);
-    return () => clearTimeout(t);
+    if (!containerRef.current) return;
+    const tl = gsap.timeline();
+    tl.from('.dash-login__brand', { y: -28, opacity: 0, duration: 0.7, ease: 'power3.out' });
+    tl.from('.dash-login__card', { y: 40, opacity: 0, duration: 0.6, ease: 'back.out(1.6)' }, 0.15);
+    tl.from('.dash-btn', { y: 16, opacity: 0, duration: 0.45, stagger: 0.07, ease: 'power2.out' }, 0.35);
   }, []);
+
+  // Step change animation (when role/patient changes)
+  const animateStepIn = () => {
+    if (!stepRef.current) return;
+    gsap.fromTo(stepRef.current,
+      { x: 40, opacity: 0 },
+      { x: 0, opacity: 1, duration: 0.32, ease: 'power3.out' }
+    );
+    gsap.from(stepRef.current.querySelectorAll('.dash-btn, .dash-input'),
+      { y: 12, opacity: 0, duration: 0.32, stagger: 0.06, ease: 'power2.out', delay: 0.08 }
+    );
+  };
 
   const enterApp = (target: 'patient' | 'supervisor') => setScreen(target);
 
@@ -78,7 +96,7 @@ export default function LoginScreen() {
   }
 
   return (
-    <div className="dash-login" style={{ opacity: visible ? 1 : 0, transform: visible ? 'none' : 'translateY(12px)', transition: 'opacity 0.5s ease, transform 0.5s ease' }}>
+    <div ref={containerRef} className="dash-login">
       {/* Brand */}
       <div className="dash-login__brand">
         <div className="dash-login__icon-wrap">
@@ -91,18 +109,18 @@ export default function LoginScreen() {
       {/* Card */}
       <div className="dash-login__card">
         {role === null && (
-          <div className="dash-login__step">
+          <div ref={stepRef} className="dash-login__step">
             <p className="dash-login__eyebrow">Welcome back</p>
             <p className="dash-login__title">Who's using Recall?</p>
             <div className="dash-login__actions">
-              <button className="dash-btn dash-btn--primary" onClick={() => { setRole('patient'); }}>
+              <button className="dash-btn dash-btn--primary" onClick={() => { setRole('patient'); setTimeout(animateStepIn, 10); }}>
                 <span className="dash-btn__icon-wrap dash-btn__icon-wrap--amber"><StudioIcon name="user" size={20} /></span>
                 <span className="dash-btn__body">
                   <span className="dash-btn__label">Patient</span>
                   <span className="dash-btn__hint">Daily care & reminders</span>
                 </span>
               </button>
-              <button className="dash-btn dash-btn--secondary" onClick={() => { setRole('supervisor'); }}>
+              <button className="dash-btn dash-btn--secondary" onClick={() => { setRole('supervisor'); setTimeout(animateStepIn, 10); }}>
                 <span className="dash-btn__icon-wrap dash-btn__icon-wrap--teal"><StudioIcon name="profile" size={20} /></span>
                 <span className="dash-btn__body">
                   <span className="dash-btn__label">Supervisor</span>

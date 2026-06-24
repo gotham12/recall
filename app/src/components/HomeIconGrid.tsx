@@ -1,4 +1,5 @@
-import { useState } from 'react';
+import { useState, useRef, useEffect } from 'react';
+import { gsap } from 'gsap';
 import { useAppStore } from '../store/appStore';
 
 interface IconDef {
@@ -29,7 +30,6 @@ function IcoMeds() {
       <rect x="13" y="22" width="38" height="20" rx="10" fill="rgba(255,255,255,0.94)" />
       <clipPath id="pR"><rect x="32" y="22" width="19" height="20" rx="10" /></clipPath>
       <rect x="32" y="22" width="19" height="20" rx="10" fill="rgba(255,255,255,0.40)" clipPath="url(#pR)" />
-      <line x1="32" y1="22" x2="32" y2="42" stroke="rgba(249,115,22,0.30)" strokeWidth="0.75" />
       <line x1="20.5" y1="32" x2="27.5" y2="32" stroke="#F97316" strokeWidth="2.5" strokeLinecap="round" />
       <line x1="24" y1="28.5" x2="24" y2="35.5" stroke="#F97316" strokeWidth="2.5" strokeLinecap="round" />
     </svg>
@@ -186,25 +186,25 @@ function IcoSwitch() {
 // ─── Icon definitions ─────────────────────────────────────────────────────────
 
 export const PATIENT_ICONS: IconDef[] = [
-  { id: 'voice',   label: 'Clara',   bg: '#2563EB', bgDark: '#1D4ED8', glow: 'rgba(37,99,235,0.44)',   icon: IcoClara },
-  { id: 'meds',    label: 'Meds',    bg: '#EA6C00', bgDark: '#C45C00', glow: 'rgba(234,108,0,0.44)',   icon: IcoMeds },
-  { id: 'games',   label: 'Games',   bg: '#7C3AED', bgDark: '#6D28D9', glow: 'rgba(124,58,237,0.44)',  icon: IcoGames },
-  { id: 'routine', label: 'Routine', bg: '#16A34A', bgDark: '#15803D', glow: 'rgba(22,163,74,0.44)',   icon: IcoRoutine },
-  { id: 'events',  label: 'Today',   bg: '#FFFFFF', bgDark: '#F5F5F5', glow: 'rgba(0,0,0,0.16)',       icon: IcoToday },
-  { id: 'memory',  label: 'Memory',  bg: '#DB2777', bgDark: '#BE185D', glow: 'rgba(219,39,119,0.44)',  icon: IcoMemory },
-  { id: 'safety',  label: 'Safety',  bg: '#DC2626', bgDark: '#B91C1C', glow: 'rgba(220,38,38,0.44)',   icon: IcoSafety },
-  { id: 'faces',   label: 'Faces',   bg: '#0891B2', bgDark: '#0E7490', glow: 'rgba(8,145,178,0.44)',   icon: IcoFaces },
-  { id: '__switch', label: 'Switch',  bg: '#374151', bgDark: '#1F2937', glow: 'rgba(55,65,81,0.38)',    icon: IcoSwitch },
+  { id: 'voice',    label: 'Clara',   bg: '#2563EB', bgDark: '#1D4ED8', glow: 'rgba(37,99,235,0.50)',   icon: IcoClara },
+  { id: 'meds',     label: 'Meds',    bg: '#EA6C00', bgDark: '#C45C00', glow: 'rgba(234,108,0,0.50)',   icon: IcoMeds },
+  { id: 'games',    label: 'Games',   bg: '#7C3AED', bgDark: '#6D28D9', glow: 'rgba(124,58,237,0.50)',  icon: IcoGames },
+  { id: 'routine',  label: 'Routine', bg: '#16A34A', bgDark: '#15803D', glow: 'rgba(22,163,74,0.50)',   icon: IcoRoutine },
+  { id: 'events',   label: 'Today',   bg: '#FFFFFF', bgDark: '#F5F5F5', glow: 'rgba(0,0,0,0.16)',       icon: IcoToday },
+  { id: 'memory',   label: 'Memory',  bg: '#DB2777', bgDark: '#BE185D', glow: 'rgba(219,39,119,0.50)',  icon: IcoMemory },
+  { id: 'safety',   label: 'Safety',  bg: '#DC2626', bgDark: '#B91C1C', glow: 'rgba(220,38,38,0.50)',   icon: IcoSafety },
+  { id: 'faces',    label: 'Faces',   bg: '#0891B2', bgDark: '#0E7490', glow: 'rgba(8,145,178,0.50)',   icon: IcoFaces },
+  { id: '__switch', label: 'Switch',  bg: '#374151', bgDark: '#1F2937', glow: 'rgba(55,65,81,0.40)',    icon: IcoSwitch },
 ];
 
 export const SUPERVISOR_ICONS: IconDef[] = [
-  { id: 'home',      label: 'Overview', bg: '#1D4ED8', bgDark: '#1E40AF', glow: 'rgba(29,78,216,0.44)',  icon: IcoOverview },
-  { id: 'events',    label: 'Events',   bg: '#DC2626', bgDark: '#B91C1C', glow: 'rgba(220,38,38,0.44)', icon: IcoAlerts },
-  { id: 'medications', label: 'Meds',   bg: '#EA6C00', bgDark: '#C45C00', glow: 'rgba(234,108,0,0.44)', icon: IcoMeds },
-  { id: 'routine',   label: 'Routine',  bg: '#16A34A', bgDark: '#15803D', glow: 'rgba(22,163,74,0.44)', icon: IcoRoutineMgr },
-  { id: 'stats',     label: 'Stats',    bg: '#7C3AED', bgDark: '#6D28D9', glow: 'rgba(124,58,237,0.44)', icon: IcoStats },
-  { id: 'journal',   label: 'Journal',  bg: '#0E7490', bgDark: '#155E75', glow: 'rgba(14,116,144,0.44)', icon: IcoJournal },
-  { id: '__switch',  label: 'Patient',  bg: '#374151', bgDark: '#1F2937', glow: 'rgba(55,65,81,0.38)',   icon: IcoSwitch },
+  { id: 'home',        label: 'Overview', bg: '#1D4ED8', bgDark: '#1E40AF', glow: 'rgba(29,78,216,0.50)',  icon: IcoOverview },
+  { id: 'events',      label: 'Events',   bg: '#DC2626', bgDark: '#B91C1C', glow: 'rgba(220,38,38,0.50)', icon: IcoAlerts },
+  { id: 'medications', label: 'Meds',     bg: '#EA6C00', bgDark: '#C45C00', glow: 'rgba(234,108,0,0.50)', icon: IcoMeds },
+  { id: 'routine',     label: 'Routine',  bg: '#16A34A', bgDark: '#15803D', glow: 'rgba(22,163,74,0.50)', icon: IcoRoutineMgr },
+  { id: 'stats',       label: 'Stats',    bg: '#7C3AED', bgDark: '#6D28D9', glow: 'rgba(124,58,237,0.50)', icon: IcoStats },
+  { id: 'journal',     label: 'Journal',  bg: '#0E7490', bgDark: '#155E75', glow: 'rgba(14,116,144,0.50)', icon: IcoJournal },
+  { id: '__switch',    label: 'Patient',  bg: '#374151', bgDark: '#1F2937', glow: 'rgba(55,65,81,0.40)',   icon: IcoSwitch },
 ];
 
 // ─── Room background SVG ──────────────────────────────────────────────────────
@@ -241,10 +241,13 @@ function RoomBackground() {
       <polygon points="204,0 228,0 218,580 196,580" fill="url(#cnrR)" />
 
       {/* Window light strips on right wall */}
-      <polygon points="210,0  390,0  390,55  210,70"  fill="rgba(255,255,255,0.11)" />
-      <polygon points="210,80 390,30 390,110 210,160" fill="rgba(255,255,255,0.08)" />
+      <polygon points="210,0  390,0  390,55  210,70"  fill="rgba(255,255,255,0.13)" />
+      <polygon points="210,80 390,30 390,110 210,160" fill="rgba(255,255,255,0.09)" />
       <polygon points="210,180 390,130 390,220 210,270" fill="rgba(255,255,255,0.07)" />
       <polygon points="210,290 390,240 390,330 210,380" fill="rgba(255,255,255,0.06)" />
+
+      {/* Diagonal shadow from window (adds depth) */}
+      <polygon points="210,0 240,0 220,120 210,120" fill="rgba(0,0,0,0.018)" />
 
       {/* Floor */}
       <linearGradient id="flr" x1="0%" y1="0%" x2="0%" y2="100%">
@@ -254,43 +257,32 @@ function RoomBackground() {
       <polygon points="0,780 390,780 390,600 196,580 0,580" fill="url(#flr)" />
 
       {/* Floor-wall crease shadow */}
-      <polygon points="0,580 196,580 204,590 0,590" fill="rgba(0,0,0,0.06)" />
-      <polygon points="196,580 390,600 390,608 196,588" fill="rgba(0,0,0,0.05)" />
+      <polygon points="0,580 196,580 204,590 0,590" fill="rgba(0,0,0,0.07)" />
+      <polygon points="196,580 390,600 390,608 196,588" fill="rgba(0,0,0,0.06)" />
 
       {/* ── Chair (bottom-left) ── */}
-      {/* Back rest */}
-      <rect x="8" y="498" width="88" height="70" rx="6" fill="#F4F3F1" />
-      <rect x="14" y="504" width="76" height="58" rx="4" fill="#F8F7F5" />
-      {/* Seat */}
-      <rect x="4" y="560" width="96" height="26" rx="5" fill="#F4F3F1" />
-      {/* Arms */}
-      <rect x="4" y="520" width="10" height="46" rx="5" fill="#EEEEED" />
-      <rect x="90" y="520" width="10" height="46" rx="5" fill="#EEEEED" />
-      {/* Legs */}
-      <rect x="12"  y="586" width="8" height="36" rx="4" fill="#E6E5E3" />
-      <rect x="84"  y="586" width="8" height="36" rx="4" fill="#E6E5E3" />
-      {/* Chair shadow */}
-      <ellipse cx="52" cy="622" rx="44" ry="6" fill="rgba(0,0,0,0.06)" />
+      <rect x="8"  y="498" width="88" height="70" rx="6"  fill="#F4F3F1" />
+      <rect x="14" y="504" width="76" height="58" rx="4"  fill="#F8F7F5" />
+      <rect x="4"  y="560" width="96" height="26" rx="5"  fill="#F4F3F1" />
+      <rect x="4"  y="520" width="10" height="46" rx="5"  fill="#EEEEED" />
+      <rect x="90" y="520" width="10" height="46" rx="5"  fill="#EEEEED" />
+      <rect x="12" y="586" width="8"  height="36" rx="4"  fill="#E6E5E3" />
+      <rect x="84" y="586" width="8"  height="36" rx="4"  fill="#E6E5E3" />
+      <ellipse cx="52" cy="622" rx="44" ry="6" fill="rgba(0,0,0,0.07)" />
 
       {/* ── Sofa / bench (center-bottom) ── */}
-      {/* Back cushion */}
       <rect x="110" y="528" width="220" height="52" rx="8" fill="#EFEEEC" />
       <line x1="220" y1="528" x2="220" y2="580" stroke="rgba(0,0,0,0.04)" strokeWidth="1" />
-      {/* Seat */}
       <rect x="106" y="575" width="228" height="32" rx="6" fill="#F0EFED" />
-      {/* Arms */}
-      <rect x="106" y="540" width="14" height="67" rx="7" fill="#E8E7E5" />
-      <rect x="320" y="540" width="14" height="67" rx="7" fill="#E8E7E5" />
-      {/* Legs */}
-      <rect x="120" y="607" width="8" height="22" rx="4" fill="#E0DFDD" />
-      <rect x="212" y="607" width="8" height="22" rx="4" fill="#E0DFDD" />
-      <rect x="310" y="607" width="8" height="22" rx="4" fill="#E0DFDD" />
-      {/* Sofa shadow */}
-      <ellipse cx="220" cy="629" rx="110" ry="7" fill="rgba(0,0,0,0.06)" />
+      <rect x="106" y="540" width="14"  height="67" rx="7" fill="#E8E7E5" />
+      <rect x="320" y="540" width="14"  height="67" rx="7" fill="#E8E7E5" />
+      <rect x="120" y="607" width="8"   height="22" rx="4" fill="#E0DFDD" />
+      <rect x="212" y="607" width="8"   height="22" rx="4" fill="#E0DFDD" />
+      <rect x="310" y="607" width="8"   height="22" rx="4" fill="#E0DFDD" />
+      <ellipse cx="220" cy="629" rx="110" ry="7" fill="rgba(0,0,0,0.07)" />
 
-      {/* Baseboard left wall */}
-      <rect x="0" y="572" width="196" height="8" fill="#E4E3E1" />
-      {/* Baseboard right wall */}
+      {/* Baseboards */}
+      <rect x="0"   y="572" width="196" height="8" fill="#E4E3E1" />
       <polygon points="196,572 390,592 390,600 196,580" fill="#DCDBD9" />
     </svg>
   );
@@ -298,54 +290,76 @@ function RoomBackground() {
 
 // ─── Icon puck ────────────────────────────────────────────────────────────────
 
-function IconPuck({ def, onTap }: { def: IconDef; onTap: () => void }) {
+function lighten(hex: string, amount: number): string {
+  const n = parseInt(hex.slice(1), 16);
+  const r = Math.min(255, Math.round(((n >> 16) & 0xff) + (255 - ((n >> 16) & 0xff)) * amount));
+  const g = Math.min(255, Math.round(((n >> 8)  & 0xff) + (255 - ((n >> 8)  & 0xff)) * amount));
+  const b = Math.min(255, Math.round((n & 0xff)         + (255 - (n & 0xff))          * amount));
+  return `#${r.toString(16).padStart(2,'0')}${g.toString(16).padStart(2,'0')}${b.toString(16).padStart(2,'0')}`;
+}
+
+function IconPuck({ def, onTap, index }: { def: IconDef; onTap: () => void; index: number }) {
   const [active, setActive] = useState(false);
+  const btnRef = useRef<HTMLButtonElement>(null);
 
   const isLight = def.bg === '#FFFFFF' || def.bg === '#F5F5F5';
   const gradBg = isLight
     ? `radial-gradient(circle at 38% 28%, #fff 0%, #F5F5F3 70%, #EEEEED 100%)`
-    : `radial-gradient(circle at 38% 28%, ${lighten(def.bg, 0.28)} 0%, ${def.bg} 55%, ${def.bgDark} 100%)`;
+    : `radial-gradient(circle at 38% 28%, ${lighten(def.bg, 0.30)} 0%, ${def.bg} 55%, ${def.bgDark} 100%)`;
+
+  // GSAP spring press
+  const handleDown = () => {
+    setActive(true);
+    if (btnRef.current) {
+      gsap.to(btnRef.current, { scale: 0.88, duration: 0.12, ease: 'power2.out', overwrite: true });
+    }
+  };
+  const handleUp = () => {
+    setActive(false);
+    if (btnRef.current) {
+      gsap.to(btnRef.current, { scale: 1, duration: 0.5, ease: 'elastic.out(1.2, 0.5)', overwrite: true });
+    }
+    onTap();
+  };
+  const handleCancel = () => {
+    setActive(false);
+    if (btnRef.current) {
+      gsap.to(btnRef.current, { scale: 1, duration: 0.35, ease: 'back.out(2)', overwrite: true });
+    }
+  };
 
   return (
-    <div className="vis-puck-wrap">
-      {/* Wall shadow (cast behind/below the icon like a 3D object on a wall) */}
+    <div className="vis-puck-wrap" data-puck-index={index}>
       <div className="vis-puck-wall-shadow" style={{ '--glow': def.glow } as React.CSSProperties} />
-
       <button
+        ref={btnRef}
         type="button"
         aria-label={def.label}
         className={`vis-puck${active ? ' vis-puck--active' : ''}`}
         style={{
           background: gradBg,
           boxShadow: `
-            inset 0 2px 0 rgba(255,255,255,${isLight ? '0.90' : '0.28'}),
-            inset 0 -1.5px 0 rgba(0,0,0,${isLight ? '0.08' : '0.18'}),
-            0 12px 36px ${def.glow},
-            0 4px 12px rgba(0,0,0,0.18)
+            inset 0 2px 0 rgba(255,255,255,${isLight ? '0.90' : '0.30'}),
+            inset 0 -2px 0 rgba(0,0,0,${isLight ? '0.08' : '0.20'}),
+            0 16px 40px ${def.glow},
+            0 4px 16px rgba(0,0,0,0.20),
+            0 1px 2px rgba(0,0,0,0.10)
           `,
           border: isLight ? '0.5px solid rgba(0,0,0,0.10)' : 'none',
+          willChange: 'transform',
         }}
-        onPointerDown={() => setActive(true)}
-        onPointerUp={() => { setActive(false); onTap(); }}
-        onPointerLeave={() => setActive(false)}
-        onPointerCancel={() => setActive(false)}
+        onPointerDown={handleDown}
+        onPointerUp={handleUp}
+        onPointerLeave={handleCancel}
+        onPointerCancel={handleCancel}
       >
         <def.icon />
       </button>
-
       <span className="vis-puck-label" style={{ color: isLight ? 'rgba(0,0,0,0.60)' : 'rgba(0,0,0,0.52)' }}>
         {def.label}
       </span>
     </div>
   );
-}
-
-function lighten(hex: string, amount: number): string {
-  const n = parseInt(hex.slice(1), 16);
-  const r = Math.min(255, Math.round(((n >> 16) & 0xff) + (255 - ((n >> 16) & 0xff)) * amount));
-  const g = Math.min(255, Math.round(((n >> 8) & 0xff) + (255 - ((n >> 8) & 0xff)) * amount));
-  const b = Math.min(255, Math.round((n & 0xff) + (255 - (n & 0xff)) * amount));
-  return `#${r.toString(16).padStart(2, '0')}${g.toString(16).padStart(2, '0')}${b.toString(16).padStart(2, '0')}`;
 }
 
 // ─── Main component ───────────────────────────────────────────────────────────
@@ -359,6 +373,7 @@ interface HomeIconGridProps {
 
 export default function HomeIconGrid({ role, userName, onSelect, onSwitchRole }: HomeIconGridProps) {
   const icons = role === 'patient' ? PATIENT_ICONS : SUPERVISOR_ICONS;
+  const containerRef = useRef<HTMLDivElement>(null);
 
   const handleTap = (id: string) => {
     if (id === '__switch') { onSwitchRole(); return; }
@@ -369,26 +384,65 @@ export default function HomeIconGrid({ role, userName, onSelect, onSwitchRole }:
   const timeStr = now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: false });
   const dateStr = now.toLocaleDateString([], { weekday: 'long', month: 'long', day: 'numeric' });
 
+  // ─── GSAP entrance animations ───────────────────────────────────────────────
+  useEffect(() => {
+    if (!containerRef.current) return;
+    const ctx = gsap.context(() => {
+      const tl = gsap.timeline({ defaults: { ease: 'power3.out' } });
+
+      // Room fades in
+      tl.from('.vis-home-bg', { opacity: 0, duration: 0.6 }, 0);
+
+      // Clock drops in from above
+      tl.from('.vis-greeting', { y: -40, opacity: 0, duration: 0.7 }, 0.1);
+
+      // Role badge slides from right
+      tl.from('.vis-role-badge', { x: 24, opacity: 0, duration: 0.5 }, 0.25);
+
+      // Pucks stagger up with spring
+      tl.from('.vis-puck-wrap', {
+        y: 70,
+        opacity: 0,
+        scale: 0.65,
+        duration: 0.65,
+        stagger: { amount: 0.45, from: 'start' },
+        ease: 'back.out(1.8)',
+      }, 0.30);
+
+      // Shadow blobs stagger in slightly after pucks
+      tl.from('.vis-puck-wall-shadow', {
+        opacity: 0,
+        scaleX: 0.3,
+        duration: 0.45,
+        stagger: { amount: 0.35, from: 'start' },
+      }, 0.55);
+    }, containerRef);
+
+    return () => ctx.revert();
+  }, [role]);
+
   return (
-    <div className="vis-home" role="main" aria-label="Home">
-      <RoomBackground />
+    <div ref={containerRef} className="vis-home" role="main" aria-label="Home">
+      <div className="vis-home-bg">
+        <RoomBackground />
+      </div>
 
       {/* Time + greeting */}
       <div className="vis-greeting">
         <div className="vis-time">{timeStr}</div>
         <div className="vis-date">{dateStr}</div>
-        {userName && <div className="vis-name">{userName}</div>}
+        {userName && <div className="vis-name">Hello, {userName}</div>}
       </div>
 
-      {/* Role badge top-right */}
+      {/* Role badge */}
       <div className="vis-role-badge">
         <span>{role === 'patient' ? 'Patient' : 'Supervisor'}</span>
       </div>
 
       {/* Icon grid */}
       <div className="vis-icon-grid">
-        {icons.map((icon) => (
-          <IconPuck key={icon.id} def={icon} onTap={() => handleTap(icon.id)} />
+        {icons.map((icon, i) => (
+          <IconPuck key={icon.id} def={icon} index={i} onTap={() => handleTap(icon.id)} />
         ))}
       </div>
     </div>

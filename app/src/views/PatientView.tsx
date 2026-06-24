@@ -1,4 +1,5 @@
-import { useState } from 'react';
+import { useState, useRef, useEffect } from 'react';
+import { gsap } from 'gsap';
 import { useLiveQuery } from 'dexie-react-hooks';
 import StateReconCard from '../components/StateReconCard';
 import VoiceAgent from '../components/VoiceAgent';
@@ -67,6 +68,7 @@ export default function PatientView() {
   const { user, acseScore, demoMode, setDemoMode, triggerMemoryRecap } = useAppStore();
   const { recordNavigation } = useACSE();
   const setScreen = useAppStore((s) => s.setScreen);
+  const panelRef = useRef<HTMLDivElement>(null);
 
   const events = useLiveQuery<Event[]>(
     () => user?.id ? db.events.where('userId').equals(user.id).sortBy('timestamp') : Promise.resolve([]),
@@ -75,8 +77,27 @@ export default function PatientView() {
 
   const firstName = user?.name?.split(' ')[0] ?? 'there';
 
+  // Animate panel in when it mounts
+  useEffect(() => {
+    if (!panelRef.current || !activeFeature) return;
+    gsap.fromTo(panelRef.current,
+      { x: '100%', opacity: 0.6 },
+      { x: '0%', opacity: 1, duration: 0.36, ease: 'power3.out' }
+    );
+  }, [activeFeature]);
+
   const openFeature = (id: string) => { recordNavigation(); setActiveFeature(id); };
-  const goHome = () => setActiveFeature(null);
+  const goHome = () => {
+    if (panelRef.current) {
+      gsap.to(panelRef.current, {
+        x: '100%', opacity: 0.6,
+        duration: 0.28, ease: 'power2.in',
+        onComplete: () => setActiveFeature(null),
+      });
+    } else {
+      setActiveFeature(null);
+    }
+  };
 
   // ── visionOS home grid ──────────────────────────────────────────────────────
   if (!activeFeature) {
@@ -102,7 +123,7 @@ export default function PatientView() {
 
   // ── Feature panel ────────────────────────────────────────────────────────────
   return (
-    <div className="vis-feature-wrap">
+    <div ref={panelRef} className="vis-feature-wrap">
       <div className="vis-feature-header">
         <button className="vis-back-btn" onClick={goHome} aria-label="Back to home">
           <svg viewBox="0 0 24 24" fill="none" width="20" height="20">
