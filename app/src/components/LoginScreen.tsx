@@ -9,21 +9,6 @@ import { loadUserSession } from '../lib/session';
 import StudioIcon from './StudioIcon';
 import OnboardingWizard from './OnboardingWizard';
 
-function GlassOrbs({ small = false }: { small?: boolean }) {
-  return (
-    <div className={`lg-login-orbs ${small ? 'lg-login-orbs--small' : ''}`} aria-hidden>
-      <div className="lg-login-orb lg-login-orb--1">
-        <div className="lg-login-orb__shine" />
-      </div>
-      <div className="lg-login-orb lg-login-orb--2">
-        <div className="lg-login-orb__shine" />
-      </div>
-      <div className="lg-login-orb lg-login-orb--3">
-        <div className="lg-login-orb__shine" />
-      </div>
-    </div>
-  );
-}
 
 type Role = 'patient' | 'supervisor' | null;
 

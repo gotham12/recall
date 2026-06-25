@@ -16,7 +16,6 @@ import SettingsSheet from '../components/SettingsSheet';
 import MemoryPhotoRecap from '../components/MemoryPhotoRecap';
 import RoutineChecklist from '../components/RoutineChecklist';
 import GameHub from '../components/games/GameHub';
-import { markGameRoutineComplete } from '../components/RoutineChecklist';
 import GoldenPathDemo from '../components/GoldenPathDemo';
 import StudioIcon from '../components/StudioIcon';
 
@@ -435,41 +434,3 @@ export default function PatientView() {
   );
 }
 
-// ─── EventsTab (inline, used only in panel) ─────────────────────────────────
-function EventsTab({ events }: { events: Event[] }) {
-  const now = new Date();
-  const upcoming = events.filter(e => new Date(e.timestamp) > now).sort((a,b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime());
-  const past = events.filter(e => new Date(e.timestamp) <= now).reverse().slice(0,5);
-  return (
-    <div className="panel-scroll-inner">
-      {upcoming.length > 0 && (
-        <>
-          <p className="panel-section-label">Upcoming</p>
-          {upcoming.map(ev => (
-            <div key={ev.id} className="event-row card">
-              <p style={{ fontWeight: 600, fontSize: 15 }}>{ev.title}</p>
-              <p style={{ fontSize: 13, color: 'rgba(60,60,67,0.55)', marginTop: 2 }}>
-                {new Date(ev.timestamp).toLocaleString([], { weekday: 'short', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}
-              </p>
-            </div>
-          ))}
-        </>
-      )}
-      {past.length > 0 && (
-        <>
-          <p className="panel-section-label" style={{ marginTop: 12 }}>Recent</p>
-          {past.map(ev => (
-            <div key={ev.id} className="event-row card" style={{ opacity: 0.6 }}>
-              <p style={{ fontWeight: 500, fontSize: 15 }}>{ev.title}</p>
-            </div>
-          ))}
-        </>
-      )}
-      {events.length === 0 && <p style={{ color: 'rgba(60,60,67,0.45)', textAlign: 'center', padding: '32px 0' }}>No events yet</p>}
-    </div>
-  );
-}
-
-function GamesTab() {
-  return <GameHub />;
-}

@@ -13,7 +13,6 @@ import { addMedication, removeMedication, replaceMedication } from '../lib/medic
 import type { Medication } from '../db/db';
 import StormRadar from '../components/StormRadar';
 import CareJournal from '../components/CareJournal';
-import CareCommandCenter from '../components/supervisor/CareCommandCenter';
 import ACSESignalAudit from '../components/supervisor/ACSESignalAudit';
 import LiveActivityFeed from '../components/supervisor/LiveActivityFeed';
 import MedicationAdherence from '../components/supervisor/MedicationAdherence';
@@ -36,10 +35,11 @@ function IcoInsights() {
 }
 
 // ─── App header ─────────────────────────────────────────────────────────────
-function SupHeader({ patientName, acseScore, onSettings, onSwitch }: {
-  patientName: string; acseScore: number; onSettings: () => void; onSwitch: () => void;
+function SupHeader({ patientName, supervisorName, acseScore, onSettings, onSwitch }: {
+  patientName: string; supervisorName: string; acseScore: number; onSettings: () => void; onSwitch: () => void;
 }) {
   const scoreColor = acseScore >= 80 ? '#34C759' : acseScore >= 60 ? '#FF9500' : '#FF3B30';
+  const initials = supervisorName.split(' ').map(n => n[0]).join('').slice(0, 2).toUpperCase() || 'SV';
   return (
     <header className="app-header">
       <div>
@@ -53,7 +53,7 @@ function SupHeader({ patientName, acseScore, onSettings, onSwitch }: {
         </div>
         <button className="app-header__avatar tap-feedback" onClick={onSwitch} title="Switch user"
           style={{ background: '#5856D6' }}>
-          S
+          {initials}
         </button>
       </div>
     </header>
@@ -336,6 +336,7 @@ export default function SupervisorView() {
     <div className="app-shell">
       <SupHeader
         patientName={firstName}
+        supervisorName={user?.caregiverName ?? ''}
         acseScore={acseScore}
         onSettings={() => setSettingsOpen(true)}
         onSwitch={() => setScreen('login')}
@@ -534,8 +535,8 @@ function EventsTab({ user }: { user: User | null }) {
           style={{
             padding: '14px 16px',
             marginBottom: 10,
-            opacity: e.type === 'system_alert' ? 1 : 1,
-            borderLeft: e.type === 'system_alert' ? '3px solid rgba(180,40,40,0.22)' : e.completed ? '3px solid rgba(0,0,0,0.10)' : '3px solid rgba(0,0,0,0.10)',
+            opacity: e.completed ? 0.6 : 1,
+            borderLeft: e.type === 'system_alert' ? '3px solid #FF3B30' : e.completed ? '3px solid #34C759' : '3px solid rgba(0,0,0,0.10)',
           }}
         >
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>

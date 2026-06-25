@@ -13,8 +13,10 @@ import OfflineBanner from './components/OfflineBanner';
 
 export default function App() {
   const { screen, comfortModeActive } = useAppStore();
-  const [showConsent, setShowConsent] = useState(true);
   const online = useOnlineStatus();
+  const [showConsent, setShowConsent] = useState(
+    () => localStorage.getItem('recall-consent') !== '1'
+  );
 
   useMedReminders();
   useSyncBridge();
@@ -24,7 +26,10 @@ export default function App() {
   }, []);
 
   if (showConsent) {
-    return <MedicalDisclaimer onAccept={() => setShowConsent(false)} />;
+    return <MedicalDisclaimer onAccept={() => {
+      localStorage.setItem('recall-consent', '1');
+      setShowConsent(false);
+    }} />;
   }
 
   return (
