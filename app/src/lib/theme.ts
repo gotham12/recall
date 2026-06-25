@@ -8,14 +8,7 @@ export const THEME_COLORS: Record<ThemeMode, string> = {
 };
 
 export function getStoredTheme(): ThemeMode {
-  try {
-    const value = localStorage.getItem(STORAGE_KEY);
-    if (value === 'dark' || value === 'light') return value;
-    localStorage.setItem(STORAGE_KEY, 'light');
-    return 'light';
-  } catch {
-    return 'light';
-  }
+  return 'light';
 }
 
 export function applyTheme(theme: ThemeMode): void {
