@@ -1,160 +1,97 @@
 import { useState, useRef, useEffect } from 'react';
 import { gsap } from 'gsap';
 import { useLiveQuery } from 'dexie-react-hooks';
-import HomeIconGrid from '../components/HomeIconGrid';
 import RoutineManager from '../components/RoutineManager';
 import {
-  ComposedChart, AreaChart, Area, LineChart, Line, BarChart, Bar,
+  ComposedChart, BarChart, Bar,
   XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
-  ReferenceLine, ReferenceArea, Brush, Legend, Cell,
+  ReferenceLine, ReferenceArea, Brush, Cell, Area, Line,
 } from 'recharts';
-import StudioShell from '../components/StudioShell';
-import RecallLogo from '../components/RecallLogo';
-import StudioIcon, { type IconName } from '../components/StudioIcon';
-import { getFlowers, type FlowerKey } from '../flowers';
-import ThemeToggle from '../components/ThemeToggle';
+import StudioIcon from '../components/StudioIcon';
 import VitalsDashboard from '../components/VitalsDashboard';
 import { addMedication, removeMedication, replaceMedication } from '../lib/medications';
 import type { Medication } from '../db/db';
 import StormRadar from '../components/StormRadar';
 import CareJournal from '../components/CareJournal';
-import DataExportPanel from '../components/DataExportPanel';
 import CareCommandCenter from '../components/supervisor/CareCommandCenter';
 import ACSESignalAudit from '../components/supervisor/ACSESignalAudit';
-import CareSettingsPanel from '../components/supervisor/CareSettingsPanel';
 import LiveActivityFeed from '../components/supervisor/LiveActivityFeed';
 import MedicationAdherence from '../components/supervisor/MedicationAdherence';
-import SupervisorCareKit from '../components/supervisor/SupervisorCareKit';
 import WeeklyInsights from '../components/supervisor/WeeklyInsights';
-import AlertHistory from '../components/supervisor/AlertHistory';
-import { logout } from '../lib/session';
 import { useAppStore } from '../store/appStore';
 import SettingsSheet from '../components/SettingsSheet';
 import { db, type Event, type User } from '../db/db';
 
-type Tab = 'home' | 'events' | 'medications' | 'stats' | 'profile' | 'routine';
+type SupTab = 'overview' | 'schedule' | 'insights';
 
-const TAB_FLOWER_KEYS: Record<Tab, FlowerKey> = {
-  home: 'supervisorApp',
-  events: 'landing',
-  medications: 'patientEnter',
-  stats: 'supervisor',
-  profile: 'home',
-  routine: 'supervisorApp',
-};
+// ─── Tab bar icons ──────────────────────────────────────────────────────────
+function IcoOverview() {
+  return <svg viewBox="0 0 24 24" fill="none" width="26" height="26"><rect x="3" y="13" width="5" height="8" rx="1.5" stroke="currentColor" strokeWidth="1.7"/><rect x="10" y="8" width="5" height="13" rx="1.5" stroke="currentColor" strokeWidth="1.7"/><rect x="17" y="3" width="5" height="18" rx="1.5" stroke="currentColor" strokeWidth="1.7"/></svg>;
+}
+function IcoSchedule() {
+  return <svg viewBox="0 0 24 24" fill="none" width="26" height="26"><rect x="3" y="4" width="18" height="17" rx="3" stroke="currentColor" strokeWidth="1.7"/><line x1="3" y1="9" x2="21" y2="9" stroke="currentColor" strokeWidth="1.7"/><line x1="8" y1="2.5" x2="8" y2="5.5" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round"/><line x1="16" y1="2.5" x2="16" y2="5.5" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round"/></svg>;
+}
+function IcoInsights() {
+  return <svg viewBox="0 0 24 24" fill="none" width="26" height="26"><polyline points="3,17 8,11 13,14 18,6 21,9" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round"/><circle cx="3" cy="17" r="1.5" fill="currentColor"/><circle cx="8" cy="11" r="1.5" fill="currentColor"/><circle cx="13" cy="14" r="1.5" fill="currentColor"/><circle cx="18" cy="6" r="1.5" fill="currentColor"/></svg>;
+}
 
-const TABS: { id: Tab; label: string; icon: IconName }[] = [
-  { id: 'home',        label: 'Home',    icon: 'home' },
-  { id: 'events',      label: 'Events',  icon: 'events' },
-  { id: 'medications', label: 'Meds',    icon: 'meds' },
-  { id: 'routine',     label: 'Routine', icon: 'routine' },
-  { id: 'stats',       label: 'Stats',   icon: 'score' },
-];
-
-const SUP_FEATURE_LABELS: Record<string, string> = {
-  home:        'Overview',
-  events:      'Alerts & Events',
-  medications: 'Medications',
-  routine:     'Routine',
-  stats:       'Stats',
-  journal:     'Care Journal',
-};
-
-export default function SupervisorView() {
-  const [activeFeature, setActiveFeature] = useState<string | null>(null);
-  const [settingsOpen, setSettingsOpen] = useState(false);
-  const { user, supervisorAlerts, clearSupervisorAlert } = useAppStore();
-  const setScreen = useAppStore((s) => s.setScreen);
-  const panelRef = useRef<HTMLDivElement>(null);
-
-  const firstName = user?.name?.split(' ')[0] ?? 'Supervisor';
-
-  useEffect(() => {
-    if (!panelRef.current || !activeFeature) return;
-    gsap.fromTo(panelRef.current,
-      { x: '100%', opacity: 0.6 },
-      { x: '0%', opacity: 1, duration: 0.36, ease: 'power3.out' }
-    );
-  }, [activeFeature]);
-
-  const openFeature = (id: string) => setActiveFeature(id);
-  const goHome = () => {
-    if (panelRef.current) {
-      gsap.to(panelRef.current, {
-        x: '100%', opacity: 0.6,
-        duration: 0.28, ease: 'power2.in',
-        onComplete: () => setActiveFeature(null),
-      });
-    } else {
-      setActiveFeature(null);
-    }
-  };
-
-  // ── visionOS home grid ──────────────────────────────────────────────────────
-  if (!activeFeature) {
-    return (
-      <>
-        <HomeIconGrid
-          role="supervisor"
-          userName={`Hi, ${firstName}`}
-          onSelect={openFeature}
-          onSwitchRole={() => setScreen('login')}
-        />
-        <SettingsSheet open={settingsOpen} onClose={() => setSettingsOpen(false)} />
-      </>
-    );
-  }
-
-  // ── Feature panel ────────────────────────────────────────────────────────────
+// ─── App header ─────────────────────────────────────────────────────────────
+function SupHeader({ patientName, acseScore, onSettings, onSwitch }: {
+  patientName: string; acseScore: number; onSettings: () => void; onSwitch: () => void;
+}) {
+  const scoreColor = acseScore >= 80 ? '#34C759' : acseScore >= 60 ? '#FF9500' : '#FF3B30';
   return (
-    <div ref={panelRef} className="vis-feature-wrap">
-      <div className="vis-feature-header">
-        <button className="vis-back-btn" onClick={goHome} aria-label="Back to home">
-          <svg viewBox="0 0 24 24" fill="none" width="20" height="20">
-            <path d="M15 18l-6-6 6-6" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" />
-          </svg>
-          Back
+    <header className="app-header">
+      <div>
+        <p className="app-header__eyebrow">Caring for</p>
+        <h1 className="app-header__name">{patientName}</h1>
+      </div>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+        <div className="app-header__score-pill" title="ACSE score">
+          <span className="app-header__score-dot" style={{ background: scoreColor }} />
+          {acseScore}
+        </div>
+        <button className="app-header__avatar tap-feedback" onClick={onSwitch} title="Switch user"
+          style={{ background: '#5856D6' }}>
+          S
         </button>
-        <span className="vis-feature-title">{SUP_FEATURE_LABELS[activeFeature] ?? activeFeature}</span>
-        <div className="vis-feature-settings">
-          <button className="studio-icon-btn tap-feedback" onClick={() => setSettingsOpen(true)} aria-label="Settings">
-            <StudioIcon name="settings" size={18} />
-          </button>
-        </div>
       </div>
-
-      {supervisorAlerts.length > 0 && (
-        <div className="alert-banner">
-          <StudioIcon name="alert" size={18} />
-          <span style={{ flex: 1, fontSize: 14 }}>{supervisorAlerts[0].message}</span>
-          <button onClick={() => clearSupervisorAlert(supervisorAlerts[0].id)}
-            className="studio-icon-btn tap-feedback" aria-label="Dismiss">
-            <StudioIcon name="close" size={14} />
-          </button>
-        </div>
-      )}
-
-      <div className="vis-feature-content">
-        {activeFeature === 'home'        && <SupervisorHomeTab user={user} />}
-        {activeFeature === 'events'      && <EventsTab user={user} />}
-        {activeFeature === 'medications' && <MedicationsTab user={user} />}
-        {activeFeature === 'routine'     && <RoutineManager />}
-        {activeFeature === 'stats'       && <StatsTab user={user} />}
-        {activeFeature === 'journal'     && <div className="vis-feature-scroll-inner"><CareJournal /></div>}
-      </div>
-
-      <SettingsSheet open={settingsOpen} onClose={() => setSettingsOpen(false)} />
-    </div>
+    </header>
   );
 }
 
-// ── Supervisor Home ───────────────────────────────────────────────────────────
-function SupervisorHomeTab({ user }: { user: User | null }) {
-  const { acseScore } = useAppStore();
-  const [quickTitle, setQuickTitle] = useState('');
-  const [quickTime, setQuickTime] = useState('');
-  const [saved, setSaved] = useState(false);
+// ─── Tab bar ────────────────────────────────────────────────────────────────
+function SupTabBar({ active, onChange }: { active: SupTab; onChange: (t: SupTab) => void }) {
+  const tabs: { id: SupTab; label: string; icon: JSX.Element }[] = [
+    { id: 'overview',  label: 'Overview', icon: <IcoOverview /> },
+    { id: 'schedule',  label: 'Schedule', icon: <IcoSchedule /> },
+    { id: 'insights',  label: 'Insights', icon: <IcoInsights /> },
+  ];
+  return (
+    <nav className="app-tab-bar">
+      {tabs.map(t => (
+        <button key={t.id} className={`app-tab${active === t.id ? ' app-tab--active' : ''}`}
+          onClick={() => onChange(t.id)} aria-label={t.label}>
+          <span className="app-tab__icon">{t.icon}</span>
+          <span className="app-tab__label">{t.label}</span>
+        </button>
+      ))}
+    </nav>
+  );
+}
 
+// ─── Panel ──────────────────────────────────────────────────────────────────
+const SUP_PANEL_TITLES: Record<string, string> = {
+  events: 'Alerts & Events',
+  medications: 'Medications',
+  routine: 'Routine Manager',
+  journal: 'Care Journal',
+  stats: 'Statistics',
+};
+
+// ─── Overview tab ───────────────────────────────────────────────────────────
+function OverviewTab({ user, acseScore, onOpen }: { user: User | null; acseScore: number; onOpen: (id: string) => void }) {
+  const scoreColor = acseScore >= 80 ? '#34C759' : acseScore >= 60 ? '#FF9500' : '#FF3B30';
   const eventCount = useLiveQuery<number>(
     () => user?.id ? db.events.where('userId').equals(user.id).count() : Promise.resolve(0),
     [user?.id]
@@ -164,76 +101,265 @@ function SupervisorHomeTab({ user }: { user: User | null }) {
     [user?.id]
   ) ?? 0;
 
-  const handleQuickEvent = async () => {
-    if (!user?.id || !quickTitle.trim()) return;
-    const ts = quickTime ? new Date(quickTime).toISOString() : new Date().toISOString();
-    await db.events.add({
-      userId: user.id,
-      timestamp: ts,
-      type: 'planned',
-      title: quickTitle.trim(),
-      description: quickTitle.trim(),
-      completed: false,
-      source: 'caregiver',
-    });
-    setQuickTitle('');
-    setQuickTime('');
-    setSaved(true);
-    setTimeout(() => setSaved(false), 2000);
+  return (
+    <div className="tab-scroll">
+      {/* ACSE score */}
+      <section className="app-section">
+        <h2 className="app-section-title">Cognitive Health</h2>
+        <div className="app-card score-card" onClick={() => onOpen('stats')}>
+          <div className="score-card__ring-wrap">
+            <svg viewBox="0 0 56 56" width="56" height="56">
+              <circle cx="28" cy="28" r="22" fill="none" stroke="rgba(60,60,67,0.10)" strokeWidth="5"/>
+              <circle cx="28" cy="28" r="22" fill="none" stroke={scoreColor} strokeWidth="5"
+                strokeDasharray={`${(acseScore / 100) * 138.2} 138.2`}
+                strokeLinecap="round" transform="rotate(-90 28 28)"/>
+            </svg>
+            <span className="score-card__number" style={{ color: scoreColor }}>{acseScore}</span>
+          </div>
+          <div className="score-card__text">
+            <p className="score-card__label">ACSE Score</p>
+            <p className="score-card__sublabel">
+              {acseScore >= 80 ? 'Patient is stable' : acseScore >= 60 ? 'Moderate — monitor closely' : 'Needs immediate attention'}
+            </p>
+          </div>
+          <svg viewBox="0 0 24 24" fill="none" width="18" height="18" style={{ color: 'rgba(60,60,67,0.30)', flexShrink: 0 }}>
+            <path d="M9 18l6-6-6-6" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
+          </svg>
+        </div>
+      </section>
+
+      {/* Quick stats */}
+      <section className="app-section">
+        <h2 className="app-section-title">Today at a Glance</h2>
+        <div className="stat-pair-row">
+          <div className="stat-pair-card" onClick={() => onOpen('events')}>
+            <p className="stat-pair-value">{eventCount}</p>
+            <p className="stat-pair-label">Events</p>
+          </div>
+          <div className="stat-pair-card" onClick={() => onOpen('medications')}>
+            <p className="stat-pair-value">{medCount}</p>
+            <p className="stat-pair-label">Med logs</p>
+          </div>
+        </div>
+      </section>
+
+      {/* Patient info */}
+      {user && (
+        <section className="app-section">
+          <h2 className="app-section-title">Patient</h2>
+          <div className="app-card" style={{ padding: '16px 20px' }}>
+            <p style={{ fontWeight: 700, fontSize: 17, margin: '0 0 4px', color: '#1C1C1E' }}>{user.name}</p>
+            <p style={{ fontSize: 14, color: 'rgba(60,60,67,0.55)', margin: '0 0 2px' }}>Age {user.age} · {user.city}</p>
+            {user.caregiverName && <p style={{ fontSize: 14, color: 'rgba(60,60,67,0.55)', margin: 0 }}>
+              Caregiver: {user.caregiverName}
+            </p>}
+          </div>
+        </section>
+      )}
+
+      {/* Live activity */}
+      <section className="app-section">
+        <h2 className="app-section-title">Recent Activity</h2>
+        <div className="app-card" style={{ padding: '8px 0' }}>
+          <LiveActivityFeed limit={5} />
+        </div>
+      </section>
+
+      <div style={{ height: 24 }} />
+    </div>
+  );
+}
+
+// ─── Schedule tab ────────────────────────────────────────────────────────────
+function ScheduleTab({ user, onOpen }: { user: User | null; onOpen: (id: string) => void }) {
+  return (
+    <div className="tab-scroll">
+      <section className="app-section">
+        <h2 className="app-section-title">Events & Alerts</h2>
+        <div className="app-card-group">
+          <div className="app-card-nav-row" onClick={() => onOpen('events')}>
+            <span className="nav-row-icon" style={{ background: '#FFEBEA' }}>
+              <svg viewBox="0 0 24 24" fill="none" width="20" height="20" style={{ color: '#DC2626' }}><path d="M4 14l8-11 8 11" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/><rect x="4" y="14" width="16" height="6" rx="1" stroke="currentColor" strokeWidth="1.8"/></svg>
+            </span>
+            <div className="nav-row-body">
+              <span className="nav-row-label">Alerts & Events</span>
+              <span className="nav-row-sub">View, add and manage events</span>
+            </div>
+            <svg viewBox="0 0 24 24" fill="none" width="16" height="16" style={{ color: 'rgba(60,60,67,0.28)' }}><path d="M9 18l6-6-6-6" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/></svg>
+          </div>
+        </div>
+      </section>
+
+      <section className="app-section">
+        <h2 className="app-section-title">Medications</h2>
+        <div className="app-card-group">
+          <div className="app-card-nav-row" onClick={() => onOpen('medications')}>
+            <span className="nav-row-icon" style={{ background: '#FFF3E5' }}>
+              <svg viewBox="0 0 24 24" fill="none" width="20" height="20" style={{ color: '#EA6C00' }}><rect x="4" y="10" width="16" height="8" rx="4" stroke="currentColor" strokeWidth="1.8"/><line x1="8" y1="14" x2="10" y2="14" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/><line x1="9" y1="13" x2="9" y2="15" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/></svg>
+            </span>
+            <div className="nav-row-body">
+              <span className="nav-row-label">Medication Plan</span>
+              <span className="nav-row-sub">Add, edit and track meds</span>
+            </div>
+            <svg viewBox="0 0 24 24" fill="none" width="16" height="16" style={{ color: 'rgba(60,60,67,0.28)' }}><path d="M9 18l6-6-6-6" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/></svg>
+          </div>
+          <div className="app-card-nav-row" onClick={() => onOpen('routine')}>
+            <span className="nav-row-icon" style={{ background: '#EAFAF0' }}>
+              <svg viewBox="0 0 24 24" fill="none" width="20" height="20" style={{ color: '#16A34A' }}><circle cx="12" cy="12" r="9" stroke="currentColor" strokeWidth="1.8"/><line x1="12" y1="7" x2="12" y2="12" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/><line x1="12" y1="12" x2="16" y2="15" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/></svg>
+            </span>
+            <div className="nav-row-body">
+              <span className="nav-row-label">Routine Manager</span>
+              <span className="nav-row-sub">Daily care schedule</span>
+            </div>
+            <svg viewBox="0 0 24 24" fill="none" width="16" height="16" style={{ color: 'rgba(60,60,67,0.28)' }}><path d="M9 18l6-6-6-6" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/></svg>
+          </div>
+        </div>
+      </section>
+
+      {/* Storm radar inline */}
+      <section className="app-section">
+        <h2 className="app-section-title">Weather Awareness</h2>
+        <div className="app-card" style={{ padding: '0 4px 4px' }}>
+          <StormRadar userId={user?.id} />
+        </div>
+      </section>
+      <div style={{ height: 24 }} />
+    </div>
+  );
+}
+
+// ─── Insights tab ────────────────────────────────────────────────────────────
+function InsightsTab({ user, onOpen }: { user: User | null; onOpen: (id: string) => void }) {
+  return (
+    <div className="tab-scroll">
+      <section className="app-section">
+        <h2 className="app-section-title">Analytics</h2>
+        <div className="app-card-group">
+          <div className="app-card-nav-row" onClick={() => onOpen('stats')}>
+            <span className="nav-row-icon" style={{ background: '#F3EEFF' }}>
+              <svg viewBox="0 0 24 24" fill="none" width="20" height="20" style={{ color: '#7C3AED' }}><polyline points="3,17 8,11 13,14 18,6 21,9" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/></svg>
+            </span>
+            <div className="nav-row-body">
+              <span className="nav-row-label">Full Statistics</span>
+              <span className="nav-row-sub">ACSE charts, vitals, patterns</span>
+            </div>
+            <svg viewBox="0 0 24 24" fill="none" width="16" height="16" style={{ color: 'rgba(60,60,67,0.28)' }}><path d="M9 18l6-6-6-6" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/></svg>
+          </div>
+          <div className="app-card-nav-row" onClick={() => onOpen('journal')}>
+            <span className="nav-row-icon" style={{ background: '#E5F6FB' }}>
+              <svg viewBox="0 0 24 24" fill="none" width="20" height="20" style={{ color: '#0E7490' }}><rect x="4" y="3" width="16" height="18" rx="3" stroke="currentColor" strokeWidth="1.8"/><line x1="8" y1="9" x2="16" y2="9" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round"/><line x1="8" y1="13" x2="16" y2="13" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round"/><line x1="8" y1="17" x2="12" y2="17" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round"/></svg>
+            </span>
+            <div className="nav-row-body">
+              <span className="nav-row-label">Care Journal</span>
+              <span className="nav-row-sub">Observations & notes</span>
+            </div>
+            <svg viewBox="0 0 24 24" fill="none" width="16" height="16" style={{ color: 'rgba(60,60,67,0.28)' }}><path d="M9 18l6-6-6-6" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/></svg>
+          </div>
+        </div>
+      </section>
+
+      {/* Weekly insights inline */}
+      <section className="app-section">
+        <h2 className="app-section-title">Weekly Summary</h2>
+        <div className="app-card" style={{ padding: '4px' }}>
+          <WeeklyInsights />
+        </div>
+      </section>
+      <div style={{ height: 24 }} />
+    </div>
+  );
+}
+
+// ─── Main component ──────────────────────────────────────────────────────────
+export default function SupervisorView() {
+  const [tab, setTab] = useState<SupTab>('overview');
+  const [panel, setPanel] = useState<string | null>(null);
+  const [settingsOpen, setSettingsOpen] = useState(false);
+  const { user, acseScore, supervisorAlerts, clearSupervisorAlert } = useAppStore();
+  const setScreen = useAppStore(s => s.setScreen);
+  const panelRef = useRef<HTMLDivElement>(null);
+  const mainRef = useRef<HTMLElement>(null);
+
+  const firstName = user?.name?.split(' ')[0] ?? 'Patient';
+
+  useEffect(() => {
+    if (!panelRef.current || !panel) return;
+    gsap.fromTo(panelRef.current,
+      { x: '100%', opacity: 0.7 },
+      { x: '0%', opacity: 1, duration: 0.34, ease: 'power3.out' }
+    );
+  }, [panel]);
+
+  const handleTabChange = (t: SupTab) => {
+    if (t === tab) return;
+    if (mainRef.current) {
+      gsap.fromTo(mainRef.current, { opacity: 0.5, y: 8 }, { opacity: 1, y: 0, duration: 0.28, ease: 'power2.out' });
+    }
+    setTab(t);
   };
 
-  return (
-    <div className="supervisor-home">
-      <CareCommandCenter />
+  const openPanel = (id: string) => setPanel(id);
+  const closePanel = () => {
+    if (panelRef.current) {
+      gsap.to(panelRef.current, { x: '100%', opacity: 0.7, duration: 0.26, ease: 'power2.in', onComplete: () => setPanel(null) });
+    } else setPanel(null);
+  };
 
-      <LiveActivityFeed limit={6} />
-
-      <StormRadar userId={user?.id} />
-
-      <div className="card quick-event-card">
-        <p className="studio-section-title">Add event now</p>
-        <input
-          value={quickTitle}
-          onChange={(e) => setQuickTitle(e.target.value)}
-          placeholder="Event title, e.g. Doctor visit"
-          className="studio-input"
-          style={{ marginBottom: 8 }}
-        />
-        <input
-          type="datetime-local"
-          value={quickTime}
-          onChange={(e) => setQuickTime(e.target.value)}
-          className="studio-input"
-          style={{ marginBottom: 10 }}
-        />
-        <button className="studio-btn studio-btn--primary tap-feedback" style={{ width: '100%' }} onClick={handleQuickEvent}>
-          {saved ? 'Event added ✓' : 'Save Event'}
-        </button>
-      </div>
-
-      <div className="stat-grid">
-        {[
-          { label: 'ACSE', value: acseScore },
-          { label: 'Events', value: eventCount },
-          { label: 'Med logs', value: medCount },
-        ].map((stat) => (
-          <div key={stat.label} className="card stat-grid__item">
-            <p className="studio-stat-value">{stat.value}</p>
-            <p className="studio-stat-label">{stat.label}</p>
+  if (panel) {
+    return (
+      <>
+        <div ref={panelRef} className="app-panel">
+          <div className="app-panel-header">
+            <button className="app-back-btn" onClick={closePanel}>
+              <svg viewBox="0 0 24 24" fill="none" width="20" height="20">
+                <path d="M15 18l-6-6 6-6" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"/>
+              </svg>
+              Back
+            </button>
+            <span className="app-panel-title">{SUP_PANEL_TITLES[panel] ?? panel}</span>
+            <div style={{ width: 60 }} />
           </div>
-        ))}
-      </div>
+          <div className="app-panel-content">
+            {panel === 'events'      && <EventsTab user={user} />}
+            {panel === 'medications' && <MedicationsTab user={user} />}
+            {panel === 'routine'     && <RoutineManager />}
+            {panel === 'stats'       && <StatsTab user={user} />}
+            {panel === 'journal'     && <div className="panel-scroll-inner"><CareJournal /></div>}
+          </div>
+        </div>
+        <SettingsSheet open={settingsOpen} onClose={() => setSettingsOpen(false)} />
+      </>
+    );
+  }
 
-      {user && (
-        <div className="card supervisor-profile">
-          <p className="studio-section-title">Patient profile</p>
-          <p className="supervisor-profile__name">{user.name}</p>
-          <p className="supervisor-profile__meta">Age {user.age} · {user.city}</p>
-          <p className="supervisor-profile__meta">
-            Caregiver: {user.caregiverName} ({user.caregiverRelationship})
-          </p>
+  return (
+    <div className="app-shell">
+      <SupHeader
+        patientName={firstName}
+        acseScore={acseScore}
+        onSettings={() => setSettingsOpen(true)}
+        onSwitch={() => setScreen('login')}
+      />
+
+      {supervisorAlerts.length > 0 && (
+        <div className="alert-banner">
+          <StudioIcon name="alert" size={18} />
+          <span style={{ flex: 1, fontSize: 14 }}>{supervisorAlerts[0].message}</span>
+          <button onClick={() => clearSupervisorAlert(supervisorAlerts[0].id)}
+            className="studio-icon-btn" aria-label="Dismiss">
+            <StudioIcon name="close" size={14} />
+          </button>
         </div>
       )}
+
+      <main ref={mainRef} className="app-main">
+        {tab === 'overview'  && <OverviewTab user={user} acseScore={acseScore} onOpen={openPanel} />}
+        {tab === 'schedule'  && <ScheduleTab user={user} onOpen={openPanel} />}
+        {tab === 'insights'  && <InsightsTab user={user} onOpen={openPanel} />}
+      </main>
+
+      <SupTabBar active={tab} onChange={handleTabChange} />
+      <SettingsSheet open={settingsOpen} onClose={() => setSettingsOpen(false)} />
     </div>
   );
 }
@@ -805,101 +931,3 @@ function StatsTab({ user }: { user: User | null }) {
   );
 }
 
-// ── Profile Tab ───────────────────────────────────────────────────────────────
-function ProfileTab() {
-  const { user, setUser } = useAppStore();
-  const [editing, setEditing] = useState(false);
-  const [form, setForm] = useState({
-    name: user?.name ?? '',
-    age: user?.age ?? 0,
-    city: user?.city ?? '',
-    homeAddress: user?.homeAddress ?? '',
-    caregiverName: user?.caregiverName ?? '',
-    caregiverRelationship: user?.caregiverRelationship ?? '',
-    caregiverPhone: user?.caregiverPhone ?? '',
-    familyPhotoUrl: user?.familyPhotoUrl ?? '',
-    emergencyNote: user?.emergencyNote ?? '',
-    calmingMusicUrl: user?.calmingMusicUrl ?? '',
-  });
-
-  const handleSave = async () => {
-    if (!user?.id) return;
-    const updated = { ...user, ...form };
-    await db.users.put(updated);
-    setUser(updated);
-    setEditing(false);
-  };
-
-  const Field = ({
-    label, value, onChange, type = 'text',
-  }: {
-    label: string; value: string; onChange: (v: string) => void; type?: string;
-  }) => (
-    <div style={{ marginBottom: 12 }}>
-      <p className="studio-field-label">{label}</p>
-      {editing ? (
-        <input
-          type={type}
-          value={value}
-          onChange={(e) => onChange(e.target.value)}
-          className="studio-input"
-        />
-      ) : (
-        <p className="studio-field-value">{value || '—'}</p>
-      )}
-    </div>
-  );
-
-  return (
-    <div className="profile-tab">
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
-        <h2 className="studio-page-title" style={{ margin: 0 }}>Patient Profile</h2>
-        <button
-          onClick={() => editing ? handleSave() : setEditing(true)}
-          className={`studio-btn tap-feedback ${editing ? 'studio-btn--primary' : ''}`}
-          style={{ padding: '8px 16px', fontSize: 15 }}
-        >
-          {editing ? 'Save' : 'Edit'}
-        </button>
-      </div>
-
-      <div className="card" style={{ padding: 20, marginBottom: 16 }}>
-        <Field label="Full Name" value={form.name} onChange={(v) => setForm((p) => ({ ...p, name: v }))} />
-        <Field label="Age" value={String(form.age)} onChange={(v) => setForm((p) => ({ ...p, age: parseInt(v) || 0 }))} type="number" />
-        <Field label="Home City" value={form.city} onChange={(v) => setForm((p) => ({ ...p, city: v }))} />
-        <Field label="Caregiver Name" value={form.caregiverName} onChange={(v) => setForm((p) => ({ ...p, caregiverName: v }))} />
-        <Field label="Relationship" value={form.caregiverRelationship} onChange={(v) => setForm((p) => ({ ...p, caregiverRelationship: v }))} />
-        <Field label="Caregiver Phone" value={form.caregiverPhone} onChange={(v) => setForm((p) => ({ ...p, caregiverPhone: v }))} />
-        <Field label="Home Address" value={form.homeAddress} onChange={(v) => setForm((p) => ({ ...p, homeAddress: v }))} />
-        <Field label="Family Photo URL" value={form.familyPhotoUrl} onChange={(v) => setForm((p) => ({ ...p, familyPhotoUrl: v }))} />
-        <Field label="Emergency Note" value={form.emergencyNote} onChange={(v) => setForm((p) => ({ ...p, emergencyNote: v }))} />
-        <Field label="Calming Music URL" value={form.calmingMusicUrl} onChange={(v) => setForm((p) => ({ ...p, calmingMusicUrl: v }))} />
-      </div>
-
-      <CareSettingsPanel />
-      <SupervisorCareKit />
-      <AlertHistory />
-      <DataExportPanel />
-
-      {user?.medications && (
-        <div className="card" style={{ padding: 20 }}>
-          <p style={{ fontSize: 14, color: '#8A9AB0', textTransform: 'uppercase', letterSpacing: '1px', margin: '0 0 12px' }}>
-            Medications
-          </p>
-          {user.medications.map((m, i) => (
-            <div key={i} className="card" style={{ marginBottom: 12, padding: '10px 12px' }}>
-              <p className="studio-text-bright" style={{ fontSize: 17, fontWeight: 600, margin: '0 0 2px', display: 'flex', alignItems: 'center', gap: 8 }}>
-                <StudioIcon name="meds" size={16} />
-                {m.name}
-              </p>
-              <p className="studio-text-muted" style={{ fontSize: 15, margin: 0 }}>{m.dosage} · {m.schedule.join(', ')}</p>
-            </div>
-          ))}
-          <p className="studio-text-muted" style={{ fontSize: 14, margin: '8px 0 0' }}>
-            Add, edit, or remove medications in the Meds tab.
-          </p>
-        </div>
-      )}
-    </div>
-  );
-}
