@@ -12740,3 +12740,433 @@ html, body, #root {
   border-bottom: 0.5px solid rgba(60,60,67,0.10);
   color: #1C1C1E;
 }
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   APPLE LIQUID GLASS THEME  — iOS 26 / visionOS  —  Full Override
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+/* ── 1. Universal ambient mesh background ──────────────────────────────── */
+html, body, #root {
+  min-height: 100%;
+  background:
+    radial-gradient(ellipse 72% 58% at 14% 12%, rgba(79,70,229,.55) 0%, transparent 58%),
+    radial-gradient(ellipse 58% 46% at 84% 22%, rgba(109,40,217,.42) 0%, transparent 54%),
+    radial-gradient(ellipse 68% 52% at 48% 88%, rgba(37,99,235,.50) 0%, transparent 58%),
+    radial-gradient(ellipse 52% 42% at 4%  74%, rgba(147,51,234,.38) 0%, transparent 54%),
+    radial-gradient(ellipse 72% 62% at 92% 78%, rgba(59,130,246,.38) 0%, transparent 58%),
+    #0D0D1A;
+  background-attachment: fixed;
+}
+
+/* ── 2. CSS variable reset — glass palette ─────────────────────────────── */
+:root,
+.app-shell,
+.app-panel,
+.dash-login {
+  --gl-bg:              transparent;
+  --gl-surface:         rgba(255,255,255,0.12);
+  --gl-surface-raised:  rgba(255,255,255,0.17);
+  --gl-surface-deep:    rgba(0,0,0,0.25);
+  --gl-blur:            blur(28px) saturate(160%);
+  --gl-blur-heavy:      blur(44px) saturate(180%);
+  --gl-border:          rgba(255,255,255,0.22);
+  --gl-border-subtle:   rgba(255,255,255,0.12);
+  --gl-shadow:          0 8px 32px rgba(0,0,0,0.32), inset 0 1px 0 rgba(255,255,255,0.28);
+  --gl-shadow-deep:     0 24px 64px rgba(0,0,0,0.40), inset 0 1px 0 rgba(255,255,255,0.22);
+  --gl-text:            rgba(255,255,255,0.95);
+  --gl-text-sub:        rgba(255,255,255,0.62);
+  --gl-text-faint:      rgba(255,255,255,0.38);
+  --gl-accent:          #60A5FA;
+  --gl-accent-teal:     #34D399;
+  --gl-accent-red:      #F87171;
+  --gl-accent-amber:    #FBBF24;
+  --gl-accent-purple:   #A78BFA;
+
+  /* Remap studio vars so nested components auto-adapt */
+  --studio-bg:                  transparent;
+  --studio-bg-deep:             rgba(0,0,0,0.30);
+  --studio-card-bg:             rgba(255,255,255,0.12);
+  --studio-text:                rgba(255,255,255,0.95);
+  --studio-text-muted:          rgba(255,255,255,0.58);
+  --studio-border:              rgba(255,255,255,0.18);
+  --studio-accent:              #60A5FA;
+  --studio-accent-soft:         rgba(96,165,250,0.20);
+  --studio-input-bg:            rgba(255,255,255,0.10);
+  --studio-input-placeholder:   rgba(255,255,255,0.38);
+  --studio-surface-soft:        rgba(255,255,255,0.10);
+  --ios-bg:                     transparent;
+  --ios-surface:                rgba(255,255,255,0.12);
+  --ios-text:                   rgba(255,255,255,0.95);
+}
+
+/* ── 3. Full-screen shells ────────────────────────────────────────────── */
+.app-shell,
+.app-panel {
+  background: transparent !important;
+  color: var(--gl-text) !important;
+  font-family: -apple-system, 'SF Pro Text', BlinkMacSystemFont, 'Helvetica Neue', sans-serif;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* ── 4. Header — heaviest blur, floats above content ─────────────────── */
+.app-header {
+  background: rgba(13,13,26,0.40) !important;
+  backdrop-filter: var(--gl-blur-heavy) !important;
+  -webkit-backdrop-filter: var(--gl-blur-heavy) !important;
+  border-bottom: 1px solid var(--gl-border-subtle) !important;
+}
+.app-header__eyebrow {
+  color: var(--gl-text-sub) !important;
+}
+.app-header__name {
+  color: var(--gl-text) !important;
+}
+.app-header__score-pill {
+  background: var(--gl-surface) !important;
+  border: 1px solid var(--gl-border) !important;
+  color: var(--gl-text) !important;
+  box-shadow: none !important;
+  backdrop-filter: blur(16px) !important;
+  -webkit-backdrop-filter: blur(16px) !important;
+}
+.app-header__avatar {
+  background: rgba(96,165,250,0.30) !important;
+  border: 1px solid rgba(96,165,250,0.50) !important;
+  backdrop-filter: blur(16px) !important;
+  -webkit-backdrop-filter: blur(16px) !important;
+  color: white !important;
+}
+
+/* ── 5. Main scroll area — fully transparent ──────────────────────────── */
+.app-main {
+  background: transparent !important;
+}
+
+/* ── 6. Cards ─────────────────────────────────────────────────────────── */
+.app-card,
+.app-card-group {
+  background: var(--gl-surface) !important;
+  backdrop-filter: var(--gl-blur) !important;
+  -webkit-backdrop-filter: var(--gl-blur) !important;
+  border: 1px solid var(--gl-border) !important;
+  box-shadow: var(--gl-shadow) !important;
+  border-radius: 18px !important;
+}
+
+.app-card-row {
+  border-top: 1px solid rgba(255,255,255,0.09) !important;
+}
+.app-card-row:active { background: rgba(255,255,255,0.08) !important; }
+
+/* ── 7. Nav rows ──────────────────────────────────────────────────────── */
+.app-card-nav-row {
+  border-top: 1px solid rgba(255,255,255,0.09) !important;
+}
+.app-card-nav-row:active { background: rgba(255,255,255,0.08) !important; }
+.nav-row-label  { color: var(--gl-text) !important; }
+.nav-row-sub    { color: var(--gl-text-sub) !important; }
+.nav-row-icon {
+  background: rgba(255,255,255,0.14) !important;
+  backdrop-filter: blur(12px) !important;
+  -webkit-backdrop-filter: blur(12px) !important;
+}
+/* chevron colour */
+.app-card-nav-row svg,
+.app-card-row svg { color: rgba(255,255,255,0.35) !important; }
+
+/* ── 8. Row text ──────────────────────────────────────────────────────── */
+.row-text   { color: var(--gl-text) !important; }
+.row-time   { color: var(--gl-text-sub) !important; }
+.row-badge--orange {
+  background: rgba(251,191,36,0.20) !important;
+  color: #FCD34D !important;
+}
+.row-icon {
+  background: rgba(255,255,255,0.15) !important;
+}
+
+/* ── 9. Section titles ────────────────────────────────────────────────── */
+.app-section-title,
+.tab-date-header {
+  color: var(--gl-text) !important;
+}
+
+/* ── 10. Score card ───────────────────────────────────────────────────── */
+.score-card {
+  cursor: pointer;
+}
+.score-card__label  { color: var(--gl-text) !important; }
+.score-card__sublabel { color: var(--gl-text-sub) !important; }
+.score-card__number { /* inherits dynamic colour from inline style */ }
+
+/* ── 11. Stat pair cards ──────────────────────────────────────────────── */
+.stat-pair-card {
+  background: var(--gl-surface) !important;
+  backdrop-filter: var(--gl-blur) !important;
+  -webkit-backdrop-filter: var(--gl-blur) !important;
+  border: 1px solid var(--gl-border) !important;
+  box-shadow: var(--gl-shadow) !important;
+}
+.stat-pair-value { color: #93C5FD !important; }
+.stat-pair-label { color: var(--gl-text-sub) !important; }
+
+/* ── 12. Clara hero card ──────────────────────────────────────────────── */
+.clara-hero-card {
+  background: linear-gradient(135deg, rgba(37,99,235,0.55) 0%, rgba(79,70,229,0.50) 100%) !important;
+  backdrop-filter: var(--gl-blur) !important;
+  -webkit-backdrop-filter: var(--gl-blur) !important;
+  border: 1px solid rgba(96,165,250,0.35) !important;
+  box-shadow: 0 12px 40px rgba(37,99,235,0.35), inset 0 1px 0 rgba(255,255,255,0.25) !important;
+}
+.clara-hero-card__icon {
+  background: rgba(255,255,255,0.16) !important;
+  border: 1px solid rgba(255,255,255,0.25) !important;
+}
+
+/* ── 13. Quick action buttons ─────────────────────────────────────────── */
+.quick-action-btn {
+  backdrop-filter: var(--gl-blur) !important;
+  -webkit-backdrop-filter: var(--gl-blur) !important;
+  border: 1px solid rgba(255,255,255,0.22) !important;
+}
+.quick-action-btn--blue {
+  background: rgba(37,99,235,0.50) !important;
+  box-shadow: 0 4px 20px rgba(37,99,235,0.30) !important;
+}
+.quick-action-btn--red {
+  background: rgba(220,38,38,0.45) !important;
+  box-shadow: 0 4px 20px rgba(220,38,38,0.28) !important;
+}
+
+/* ── 14. Tab bar — floating glass strip ───────────────────────────────── */
+.app-tab-bar {
+  background: rgba(10,8,24,0.60) !important;
+  backdrop-filter: var(--gl-blur-heavy) !important;
+  -webkit-backdrop-filter: var(--gl-blur-heavy) !important;
+  border-top: 1px solid rgba(255,255,255,0.12) !important;
+}
+.app-tab              { color: rgba(255,255,255,0.38) !important; }
+.app-tab--active      { color: #fff !important; }
+.app-tab__label       { font-weight: 500 !important; }
+
+/* ── 15. Panel (slide-over) ───────────────────────────────────────────── */
+.app-panel {
+  background:
+    radial-gradient(ellipse 72% 58% at 14% 12%, rgba(79,70,229,.50) 0%, transparent 58%),
+    radial-gradient(ellipse 58% 46% at 84% 22%, rgba(109,40,217,.38) 0%, transparent 54%),
+    radial-gradient(ellipse 68% 52% at 48% 88%, rgba(37,99,235,.45) 0%, transparent 58%),
+    #0D0D1A !important;
+  color: var(--gl-text) !important;
+}
+.app-panel-header {
+  background: rgba(13,13,26,0.50) !important;
+  backdrop-filter: var(--gl-blur-heavy) !important;
+  -webkit-backdrop-filter: var(--gl-blur-heavy) !important;
+  border-bottom: 1px solid rgba(255,255,255,0.12) !important;
+}
+.app-panel-title { color: var(--gl-text) !important; }
+.app-back-btn    { color: #93C5FD !important; }
+.app-panel-content { background: transparent !important; }
+
+/* ── 16. Cards & studio-cards inside panels ───────────────────────────── */
+.app-panel .card,
+.app-panel .studio-card,
+.app-shell .card,
+.app-shell .studio-card {
+  background: var(--gl-surface) !important;
+  color: var(--gl-text) !important;
+  border: 1px solid var(--gl-border) !important;
+  box-shadow: var(--gl-shadow) !important;
+  backdrop-filter: var(--gl-blur) !important;
+  -webkit-backdrop-filter: var(--gl-blur) !important;
+  border-radius: 16px !important;
+}
+
+/* ── 17. Inputs & selects inside glass ────────────────────────────────── */
+.app-panel input:not([type=range]),
+.app-panel textarea,
+.app-panel select,
+.app-shell input:not([type=range]),
+.app-shell textarea,
+.app-shell select {
+  background: rgba(255,255,255,0.10) !important;
+  color: rgba(255,255,255,0.92) !important;
+  border: 1px solid rgba(255,255,255,0.18) !important;
+  border-radius: 10px !important;
+}
+.app-panel input::placeholder,
+.app-panel textarea::placeholder,
+.app-shell input::placeholder,
+.app-shell textarea::placeholder {
+  color: rgba(255,255,255,0.36) !important;
+}
+
+/* ── 18. Studio text helpers ──────────────────────────────────────────── */
+.app-shell .studio-text-bright,
+.app-panel .studio-text-bright { color: var(--gl-text) !important; }
+.app-shell .studio-text-muted,
+.app-panel .studio-text-muted  { color: var(--gl-text-sub) !important; }
+.app-shell .studio-section-title,
+.app-panel .studio-section-title { color: var(--gl-text-sub) !important; }
+.app-shell .studio-page-title,
+.app-panel .studio-page-title   { color: var(--gl-text) !important; }
+.app-shell p, .app-panel p { color: var(--gl-text) !important; }
+.app-shell h1, .app-shell h2, .app-shell h3,
+.app-panel h1, .app-panel h2, .app-panel h3 { color: var(--gl-text) !important; }
+
+/* ── 19. Studio buttons inside panels ─────────────────────────────────── */
+.app-shell .studio-btn,
+.app-panel .studio-btn {
+  background: var(--gl-surface) !important;
+  color: var(--gl-text) !important;
+  border: 1px solid var(--gl-border) !important;
+  backdrop-filter: blur(16px) !important;
+}
+.app-shell .studio-btn--primary,
+.app-panel .studio-btn--primary {
+  background: rgba(37,99,235,0.50) !important;
+  border: 1px solid rgba(96,165,250,0.40) !important;
+  color: white !important;
+}
+.app-shell .btn-electric,
+.app-panel .btn-electric {
+  background: rgba(37,99,235,0.55) !important;
+  border: 1px solid rgba(96,165,250,0.40) !important;
+  color: white !important;
+  backdrop-filter: blur(16px) !important;
+  -webkit-backdrop-filter: blur(16px) !important;
+}
+
+/* ── 20. Alert banner ─────────────────────────────────────────────────── */
+.alert-banner {
+  background: rgba(251,191,36,0.18) !important;
+  border-bottom: 1px solid rgba(251,191,36,0.28) !important;
+  backdrop-filter: blur(16px) !important;
+  -webkit-backdrop-filter: blur(16px) !important;
+  color: #FDE68A !important;
+}
+
+/* ── 21. Panel primary button ─────────────────────────────────────────── */
+.panel-primary-btn {
+  background: rgba(37,99,235,0.55) !important;
+  border: 1px solid rgba(96,165,250,0.40) !important;
+  backdrop-filter: blur(16px) !important;
+  -webkit-backdrop-filter: blur(16px) !important;
+  box-shadow: 0 4px 20px rgba(37,99,235,0.30) !important;
+}
+.panel-section-label { color: var(--gl-text-sub) !important; }
+
+/* ── 22. Login screen ─────────────────────────────────────────────────── */
+.dash-login {
+  background: transparent !important;
+  min-height: 100dvh;
+  color: var(--gl-text) !important;
+}
+.dash-login__brand { color: var(--gl-text) !important; }
+.dash-login__wordmark {
+  background: none !important;
+  -webkit-background-clip: unset !important;
+  background-clip: unset !important;
+  color: rgba(255,255,255,0.96) !important;
+  font-weight: 800 !important;
+  letter-spacing: -0.03em !important;
+  font-size: 34px !important;
+}
+.dash-login__tagline {
+  color: rgba(255,255,255,0.55) !important;
+  letter-spacing: 0.06em !important;
+  text-transform: uppercase !important;
+  font-size: 11px !important;
+  font-weight: 500 !important;
+}
+.dash-login__logo-img {
+  box-shadow: 0 8px 40px rgba(79,70,229,0.50), 0 2px 12px rgba(0,0,0,0.40) !important;
+}
+
+/* Login card — glass */
+.dash-login__card {
+  background: rgba(255,255,255,0.10) !important;
+  backdrop-filter: var(--gl-blur-heavy) !important;
+  -webkit-backdrop-filter: var(--gl-blur-heavy) !important;
+  border: 1px solid rgba(255,255,255,0.20) !important;
+  box-shadow: var(--gl-shadow-deep) !important;
+  border-radius: 28px !important;
+}
+.dash-login__title {
+  color: var(--gl-text) !important;
+  font-size: 20px !important;
+  font-weight: 600 !important;
+  padding: 18px 20px 6px !important;
+}
+
+/* Login buttons */
+.dash-btn {
+  background: transparent !important;
+  border-bottom: 1px solid rgba(255,255,255,0.10) !important;
+  color: var(--gl-text) !important;
+}
+.dash-btn:last-child { border-bottom: none !important; }
+.dash-btn:active     { background: rgba(255,255,255,0.08) !important; }
+.dash-btn__label     { color: var(--gl-text) !important; }
+.dash-btn--primary .dash-btn__label { color: #93C5FD !important; font-weight: 600 !important; }
+.dash-btn--ghost .dash-btn__label   { color: #93C5FD !important; }
+.dash-btn__hint  { color: var(--gl-text-sub) !important; }
+.dash-btn__icon-wrap--amber {
+  background: rgba(251,191,36,0.18) !important;
+  color: #FCD34D !important;
+}
+.dash-btn__icon-wrap--amber svg * { fill: #FCD34D !important; stroke: #FCD34D !important; }
+.dash-btn__icon-wrap--teal {
+  background: rgba(52,211,153,0.18) !important;
+  color: #6EE7B7 !important;
+}
+.dash-btn__icon-wrap--teal svg * { fill: #6EE7B7 !important; stroke: #6EE7B7 !important; }
+.dash-btn__avatar {
+  background: rgba(96,165,250,0.22) !important;
+  color: #93C5FD !important;
+}
+
+/* Login input */
+.dash-input {
+  background: rgba(255,255,255,0.10) !important;
+  border: 1px solid rgba(255,255,255,0.18) !important;
+  color: rgba(255,255,255,0.92) !important;
+  box-shadow: inset 0 1px 0 rgba(255,255,255,0.05) !important;
+}
+.dash-input::placeholder { color: rgba(255,255,255,0.35) !important; }
+
+/* Back button and errors */
+.dash-back  { color: #93C5FD !important; }
+.dash-error { color: #FCA5A5 !important; }
+
+/* ── 23. Offline banner ───────────────────────────────────────────────── */
+.offline-banner,
+[class*="offline"] {
+  background: rgba(251,191,36,0.20) !important;
+  backdrop-filter: blur(16px) !important;
+  -webkit-backdrop-filter: blur(16px) !important;
+  border-bottom: 1px solid rgba(251,191,36,0.28) !important;
+  color: #FDE68A !important;
+}
+
+/* ── 24. Scrollbars — invisible on glass ──────────────────────────────── */
+.app-main::-webkit-scrollbar,
+.app-panel-content::-webkit-scrollbar,
+.tab-scroll::-webkit-scrollbar { display: none; }
+
+/* ── 25. iridescent top-edge shimmer on glass cards ──────────────────── */
+.app-card::before,
+.app-card-group::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  background: linear-gradient(135deg,
+    rgba(255,255,255,0.22) 0%,
+    rgba(255,255,255,0.04) 40%,
+    rgba(255,255,255,0.00) 100%);
+  pointer-events: none;
+  z-index: 0;
+}
+.app-card { position: relative; overflow: hidden; }
+.app-card-group { position: relative; }
