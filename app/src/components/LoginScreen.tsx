@@ -84,7 +84,7 @@ export default function LoginScreen() {
     <div ref={containerRef} className="dash-login">
       {/* Brand */}
       <div className="dash-login__brand">
-        <img src="/logo.png" alt="Recall logo" className="dash-login__logo-img" />
+        <img src={`${import.meta.env.BASE_URL}logo.png`} alt="Recall logo" className="dash-login__logo-img" />
         <h1 className="dash-login__wordmark">Recall</h1>
         <p className="dash-login__tagline">Memory · Medication · Moments</p>
       </div>
