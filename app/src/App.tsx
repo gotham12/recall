@@ -4,7 +4,6 @@ import { seedIfEmpty } from './db/seed';
 import { useMedReminders } from './hooks/useMedReminders';
 import { useOnlineStatus } from './hooks/useOnlineStatus';
 import { useSyncBridge } from './hooks/useSyncBridge';
-import LoadingScreen from './components/LoadingScreen';
 import LoginScreen from './components/LoginScreen';
 import PatientView from './views/PatientView';
 import SupervisorView from './views/SupervisorView';
@@ -31,7 +30,6 @@ export default function App() {
   return (
     <>
       {!online && <OfflineBanner />}
-      {screen === 'loading' && <LoadingScreen />}
       {screen === 'login' && <LoginScreen />}
       {screen === 'patient' && (
         <>

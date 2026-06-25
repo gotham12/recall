@@ -7919,26 +7919,25 @@ button .studio-icon { color: rgba(0,0,0,0.70); }
 }
 
 /* Brand section */
-.dash-login__brand { text-align: center; margin-bottom: 28px; }
+.dash-login__brand { text-align: center; margin-bottom: 32px; }
 
-.dash-login__icon-wrap {
-  width: 60px; height: 60px;
-  display: inline-flex; align-items: center; justify-content: center;
-  background: rgba(255,255,255,0.52) !important;
-  backdrop-filter: blur(44px) saturate(180%) !important;
-  -webkit-backdrop-filter: blur(44px) saturate(180%) !important;
-  border: 1px solid rgba(255,255,255,0.78) !important;
-  box-shadow: 0 1px 0 rgba(255,255,255,0.97) inset, 0 8px 24px rgba(0,0,0,0.08) !important;
-  border-radius: 18px !important;
-  color: rgba(0,0,0,0.72) !important;
-  margin-bottom: 12px;
+.dash-login__logo-img {
+  width: 82px;
+  height: 82px;
+  border-radius: 22px;
+  object-fit: cover;
+  margin-bottom: 14px;
+  box-shadow: 0 4px 20px rgba(37,99,235,0.28), 0 1px 4px rgba(0,0,0,0.12);
+  display: block;
+  margin-left: auto;
+  margin-right: auto;
 }
 
 .dash-login__wordmark {
   font-family: -apple-system, "SF Pro Display", BlinkMacSystemFont, sans-serif !important;
   font-weight: 700 !important;
   font-size: 2rem !important;
-  color: rgba(0,0,0,0.85) !important;
+  color: rgba(0,0,0,0.88) !important;
   letter-spacing: -0.03em !important;
   margin: 0 0 4px !important;
 }

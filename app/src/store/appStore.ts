@@ -63,7 +63,7 @@ interface AppState {
 }
 
 export const useAppStore = create<AppState>((set, get) => ({
-  screen: 'loading',
+  screen: 'login',
   user: null,
   acseScore: 100,
   comfortModeActive: false,
