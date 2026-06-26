@@ -9,6 +9,7 @@ import {
   getTailoredResponse,
   type MemoryRecapReason,
 } from '../lib/claraIntents';
+import { logClaraVoiceExchange } from '../lib/claraActivityLog';
 import {
   speak,
   stopSpeaking,
@@ -160,6 +161,10 @@ export default function VoiceAgent() {
       { role: 'user' as const, content: trimmed },
       { role: 'assistant' as const, content: response },
     ].slice(-20);
+
+    if (user?.id) {
+      void logClaraVoiceExchange(user.id, trimmed, response, intent.intent);
+    }
 
     if (!sessionActiveRef.current) return;
     await speakResponse(response);

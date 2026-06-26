@@ -163,6 +163,35 @@ export async function seedIfEmpty(): Promise<void> {
   await syncMargaretFamilyData();
 }
 
+function nextCheckupTimestamp(from: Date): string {
+  const d = new Date(from);
+  d.setDate(d.getDate() + 14);
+  d.setHours(10, 30, 0, 0);
+  while (d.getDay() === 0 || d.getDay() === 6) {
+    d.setDate(d.getDate() + 1);
+  }
+  return d.toISOString();
+}
+
+async function ensureCheckupAppointment(userId: number): Promise<void> {
+  const events = await db.events.where('userId').equals(userId).toArray();
+  const hasCheckup = events.some((e) => {
+    const blob = `${e.title} ${e.description}`.toLowerCase();
+    return blob.includes('checkup') || blob.includes('dr. chen');
+  });
+  if (hasCheckup) return;
+
+  await db.events.add({
+    userId,
+    timestamp: nextCheckupTimestamp(new Date()),
+    type: 'planned',
+    title: 'Checkup with Dr. Chen',
+    description: 'Cognitive follow-up appointment. Susan will drive Margaret to the clinic.',
+    completed: false,
+    source: 'caregiver',
+  });
+}
+
 function normalizePhone(phone: string): string {
   return phone.replace(/\D/g, '');
 }
@@ -223,6 +252,7 @@ async function syncMargaretFamilyData(): Promise<void> {
 
     await ensureRoutineGameTasks(user.id);
     await ensureDemoTylenol(user.id);
+    await ensureCheckupAppointment(user.id);
   }
 }
 
@@ -312,6 +342,15 @@ async function seedUserExtras(
       description: 'Time to take Memantine 5mg with a glass of water.',
       completed: false,
       source: 'system',
+    },
+    {
+      userId,
+      timestamp: nextCheckupTimestamp(now),
+      type: 'planned',
+      title: 'Checkup with Dr. Chen',
+      description: 'Cognitive follow-up appointment. Susan will drive Margaret to the clinic.',
+      completed: false,
+      source: 'caregiver',
     },
   ]);
 

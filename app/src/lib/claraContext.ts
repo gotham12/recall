@@ -67,7 +67,7 @@ export async function buildClaraRichContext(
 
   const todayMedNames = new Set(
     medLogs
-      .filter((l) => new Date(l.timestamp) >= start)
+      .filter((l) => new Date(l.timestamp) >= start && l.confirmed !== false)
       .map((l) => l.medicationName.toLowerCase())
   );
 

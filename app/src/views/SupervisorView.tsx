@@ -17,11 +17,22 @@ import ACSESignalAudit from '../components/supervisor/ACSESignalAudit';
 import LiveActivityFeed from '../components/supervisor/LiveActivityFeed';
 import MedicationAdherence from '../components/supervisor/MedicationAdherence';
 import WeeklyInsights from '../components/supervisor/WeeklyInsights';
+import SupervisorBriefing from '../components/supervisor/SupervisorBriefing';
 import { useAppStore } from '../store/appStore';
 import SettingsSheet from '../components/SettingsSheet';
 import { db, type Event, type User } from '../db/db';
 
-type SupTab = 'overview' | 'schedule' | 'acse' | 'insights';
+type SupTab = 'overview' | 'schedule' | 'acse' | 'insights' | 'recall-ai';
+
+function IcoRecallAI() {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" width="26" height="26">
+      <path d="M12 3a7 7 0 017 7c0 2.8-1.6 5.2-4 6.4V19a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2.6A7 7 0 0112 3z" stroke="currentColor" strokeWidth="1.7"/>
+      <path d="M9 10h6M10 13h4" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round"/>
+      <circle cx="12" cy="8.5" r="1.2" fill="currentColor"/>
+    </svg>
+  );
+}
 
 // ─── Tab bar icons ──────────────────────────────────────────────────────────
 function IcoOverview() {
@@ -74,6 +85,7 @@ function SupHeader({ patientName, supervisorName, acseScore, onSettings, onSwitc
 function SupTabBar({ active, onChange }: { active: SupTab; onChange: (t: SupTab) => void }) {
   const tabs: { id: SupTab; label: string; icon: JSX.Element }[] = [
     { id: 'overview',  label: 'Overview', icon: <IcoOverview /> },
+    { id: 'recall-ai', label: 'Recall AI', icon: <IcoRecallAI /> },
     { id: 'schedule',  label: 'Schedule', icon: <IcoSchedule /> },
     { id: 'acse',      label: 'ACSE',     icon: <IcoACSE /> },
     { id: 'insights',  label: 'Insights', icon: <IcoInsights /> },
@@ -99,6 +111,16 @@ const SUP_PANEL_TITLES: Record<string, string> = {
   journal: 'Care Journal',
   stats: 'Statistics',
 };
+
+// ─── Recall AI tab ──────────────────────────────────────────────────────────
+function RecallAITab({ user }: { user: User | null }) {
+  return (
+    <div className="tab-scroll">
+      <SupervisorBriefing user={user} />
+      <div style={{ height: 24 }} />
+    </div>
+  );
+}
 
 // ─── Overview tab ───────────────────────────────────────────────────────────
 function OverviewTab({ user, acseScore, onOpen, onComfortMode, comfortActive }: {
@@ -455,6 +477,7 @@ export default function SupervisorView() {
 
       <main ref={mainRef} className="app-main">
         {tab === 'overview'  && <OverviewTab user={user} acseScore={acseScore} onOpen={openPanel} onComfortMode={activateComfortMode} comfortActive={comfortModeActive} />}
+        {tab === 'recall-ai'   && <RecallAITab user={user} />}
         {tab === 'schedule'  && <ScheduleTab user={user} onOpen={openPanel} />}
         {tab === 'acse'      && <ACSETab user={user} />}
         {tab === 'insights'  && <InsightsTab user={user} onOpen={openPanel} />}

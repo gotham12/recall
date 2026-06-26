@@ -5,54 +5,39 @@ import { useAppStore } from '../store/appStore';
 import { generateGrounding, generateNarrative } from '../services/groq';
 import { speak, stopSpeaking, unlockAudioPlayback, primeSpeechSynthesis } from '../services/elevenlabs';
 import { resumeTibetanBells, startTibetanBells, stopTibetanBells } from '../lib/tibetanBells';
+import { NATURE_SCENES, preloadNatureScenes, SCENE_CYCLE_MS } from '../lib/natureScenes';
 import { db } from '../db/db';
 
 type Phase = 'grounding' | 'breathing' | 'narrative';
 
-const PARTICLES = [
-  { x: 12, y: 15, s: 5, d: 7.2, del: 0.0 },
-  { x: 28, y: 72, s: 3, d: 9.1, del: 1.4 },
-  { x: 45, y: 38, s: 7, d: 6.8, del: 2.2 },
-  { x: 62, y: 88, s: 4, d: 11.0, del: 0.7 },
-  { x: 78, y: 22, s: 6, d: 8.3, del: 3.1 },
-  { x: 90, y: 55, s: 3, d: 7.6, del: 1.9 },
-  { x: 35, y: 10, s: 5, d: 10.4, del: 0.4 },
-  { x: 55, y: 65, s: 8, d: 9.7, del: 2.8 },
-  { x: 18, y: 85, s: 4, d: 6.5, del: 1.1 },
-  { x: 72, y: 42, s: 6, d: 8.0, del: 3.5 },
-  { x: 88, y: 78, s: 3, d: 11.5, del: 0.9 },
-  { x: 42, y: 55, s: 5, d: 7.9, del: 2.5 },
-  { x: 8,  y: 48, s: 4, d: 9.3, del: 1.7 },
-  { x: 65, y: 12, s: 7, d: 8.8, del: 0.2 },
-  { x: 32, y: 92, s: 3, d: 10.1, del: 3.8 },
-  { x: 82, y: 33, s: 5, d: 7.4, del: 1.3 },
-  { x: 50, y: 78, s: 4, d: 9.0, del: 2.9 },
-  { x: 22, y: 60, s: 6, d: 8.5, del: 0.6 },
-];
-
 function NatureBackdrop() {
+  const [activeIndex, setActiveIndex] = useState(0);
+  const [started, setStarted] = useState(false);
+
+  useEffect(() => {
+    preloadNatureScenes();
+    setStarted(true);
+    const id = window.setInterval(() => {
+      setActiveIndex((i) => (i + 1) % NATURE_SCENES.length);
+    }, SCENE_CYCLE_MS);
+    return () => clearInterval(id);
+  }, []);
+
+  const scene = NATURE_SCENES[activeIndex];
+
   return (
-    <div className="nature-backdrop" aria-hidden>
-      <div className="nature-backdrop__scene nature-backdrop__scene--0" />
-      <div className="nature-backdrop__scene nature-backdrop__scene--1" />
-      <div className="nature-backdrop__scene nature-backdrop__scene--2" />
-      <div className="nature-backdrop__veil" />
-      <div className="nature-backdrop__aurora nature-backdrop__aurora--1" />
-      <div className="nature-backdrop__aurora nature-backdrop__aurora--2" />
-      {PARTICLES.map((p, i) => (
+    <div className={`nature-backdrop${started ? ' nature-backdrop--live' : ''}`} aria-hidden>
+      {NATURE_SCENES.map((s, i) => (
         <div
-          key={i}
-          className="nature-backdrop__mote"
-          style={{
-            left: `${p.x}%`,
-            top: `${p.y}%`,
-            width: p.s,
-            height: p.s,
-            animationDuration: `${p.d}s`,
-            animationDelay: `${p.del}s`,
-          }}
+          key={s.id}
+          className={`nature-backdrop__scene nature-backdrop__scene--pan-${s.pan}${i === activeIndex ? ' is-active' : ''}`}
+          style={{ backgroundImage: `url(${s.url})` }}
         />
       ))}
+      <div className="nature-backdrop__gradient" />
+      <div className="nature-backdrop__aurora nature-backdrop__aurora--1" />
+      <div className="nature-backdrop__aurora nature-backdrop__aurora--2" />
+      <div className="nature-backdrop__scene-label">{scene.label}</div>
     </div>
   );
 }
@@ -82,6 +67,7 @@ export default function ComfortMode() {
   useEffect(() => {
     cancelledRef.current = false;
     primeSpeechSynthesis();
+    preloadNatureScenes();
     const stopFn = startTibetanBells(0.55);
     stopBellsRef.current = stopFn;
     return () => {
@@ -184,7 +170,6 @@ export default function ComfortMode() {
   return (
     <div className="comfort-mode-v2" role="dialog" aria-modal="true" aria-label="Comfort Mode">
       <NatureBackdrop />
-      <div className="comfort-mode-v2__scrim" />
 
       <button
         type="button"
@@ -202,7 +187,7 @@ export default function ComfortMode() {
         </div>
 
         {phase === 'grounding' && (
-          <div className="animate-fadeIn comfort-mode-v2__card">
+          <div className="animate-fadeIn comfort-mode-v2__phase">
             {loading ? (
               <div className="comfort-mode-v2__loading">
                 <div className="comfort-mode-v2__loading-dot" />
@@ -240,7 +225,7 @@ export default function ComfortMode() {
         )}
 
         {phase === 'breathing' && (
-          <div className="animate-fadeIn comfort-mode-v2__card">
+          <div className="animate-fadeIn comfort-mode-v2__phase">
             <p className="comfort-mode-v2__breathe-heading">Breathe with me, {firstName}</p>
             <BreathingCircle cycles={3} onComplete={handleBreathingComplete} />
             <button
@@ -255,7 +240,7 @@ export default function ComfortMode() {
         )}
 
         {phase === 'narrative' && (
-          <div className="animate-fadeIn comfort-mode-v2__card">
+          <div className="animate-fadeIn comfort-mode-v2__phase">
             <p className="comfort-mode-v2__text">{narrativeText}</p>
             <div className="comfort-mode-v2__actions">
               <button type="button" className="comfort-mode-v2__btn comfort-mode-v2__btn--primary tap-feedback" onClick={exitComfort}>

@@ -233,6 +233,38 @@ Write ONLY the narrative. No quotes.`;
   }
 }
 
+export async function generateSupervisorBriefing(
+  contextBlock: string,
+  localFallback: string
+): Promise<{ text: string; fromLlm: boolean }> {
+  const prompt = `You are Recall's care assistant briefing a family caregiver about their loved one with dementia.
+
+Write a warm, factual briefing (4–6 sentences) in second person ("you").
+
+STRICT RULES:
+- Use ONLY facts explicitly listed in DATA below. Do not invent medications, events, Clara conversations, or appointments.
+- If Clara conversations says "none recorded", do NOT mention Clara interactions.
+- If next checkup says "none scheduled", do NOT mention a doctor visit.
+- ACSE: higher is better; below the comfort threshold is concerning.
+- Only suggest a specific action if DATA lists a pending med, unverified med, alert, or upcoming appointment.
+- Do not use bullet points.
+
+DATA:
+${contextBlock}
+
+Write ONLY the briefing paragraph. No quotes.`;
+
+  try {
+    const raw = await groqChat([{ role: 'user', content: prompt }], { max_tokens: 300, temperature: 0.25 });
+    const text = raw.replace(/^["']|["']$/g, '').replace(/\*\*/g, '').trim();
+    if (text.length > 40) return { text, fromLlm: true };
+  } catch (err) {
+    console.warn('[Supervisor briefing] LLM unavailable:', err);
+  }
+
+  return { text: localFallback, fromLlm: false };
+}
+
 export interface MemoryAnchor {
   title: string;
   emoji: string;
