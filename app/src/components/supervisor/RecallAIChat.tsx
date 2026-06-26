@@ -53,7 +53,7 @@ export default function RecallAIChat({ user }: Props) {
   const [error, setError] = useState('');
   const [llmConnected, setLlmConnected] = useState<boolean | null>(null);
   const [contextReady, setContextReady] = useState(false);
-  const [liveLine, setLiveLine] = useState('');
+  const [showPrompts, setShowPrompts] = useState(true);
 
   const { startListening, stopListening } = useClaraVoice();
   const contextRef = useRef<RecallAIContextBundle | null>(null);
@@ -77,6 +77,7 @@ export default function RecallAIChat({ user }: Props) {
     if (role === 'user' || role === 'assistant') {
       historyRef.current = [...historyRef.current, { role, content }].slice(-20);
     }
+    if (role === 'user') setShowPrompts(false);
     scrollToBottom();
     return msg;
   }, [scrollToBottom]);
@@ -105,7 +106,6 @@ export default function RecallAIChat({ user }: Props) {
 
     const boot = async () => {
       setState('thinking');
-      setLiveLine('Reviewing patient data…');
       try {
         const bundle = await loadContext();
         if (!bundle) return;
@@ -120,14 +120,13 @@ export default function RecallAIChat({ user }: Props) {
 
         setLlmConnected(result.fromLlm);
 
-        const welcome = `Hello ${caregiverName}. I'm Recall AI — your specialist advisor for ${patientFirst}'s care. Here's today's briefing:\n\n${briefing}\n\nAsk me anything about treatment, medications, cognitive changes, or care planning. Tap the microphone or type below.`;
+        const welcome = `Hello ${caregiverName}. I'm Recall AI — your specialist advisor for ${patientFirst}'s care. Here's today's briefing:\n\n${briefing}\n\nAsk me anything about treatment, medications, cognitive changes, or care planning.`;
 
         appendMessage('assistant', welcome);
-        setLiveLine(`Ready — ask me about ${patientFirst}'s care.`);
 
         unlockAudioPlayback();
         void speak(
-          `Hello ${caregiverName}. I've reviewed ${patientFirst}'s day. Ask me anything about her care — I'm listening.`,
+          `Hello ${caregiverName}. I've reviewed ${patientFirst}'s day. Ask me anything about her care.`,
           { clara: true }
         ).catch(() => undefined);
       } catch (err) {
@@ -136,7 +135,6 @@ export default function RecallAIChat({ user }: Props) {
           'assistant',
           `Hello ${caregiverName}. I'm Recall AI. I had trouble loading the full briefing, but I can still answer care questions using live patient data. What would you like to know?`
         );
-        setLiveLine('Ready — ask me anything.');
       } finally {
         setState('idle');
       }
@@ -150,10 +148,6 @@ export default function RecallAIChat({ user }: Props) {
   }, [messages, scrollToBottom]);
 
   const speakReply = useCallback(async (response: string) => {
-    if (!sessionActiveRef.current && state !== 'thinking') {
-      /* text-only path sets speaking manually */
-    }
-    setLiveLine(response);
     setState('speaking');
     try {
       unlockAudioPlayback();
@@ -164,13 +158,11 @@ export default function RecallAIChat({ user }: Props) {
       await new Promise<void>((r) => setTimeout(r, POST_SPEAK_PAUSE_MS));
       if (sessionActiveRef.current) {
         setState('listening');
-        setLiveLine("I'm listening…");
       } else {
         setState('idle');
-        setLiveLine('Ready — tap mic or type a question.');
       }
     }
-  }, [state]);
+  }, []);
 
   const processMessage = useCallback(async (text: string, speakAloud = true) => {
     const trimmed = text.trim();
@@ -179,7 +171,6 @@ export default function RecallAIChat({ user }: Props) {
     setError('');
     appendMessage('user', trimmed);
     setState('thinking');
-    setLiveLine('Thinking…');
 
     if (!contextRef.current) {
       await loadContext();
@@ -203,28 +194,15 @@ export default function RecallAIChat({ user }: Props) {
       appendMessage('assistant', result.reply);
 
       if (speakAloud) {
-        if (sessionActiveRef.current) {
-          await speakReply(result.reply);
-        } else {
-          setState('speaking');
-          setLiveLine(result.reply);
-          try {
-            unlockAudioPlayback();
-            await speak(result.reply, { clara: true });
-          } catch { /* fallback silent */ }
-          setState('idle');
-          setLiveLine('Ready — tap mic or type a question.');
-        }
+        await speakReply(result.reply);
       } else {
         setState('idle');
-        setLiveLine('Ready — tap mic or type a question.');
       }
     } catch (err) {
       console.error('[Recall AI]', err);
       const fallback = `I'm having trouble connecting right now, ${caregiverName}. Try again in a moment, or check the Overview tab for live data.`;
       appendMessage('assistant', fallback);
       setState('idle');
-      setLiveLine(fallback);
     }
   }, [user?.id, appendMessage, loadContext, caregiverName, speakReply]);
 
@@ -232,15 +210,11 @@ export default function RecallAIChat({ user }: Props) {
     while (sessionActiveRef.current) {
       try {
         setState('listening');
-        setLiveLine("I'm listening…");
         setError('');
 
         const heard = await startListening();
         if (!sessionActiveRef.current) break;
-        if (!heard.trim()) {
-          setLiveLine("Go ahead — I'm listening.");
-          continue;
-        }
+        if (!heard.trim()) continue;
 
         await processMessage(heard, true);
       } catch (err) {
@@ -248,13 +222,12 @@ export default function RecallAIChat({ user }: Props) {
         if (!sessionActiveRef.current) break;
         const msg = (err instanceof Error ? err.message : '').toLowerCase();
         if (msg.includes('denied') || msg.includes('not-allowed')) {
-          setError('Please allow microphone access in browser settings.');
+          setError('Allow microphone access in browser settings.');
           sessionActiveRef.current = false;
           setInSession(false);
           setState('idle');
           return;
         }
-        setLiveLine("Let's try again…");
         setState('listening');
         await new Promise<void>((r) => setTimeout(r, 500));
       }
@@ -262,7 +235,6 @@ export default function RecallAIChat({ user }: Props) {
     sessionActiveRef.current = false;
     setInSession(false);
     setState('idle');
-    setLiveLine('Ready — tap mic or type a question.');
   }, [startListening, processMessage]);
 
   const stopSession = useCallback(() => {
@@ -271,7 +243,6 @@ export default function RecallAIChat({ user }: Props) {
     stopSpeaking();
     stopListening();
     setState('idle');
-    setLiveLine('Ready — tap mic or type a question.');
     setError('');
   }, [stopListening]);
 
@@ -308,15 +279,16 @@ export default function RecallAIChat({ user }: Props) {
 
   const handleRefreshContext = async () => {
     await loadContext();
-    appendMessage('assistant', `I've refreshed ${patientFirst}'s live data — meds, ACSE, events, and Clara logs are up to date. What would you like to know?`);
+    appendMessage('assistant', `I've refreshed ${patientFirst}'s live data. What would you like to know?`);
   };
 
   const micIcon: IconName = inSession ? 'close' : 'mic';
-  const micHint =
+  const statusHint =
     state === 'listening' ? 'Listening… speak now' :
-    state === 'thinking'  ? 'Analyzing…' :
-    state === 'speaking'  ? 'Recall AI is speaking…' :
-    'Tap to talk';
+    state === 'thinking'  ? 'Thinking…' :
+    state === 'speaking'  ? 'Speaking…' :
+    '';
+  const canSend = typedInput.trim().length > 0 && !inSession && contextReady;
 
   return (
     <div className="rai-room">
@@ -326,7 +298,7 @@ export default function RecallAIChat({ user }: Props) {
             <StudioIcon name="brain" size={20} />
           </div>
           <div>
-            <p className="rai-header__eyebrow">Neurodegenerative Care Advisor</p>
+            <p className="rai-header__eyebrow">Care Advisor</p>
             <h2 className="rai-header__title">Recall AI</h2>
           </div>
         </div>
@@ -336,14 +308,19 @@ export default function RecallAIChat({ user }: Props) {
              state === 'thinking'  ? '◌ Thinking' :
              state === 'speaking'  ? '▶ Speaking' : 'Ready'}
           </span>
-          {llmConnected === false && <span className="rai-offline">Offline mode</span>}
+          {llmConnected === false && <span className="rai-offline">Offline</span>}
           <button type="button" className="rai-refresh tap-feedback" onClick={() => void handleRefreshContext()} aria-label="Refresh patient data">
             <StudioIcon name="refresh" size={16} />
           </button>
         </div>
       </div>
 
-      <div className="rai-messages studio-scroll" ref={scrollRef}>
+      <div
+        className="rai-messages studio-scroll"
+        ref={scrollRef}
+        aria-busy={state === 'thinking'}
+        aria-live="polite"
+      >
         {messages.map((m) => (
           <div key={m.id} className={`rai-bubble rai-bubble--${m.role}`}>
             {m.role === 'assistant' && (
@@ -363,28 +340,21 @@ export default function RecallAIChat({ user }: Props) {
             <div className="rai-typing"><span /><span /><span /></div>
           </div>
         )}
+
+        {showPrompts && !inSession && contextReady && messages.length <= 2 && (
+          <div className="rai-prompts">
+            {SUGGESTED_PROMPTS.map((p) => (
+              <button key={p} type="button" className="rai-prompt-chip tap-feedback" onClick={() => handlePrompt(p)}>
+                {p}
+              </button>
+            ))}
+          </div>
+        )}
       </div>
 
-      {!inSession && messages.length <= 2 && contextReady && (
-        <div className="rai-prompts">
-          {SUGGESTED_PROMPTS.map((p) => (
-            <button key={p} type="button" className="rai-prompt-chip tap-feedback" onClick={() => handlePrompt(p)}>
-              {p}
-            </button>
-          ))}
-        </div>
-      )}
-
-      {liveLine && state !== 'idle' && (
-        <p className="rai-live-line" aria-live="polite">{liveLine}</p>
-      )}
-      {error && <p className="rai-error">{error}</p>}
-
-      <p className="rai-disclaimer">
-        Education only — not medical advice. Confirm treatment decisions with {patientFirst}'s physician.
-      </p>
-
       <div className="rai-input-bar">
+        {error && <p className="rai-input-bar__error" role="alert">{error}</p>}
+
         <button
           type="button"
           className={`rai-mic tap-feedback rai-mic--${state}`}
@@ -392,32 +362,39 @@ export default function RecallAIChat({ user }: Props) {
           aria-label={inSession ? 'End voice session' : 'Talk to Recall AI'}
         >
           <span className="rai-mic__ring" />
-          <StudioIcon name={micIcon} size={30} />
+          <StudioIcon name={micIcon} size={26} />
         </button>
 
-        <div className="rai-text-wrap">
-          <input
-            type="text"
-            className="rai-text-field"
-            placeholder={`Ask about ${patientFirst}'s care…`}
-            value={typedInput}
-            onChange={(e) => setTypedInput(e.target.value)}
-            onKeyDown={(e) => { if (e.key === 'Enter') handleTextSend(); }}
-            disabled={inSession || !contextReady}
-            aria-label="Type a question to Recall AI"
-          />
-          <button
-            type="button"
-            className="rai-send tap-feedback"
-            onClick={handleTextSend}
-            aria-label="Send"
-            style={{ visibility: typedInput.trim() && !inSession && contextReady ? 'visible' : 'hidden' }}
-          >
-            <StudioIcon name="send" size={16} />
-          </button>
+        <div className="rai-compose">
+          <div className="rai-text-wrap">
+            <input
+              type="text"
+              className="rai-text-field"
+              placeholder={`Ask about ${patientFirst}'s care…`}
+              value={typedInput}
+              onChange={(e) => setTypedInput(e.target.value)}
+              onKeyDown={(e) => { if (e.key === 'Enter') handleTextSend(); }}
+              disabled={inSession || !contextReady}
+              aria-label="Type a question to Recall AI"
+            />
+            <button
+              type="button"
+              className="rai-send tap-feedback"
+              onClick={handleTextSend}
+              aria-label="Send"
+              disabled={!canSend}
+            >
+              <StudioIcon name="send" size={16} />
+            </button>
+          </div>
+          {statusHint ? (
+            <p className="rai-mic-hint">{statusHint}</p>
+          ) : (
+            <p className="rai-disclaimer">
+              Not medical advice — confirm with {patientFirst}'s physician.
+            </p>
+          )}
         </div>
-
-        <p className="rai-mic-hint">{micHint}</p>
       </div>
     </div>
   );
