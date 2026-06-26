@@ -3,7 +3,7 @@ import { dateKey, lastNightDate } from './sleep';
 
 const STORAGE_KEY = 'recall_apple_health';
 
-interface AppleHealthState {
+export interface AppleHealthState {
   connected: boolean;
   lastSyncAt?: string;
   deviceName?: string;

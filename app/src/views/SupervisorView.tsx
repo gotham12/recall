@@ -9,6 +9,7 @@ import {
 } from 'recharts';
 import StudioIcon from '../components/StudioIcon';
 import VitalsDashboard from '../components/VitalsDashboard';
+import PatientHealthVitals from '../components/supervisor/PatientHealthVitals';
 import { addMedication, removeMedication, replaceMedication } from '../lib/medications';
 import type { Medication } from '../db/db';
 import StormRadar from '../components/StormRadar';
@@ -202,6 +203,17 @@ function OverviewTab({ user, acseScore, onOpen, onComfortMode, comfortActive }: 
             <p className="sup-stat-card__value" style={{ color: '#EA6C00' }}>{medCount}</p>
             <p className="sup-stat-card__label" style={{ color: '#EA6C00' }}>Med logs</p>
           </button>
+        </div>
+      </section>
+
+      {/* Patient vitals from Apple Health */}
+      <section className="app-section">
+        <div className="sup-section-header">
+          <div className="sup-section-dot" style={{ background: '#FF375F' }}/>
+          <h2 className="app-section-title" style={{ margin: 0 }}>Vitals</h2>
+        </div>
+        <div className="app-card" style={{ padding: 0, overflow: 'hidden', borderLeft: '3px solid #FF375F' }}>
+          <PatientHealthVitals patientName={user?.name} />
         </div>
       </section>
 

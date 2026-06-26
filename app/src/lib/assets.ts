@@ -10,6 +10,12 @@ export const FAMILY_PHOTOS = {
   lily: `${base}photos/lily.png?v=2`,
 } as const;
 
+/** Safety circle contacts — curated portrait photos */
+export const CONTACT_PHOTOS = {
+  drChen: 'https://images.unsplash.com/photo-1612349317150-e413f6a5b16d?w=240&h=240&fit=crop&crop=faces',
+  neighborTom: 'https://images.unsplash.com/photo-1560250097-0b93528c311a?w=240&h=240&fit=crop&crop=faces',
+} as const;
+
 export const TYLENOL_REFERENCE_URL = `${base}photos/tylenol-reference.png`;
 
 export function familyPhotoUrl(name: string): string | undefined {

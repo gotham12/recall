@@ -62,8 +62,10 @@ const PATHS: Record<IconName, JSX.Element> = {
   ),
   meds: (
     <>
-      <rect x="7" y="7" width="10" height="10" rx="5" />
-      <path d="M12 9v6M9 12h6" />
+      <rect x="6" y="4" width="12" height="16" rx="3" />
+      <line x1="9" y1="9" x2="15" y2="9" />
+      <line x1="9" y1="12" x2="15" y2="12" />
+      <line x1="9" y1="15" x2="13" y2="15" />
     </>
   ),
   events: (

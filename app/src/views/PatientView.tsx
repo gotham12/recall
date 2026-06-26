@@ -299,11 +299,10 @@ function IcoToday() {
 function IcoMeds() {
   return (
     <svg viewBox="0 0 24 24" fill="none" width="26" height="26">
-      <rect x="3" y="10" width="18" height="9" rx="4.5" stroke="currentColor" strokeWidth="1.7"/>
-      <line x1="3" y1="14.5" x2="21" y2="14.5" stroke="currentColor" strokeWidth="1.4"/>
-      <line x1="7.5" y1="10.5" x2="7.5" y2="18.5" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round"/>
-      <circle cx="17.5" cy="5.5" r="3" stroke="currentColor" strokeWidth="1.7"/>
-      <line x1="17.5" y1="4" x2="17.5" y2="7" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round"/>
+      <rect x="6" y="4" width="12" height="16" rx="3" stroke="currentColor" strokeWidth="1.7"/>
+      <line x1="9" y1="9" x2="15" y2="9" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round"/>
+      <line x1="9" y1="12" x2="15" y2="12" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round"/>
+      <line x1="9" y1="15" x2="13" y2="15" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round"/>
     </svg>
   );
 }
@@ -717,7 +716,6 @@ function TodayTab({ events, medications, acseScore, onOpen, onClara }: {
     .sort((a, b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime())
     .slice(0, 4);
   const scoreColor = acseScore >= 80 ? '#34C759' : acseScore >= 60 ? '#FF9500' : '#FF3B30';
-  const dateStr = now.toLocaleDateString([], { weekday: 'long', month: 'long', day: 'numeric' });
 
   useEffect(() => {
     const circum = 138.2;
@@ -750,8 +748,6 @@ function TodayTab({ events, medications, acseScore, onOpen, onClara }: {
 
   return (
     <div ref={containerRef} className="tab-scroll">
-      <div className="tab-date-header">{dateStr}</div>
-
       {/* ACSE Score */}
       <section className="app-section">
         <h2 className="app-section-title">Cognitive Health</h2>
@@ -1174,6 +1170,7 @@ export default function PatientView() {
 
   const hour = new Date().getHours();
   const greeting = hour < 12 ? 'Good morning' : hour < 17 ? 'Good afternoon' : 'Good evening';
+  const dateStr = new Date().toLocaleDateString([], { weekday: 'long', month: 'long', day: 'numeric' });
 
   if (panel) return (
     <>
@@ -1185,20 +1182,41 @@ export default function PatientView() {
 
   return (
     <div className="app-shell">
-      <header className="app-header">
-        <div>
-          <p className="app-header__eyebrow">{greeting}</p>
-          <h1 className="app-header__name">{firstName}</h1>
-        </div>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-          <div className="app-header__score-pill" title="Cognitive score">
-            <span className="app-header__score-dot" style={{ background: acseScore >= 80 ? '#34C759' : acseScore >= 60 ? '#FF9500' : '#FF3B30' }} />
-            {acseScore}
-          </div>
-          <button className="app-header__avatar tap-feedback" onClick={() => setScreen('login')} title="Switch user">
-            {firstName.charAt(0).toUpperCase()}
-          </button>
-        </div>
+      <header className={`app-header${tab === 'today' ? ' app-header--hero' : ''}`}>
+        {tab === 'today' ? (
+          <>
+            <div className="app-header__hero-tools">
+              <div className="app-header__score-pill" title="Cognitive score">
+                <span className="app-header__score-dot" style={{ background: acseScore >= 80 ? '#34C759' : acseScore >= 60 ? '#FF9500' : '#FF3B30' }} />
+                {acseScore}
+              </div>
+              <button className="app-header__avatar tap-feedback" onClick={() => setScreen('login')} title="Switch user">
+                {firstName.charAt(0).toUpperCase()}
+              </button>
+            </div>
+            <div className="home-hero">
+              <p className="home-hero__greeting">{greeting}</p>
+              <h1 className="home-hero__name">{firstName}</h1>
+              <p className="home-hero__date">{dateStr}</p>
+            </div>
+          </>
+        ) : (
+          <>
+            <div>
+              <p className="app-header__eyebrow">{greeting}</p>
+              <h1 className="app-header__name">{firstName}</h1>
+            </div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+              <div className="app-header__score-pill" title="Cognitive score">
+                <span className="app-header__score-dot" style={{ background: acseScore >= 80 ? '#34C759' : acseScore >= 60 ? '#FF9500' : '#FF3B30' }} />
+                {acseScore}
+              </div>
+              <button className="app-header__avatar tap-feedback" onClick={() => setScreen('login')} title="Switch user">
+                {firstName.charAt(0).toUpperCase()}
+              </button>
+            </div>
+          </>
+        )}
       </header>
 
       <main ref={mainRef} className="app-main">

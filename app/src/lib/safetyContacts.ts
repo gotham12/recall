@@ -1,4 +1,4 @@
-import { FAMILY_PHOTOS } from './assets';
+import { FAMILY_PHOTOS, CONTACT_PHOTOS } from './assets';
 
 export interface SafetyContactView {
   name: string;
@@ -16,6 +16,8 @@ const FAMILY_PHOTO_BY_NAME: Record<string, string> = {
   susan: FAMILY_PHOTOS.susan,
   robert: FAMILY_PHOTOS.robert,
   lily: FAMILY_PHOTOS.lily,
+  'dr. chen': CONTACT_PHOTOS.drChen,
+  'neighbor tom': CONTACT_PHOTOS.neighborTom,
 };
 
 export function photoForContact(name: string): string | undefined {

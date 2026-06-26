@@ -37,7 +37,6 @@ function NatureBackdrop() {
       <div className="nature-backdrop__gradient" />
       <div className="nature-backdrop__aurora nature-backdrop__aurora--1" />
       <div className="nature-backdrop__aurora nature-backdrop__aurora--2" />
-      <div className="nature-backdrop__scene-label">{scene.label}</div>
     </div>
   );
 }
