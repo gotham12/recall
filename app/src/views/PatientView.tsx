@@ -25,7 +25,7 @@ import GoldenPathDemo from '../components/GoldenPathDemo';
 
 gsap.registerPlugin(ScrollTrigger);
 
-type PatientTab = 'today' | 'care' | 'clara' | 'routine';
+type PatientTab = 'today' | 'meds' | 'clara' | 'routine';
 
 const PANEL_TITLES: Record<string, string> = {
   voice: 'Clara',
@@ -296,8 +296,16 @@ function IcoExternal({ size = 12 }: { size?: number }) {
 function IcoToday() {
   return <svg viewBox="0 0 24 24" fill="none" width="26" height="26"><rect x="3" y="4" width="18" height="17" rx="3.5" stroke="currentColor" strokeWidth="1.7"/><line x1="3" y1="9" x2="21" y2="9" stroke="currentColor" strokeWidth="1.7"/><line x1="8" y1="2.5" x2="8" y2="5.5" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round"/><line x1="16" y1="2.5" x2="16" y2="5.5" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round"/><circle cx="12" cy="15" r="1.2" fill="currentColor"/></svg>;
 }
-function IcoCare() {
-  return <svg viewBox="0 0 24 24" fill="none" width="26" height="26"><path d="M12 21s-7-5-7-10.5A5.5 5.5 0 0 1 12 5.5 5.5 5.5 0 0 1 19 10.5C19 16 12 21 12 21z" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round"/></svg>;
+function IcoMeds() {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" width="26" height="26">
+      <rect x="3" y="10" width="18" height="9" rx="4.5" stroke="currentColor" strokeWidth="1.7"/>
+      <line x1="3" y1="14.5" x2="21" y2="14.5" stroke="currentColor" strokeWidth="1.4"/>
+      <line x1="7.5" y1="10.5" x2="7.5" y2="18.5" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round"/>
+      <circle cx="17.5" cy="5.5" r="3" stroke="currentColor" strokeWidth="1.7"/>
+      <line x1="17.5" y1="4" x2="17.5" y2="7" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round"/>
+    </svg>
+  );
 }
 function IcoClara() {
   return (
@@ -738,12 +746,13 @@ function TodayTab({ events, medications, acseScore, onOpen, onClara }: {
     return () => ScrollTrigger.getAll().forEach(t => t.kill());
   }, []);
 
+  const openAppleHealth = () => window.open('x-apple-health://', '_blank', 'noopener,noreferrer');
+
   return (
     <div ref={containerRef} className="tab-scroll">
       <div className="tab-date-header">{dateStr}</div>
 
-      <WatchStrip onOpen={onOpen} />
-
+      {/* ACSE Score */}
       <section className="app-section">
         <h2 className="app-section-title">Cognitive Health</h2>
         <div className="app-card score-card" onClick={() => onOpen('memory')} style={{ cursor: 'pointer' }}>
@@ -764,6 +773,58 @@ function TodayTab({ events, medications, acseScore, onOpen, onClara }: {
         </div>
       </section>
 
+      {/* Health Today carousel */}
+      <section className="app-section">
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10 }}>
+          <h2 className="app-section-title" style={{ margin: 0 }}>Health Today</h2>
+          <button onClick={openAppleHealth} style={{ background: 'none', border: 'none', color: '#007AFF', fontSize: 13, fontWeight: 500, cursor: 'pointer', padding: 0, fontFamily: 'inherit', display: 'flex', alignItems: 'center', gap: 3 }}>
+            Apple Health <IcoExternal size={10}/>
+          </button>
+        </div>
+        <div className="health-today-scroll">
+          {/* Sleep */}
+          <button className="health-today-card" onClick={openAppleHealth}>
+            <div className="health-today-card__top" style={{ background: '#EEF0FF' }}>
+              <div className="health-today-card__icon"><IcoMoon color="#1C1C6E" size={20}/></div>
+              <span className="health-today-card__tag" style={{ color: '#1C1C6E', background: 'rgba(28,28,110,0.10)' }}>Sleep</span>
+            </div>
+            <div className="health-today-card__body">
+              <div className="health-today-card__value">6h<span className="health-today-card__unit">52m</span></div>
+              <div style={{ display: 'flex', borderRadius: 4, overflow: 'hidden', height: 6, margin: '8px 0 4px' }}>
+                {SLEEP_DATA.map(d => <div key={d.stage} style={{ flex: d.mins, background: d.color }}/>)}
+              </div>
+              <div className="health-today-card__sub">Last night · Bedtime 10:34 PM</div>
+              <div className="health-today-card__cta">Open in Health <IcoExternal size={9}/></div>
+            </div>
+          </button>
+          {/* Heart Rate */}
+          <button className="health-today-card" onClick={openAppleHealth}>
+            <div className="health-today-card__top" style={{ background: '#FFF0F3' }}>
+              <div className="health-today-card__icon"><IcoHeart color="#FF375F" size={20}/></div>
+              <span className="health-today-card__tag" style={{ color: '#FF375F', background: 'rgba(255,55,95,0.10)' }}>Heart Rate</span>
+            </div>
+            <div className="health-today-card__body">
+              <div className="health-today-card__value">71<span className="health-today-card__unit">BPM</span></div>
+              <div className="health-today-card__sub">Resting · Range 55–88</div>
+              <div className="health-today-card__cta">Open in Health <IcoExternal size={9}/></div>
+            </div>
+          </button>
+          {/* Steps */}
+          <button className="health-today-card" onClick={openAppleHealth}>
+            <div className="health-today-card__top" style={{ background: '#E5F6FB' }}>
+              <div className="health-today-card__icon"><IcoSteps color="#0891B2" size={20}/></div>
+              <span className="health-today-card__tag" style={{ color: '#0891B2', background: 'rgba(8,145,178,0.10)' }}>Steps</span>
+            </div>
+            <div className="health-today-card__body">
+              <div className="health-today-card__value">6,247<span className="health-today-card__unit">steps</span></div>
+              <div className="health-today-card__sub">Goal: 8,000 · 78%</div>
+              <div className="health-today-card__cta">Open in Health <IcoExternal size={9}/></div>
+            </div>
+          </button>
+        </div>
+      </section>
+
+      {/* Medications summary */}
       <section className="app-section">
         <h2 className="app-section-title">Medications</h2>
         <div className="app-card-group">
@@ -802,61 +863,78 @@ function TodayTab({ events, medications, acseScore, onOpen, onClara }: {
         </div>
       </section>
 
+      {/* People quick access */}
       <section className="app-section">
-        <h2 className="app-section-title">Health Charts</h2>
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-          <div className="app-card" style={{ padding: '16px 14px 10px' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 10 }}>
-              <span style={{ color: '#007AFF' }}><IcoSteps size={14}/></span>
-              <span style={{ fontSize: 13, fontWeight: 600, color: '#1C1C1E' }}>Steps</span>
-              <span style={{ fontSize: 11, color: 'rgba(60,60,67,0.45)' }}>Last 7 days</span>
+        <h2 className="app-section-title">People</h2>
+        <div className="app-card-group">
+          <div className="app-card-nav-row" onClick={() => onOpen('faces')}>
+            <span className="nav-row-icon" style={{ background: '#E5F6FB' }}><IcoUsers color="#0891B2" size={20}/></span>
+            <div className="nav-row-body">
+              <span className="nav-row-label">Familiar Faces</span>
+              <span className="nav-row-sub">Friends and family</span>
             </div>
-            <StepsChart />
+            <Chevron />
           </div>
-          <div className="app-card" style={{ padding: '16px 14px 10px' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 8 }}>
-              <span style={{ color: '#FF375F' }}><IcoHeart size={14}/></span>
-              <span style={{ fontSize: 13, fontWeight: 600, color: '#1C1C1E' }}>Heart Rate</span>
-              <span style={{ fontSize: 11, color: 'rgba(60,60,67,0.45)' }}>24h</span>
+          <div className="app-card-nav-row" onClick={() => onOpen('safety')}>
+            <span className="nav-row-icon" style={{ background: '#FFEBEA' }}><IcoShield color="#DC2626" size={20}/></span>
+            <div className="nav-row-body">
+              <span className="nav-row-label">Safety Circle</span>
+              <span className="nav-row-sub">Emergency contacts & SOS</span>
             </div>
-            <HeartRateChart />
-          </div>
-          <div className="app-card" style={{ padding: '16px 14px' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 10 }}>
-              <span style={{ color: '#1C1C6E' }}><IcoMoon size={14}/></span>
-              <span style={{ fontSize: 13, fontWeight: 600, color: '#1C1C1E' }}>Sleep</span>
-              <span style={{ fontSize: 11, color: 'rgba(60,60,67,0.45)' }}>Last night</span>
-            </div>
-            <SleepChart />
+            <Chevron />
           </div>
         </div>
       </section>
-
-      <section className="app-section">
-        <h2 className="app-section-title">Last Walk</h2>
-        <WalkMap />
-      </section>
-
-      <section className="app-section">
-        <h2 className="app-section-title">Quick Actions</h2>
-        <div className="quick-action-row">
-          <button className="quick-action-btn quick-action-btn--blue tap-feedback" onClick={onClara} style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-            <IcoMic color="#fff" size={20}/> Talk to Clara
-          </button>
-          <button className="quick-action-btn quick-action-btn--red tap-feedback" onClick={() => onOpen('safety')} style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-            <IcoShield color="#fff" size={20}/> Safety
-          </button>
-        </div>
-      </section>
-
-      <RecommendationsSection onOpenArticles={() => onOpen('articles')} />
-      <HealthTips />
       <div style={{ height: 32 }} />
     </div>
   );
 }
 
-// ── Care tab ──────────────────────────────────────────────────────────────
+// ── Meds tab ──────────────────────────────────────────────────────────────
+function MedsTab({ medications, onOpen }: { medications: Medication[]; onOpen: (id: string) => void }) {
+  const ref = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    if (!ref.current) return;
+    gsap.fromTo(ref.current.querySelectorAll<HTMLElement>('.meds-verify-row, .meds-section-title'),
+      { opacity: 0, y: 16 }, { opacity: 1, y: 0, duration: 0.4, stagger: 0.05, ease: 'power2.out' });
+  }, []);
+  return (
+    <div ref={ref} className="meds-tab-wrap">
+      <div style={{ padding: '20px 20px 8px' }}>
+        <h2 style={{ fontSize: 28, fontWeight: 700, color: '#1C1C1E', margin: 0, letterSpacing: -0.5 }}>My Medications</h2>
+        <p style={{ fontSize: 15, color: 'rgba(60,60,67,0.55)', margin: '4px 0 0' }}>Tap a medication to verify you took it</p>
+      </div>
+      {/* Full MedTracker */}
+      <div style={{ padding: '0 0 24px' }}>
+        <MedTracker />
+      </div>
+      {/* All meds list with verify */}
+      {medications.length > 0 && (
+        <div style={{ padding: '0 16px 32px' }}>
+          <p className="meds-section-title" style={{ fontSize: 13, fontWeight: 600, color: 'rgba(60,60,67,0.44)', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 10 }}>All Prescriptions</p>
+          <div className="app-card-group">
+            {medications.map((med, i) => (
+              <div key={`${med.name}-${i}`} className="meds-verify-row app-card-nav-row">
+                <span className="nav-row-icon" style={{ background: '#FFF3E5' }}><IcoPill color="#EA6C00" size={20}/></span>
+                <div className="nav-row-body">
+                  <span className="nav-row-label">{med.name}</span>
+                  <span className="nav-row-sub">{med.dosage} · {med.schedule.join(', ')}</span>
+                </div>
+                <span style={{ fontSize: 12, fontWeight: 600, color: isMedicationDueSoon(med.schedule) ? '#FF9500' : '#34C759',
+                  background: isMedicationDueSoon(med.schedule) ? 'rgba(255,149,0,0.12)' : 'rgba(52,199,89,0.12)',
+                  borderRadius: 8, padding: '4px 8px' }}>
+                  {isMedicationDueSoon(med.schedule) ? 'Due' : 'OK'}
+                </span>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ── Care tab (legacy — kept for panel compatibility) ──────────────────────────
 function CareTab({ onOpen }: { onOpen: (id: string) => void }) {
   const ref = useRef<HTMLDivElement>(null);
   useEffect(() => {
@@ -1124,8 +1202,8 @@ export default function PatientView() {
       </header>
 
       <main ref={mainRef} className="app-main">
-        {tab === 'today'   && <TodayTab events={events} medications={medications} acseScore={acseScore} onOpen={openPanel} onClara={() => handleTabChange('clara')} />}
-        {tab === 'care'    && <CareTab onOpen={openPanel} />}
+        {tab === 'today'   && <TodayTab events={events} medications={medications} acseScore={acseScore} onOpen={openPanel} onClara={() => handleTabChange('meds')} />}
+        {tab === 'meds'    && <MedsTab medications={medications} onOpen={openPanel} />}
         {tab === 'clara'   && <VoiceAgent />}
         {tab === 'routine' && <div className="tab-scroll"><RoutineChecklist /></div>}
       </main>
@@ -1133,7 +1211,7 @@ export default function PatientView() {
       <nav className="app-tab-bar">
         {([
           { id: 'today',   label: 'Today',   icon: <IcoToday /> },
-          { id: 'care',    label: 'Care',    icon: <IcoCare /> },
+          { id: 'meds',    label: 'Meds',    icon: <IcoMeds /> },
           { id: 'clara',   label: 'Clara',   icon: <IcoClara /> },
           { id: 'routine', label: 'Routine', icon: <IcoRoutine /> },
         ] as const).map(t => (

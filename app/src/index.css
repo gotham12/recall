@@ -7964,3 +7964,215 @@ html, body, #root {
 
 /* Tap feedback */
 .tap-feedback:active { opacity: 0.80; transform: scale(0.98); }
+
+/* ── Clara Avatar ───────────────────────────────────────────────────────────── */
+.cv2-avatar-wrap {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 28px 20px 12px;
+  flex-shrink: 0;
+}
+.cv2-avatar-ring {
+  border-radius: 50%;
+  padding: 4px;
+  background: #F2F2F7;
+  box-shadow: 0 4px 24px rgba(0,122,255,0.14), 0 1px 4px rgba(0,0,0,0.08);
+  transition: box-shadow 0.3s ease;
+}
+.cv2-avatar-ring--listening { box-shadow: 0 0 0 6px rgba(52,199,89,0.25), 0 4px 24px rgba(52,199,89,0.20); }
+.cv2-avatar-ring--thinking  { box-shadow: 0 0 0 6px rgba(255,149,0,0.25), 0 4px 24px rgba(255,149,0,0.20); animation: cv2-avatar-pulse 1.4s ease-in-out infinite; }
+.cv2-avatar-ring--speaking  { box-shadow: 0 0 0 6px rgba(0,122,255,0.30), 0 4px 24px rgba(0,122,255,0.22); animation: cv2-avatar-pulse 0.8s ease-in-out infinite; }
+@keyframes cv2-avatar-pulse {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.04); }
+}
+.cv2-avatar-name {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  margin-top: 14px;
+  gap: 3px;
+}
+.cv2-avatar-label {
+  font-size: 22px;
+  font-weight: 700;
+  color: #1C1C1E;
+  letter-spacing: -0.01em;
+}
+.cv2-avatar-status {
+  font-size: 14px;
+  color: rgba(60,60,67,0.50);
+  font-weight: 400;
+}
+.cv2-avatar-status--listening { color: #34C759; font-weight: 600; }
+.cv2-avatar-status--thinking  { color: #FF9500; font-weight: 600; }
+.cv2-avatar-status--speaking  { color: #007AFF; font-weight: 600; }
+
+/* ── Health Today carousel ─────────────────────────────────────────────────── */
+.health-today-scroll {
+  display: flex;
+  gap: 12px;
+  overflow-x: auto;
+  padding-bottom: 8px;
+  scrollbar-width: none;
+  -webkit-overflow-scrolling: touch;
+}
+.health-today-scroll::-webkit-scrollbar { display: none; }
+.health-today-card {
+  flex-shrink: 0;
+  width: 158px;
+  background: #FFFFFF;
+  border-radius: 20px;
+  box-shadow: 0 1px 0 rgba(60,60,67,0.10), 0 2px 10px rgba(0,0,0,0.07);
+  border: none;
+  cursor: pointer;
+  text-align: left;
+  padding: 0;
+  font-family: -apple-system, BlinkMacSystemFont, sans-serif;
+  -webkit-tap-highlight-color: transparent;
+  transition: transform 0.12s ease, box-shadow 0.12s ease;
+}
+.health-today-card:active { transform: scale(0.97); box-shadow: 0 1px 4px rgba(0,0,0,0.10); }
+.health-today-card__top {
+  padding: 14px 14px 10px;
+  border-radius: 20px 20px 0 0;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.health-today-card__icon {
+  width: 36px;
+  height: 36px;
+  border-radius: 10px;
+  background: rgba(255,255,255,0.70);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+.health-today-card__tag {
+  font-size: 11px;
+  font-weight: 700;
+  border-radius: 5px;
+  padding: 2px 7px;
+}
+.health-today-card__body {
+  padding: 10px 14px 14px;
+}
+.health-today-card__value {
+  font-size: 28px;
+  font-weight: 700;
+  color: #1C1C1E;
+  line-height: 1;
+}
+.health-today-card__unit {
+  font-size: 13px;
+  font-weight: 400;
+  color: rgba(60,60,67,0.45);
+  margin-left: 3px;
+}
+.health-today-card__sub {
+  font-size: 11px;
+  color: rgba(60,60,67,0.45);
+  margin-top: 3px;
+}
+.health-today-card__cta {
+  margin-top: 10px;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 12px;
+  color: #007AFF;
+  font-weight: 500;
+}
+
+/* ── Supervisor color palette ──────────────────────────────────────────────── */
+.sup-section-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 10px;
+}
+.sup-section-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+.sup-stat-card {
+  border-radius: 16px;
+  padding: 14px 16px;
+  border: none;
+  cursor: pointer;
+  text-align: left;
+  font-family: inherit;
+  transition: transform 0.1s;
+}
+.sup-stat-card:active { transform: scale(0.97); }
+.sup-stat-card__value {
+  font-size: 32px;
+  font-weight: 700;
+  margin: 0 0 2px;
+  line-height: 1;
+}
+.sup-stat-card__label {
+  font-size: 13px;
+  font-weight: 500;
+  margin: 0;
+  opacity: 0.72;
+}
+.comfort-mode-btn {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  padding: 18px 20px;
+  background: linear-gradient(135deg, #FF9F0A 0%, #FF6B00 100%);
+  border: none;
+  border-radius: 18px;
+  cursor: pointer;
+  font-family: -apple-system, BlinkMacSystemFont, sans-serif;
+  box-shadow: 0 4px 16px rgba(255,107,0,0.28), 0 1px 4px rgba(0,0,0,0.08);
+  transition: transform 0.12s ease, box-shadow 0.12s ease;
+  -webkit-tap-highlight-color: transparent;
+}
+.comfort-mode-btn:active { transform: scale(0.97); box-shadow: 0 2px 8px rgba(255,107,0,0.22); }
+.comfort-mode-btn__icon {
+  width: 44px;
+  height: 44px;
+  border-radius: 12px;
+  background: rgba(255,255,255,0.22);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+.comfort-mode-btn__body { flex: 1; text-align: left; }
+.comfort-mode-btn__title { font-size: 16px; font-weight: 700; color: #fff; margin: 0 0 2px; }
+.comfort-mode-btn__sub { font-size: 13px; color: rgba(255,255,255,0.82); margin: 0; }
+
+/* ── Meds Tab ──────────────────────────────────────────────────────────────── */
+.meds-tab-wrap {
+  height: 100%;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: none;
+}
+.meds-tab-wrap::-webkit-scrollbar { display: none; }
+
+/* ── Bigger nav rows for elderly UX ───────────────────────────────────────── */
+.app-card-nav-row {
+  min-height: 72px !important;
+  padding: 14px 16px !important;
+}
+.nav-row-icon {
+  width: 46px !important;
+  height: 46px !important;
+  border-radius: 13px !important;
+}
+.nav-row-label { font-size: 17px !important; }
+.nav-row-sub   { font-size: 13px !important; }
+.app-card-row  { min-height: 60px !important; }
+.dash-btn      { min-height: 72px !important; padding: 20px 18px !important; }
+.panel-primary-btn { padding: 18px !important; font-size: 17px !important; border-radius: 16px !important; }

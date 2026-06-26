@@ -21,7 +21,7 @@ import { useAppStore } from '../store/appStore';
 import SettingsSheet from '../components/SettingsSheet';
 import { db, type Event, type User } from '../db/db';
 
-type SupTab = 'overview' | 'schedule' | 'insights';
+type SupTab = 'overview' | 'schedule' | 'acse' | 'insights';
 
 // ─── Tab bar icons ──────────────────────────────────────────────────────────
 function IcoOverview() {
@@ -32,6 +32,16 @@ function IcoSchedule() {
 }
 function IcoInsights() {
   return <svg viewBox="0 0 24 24" fill="none" width="26" height="26"><polyline points="3,17 8,11 13,14 18,6 21,9" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round"/><circle cx="3" cy="17" r="1.5" fill="currentColor"/><circle cx="8" cy="11" r="1.5" fill="currentColor"/><circle cx="13" cy="14" r="1.5" fill="currentColor"/><circle cx="18" cy="6" r="1.5" fill="currentColor"/></svg>;
+}
+function IcoACSE() {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" width="26" height="26">
+      <circle cx="12" cy="12" r="9" stroke="currentColor" strokeWidth="1.8"/>
+      <path d="M9 12c0-1.65 1.35-3 3-3s3 1.35 3 3" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round"/>
+      <line x1="12" y1="15" x2="12" y2="17" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round"/>
+      <circle cx="12" cy="19" r="1" fill="currentColor"/>
+    </svg>
+  );
 }
 
 // ─── App header ─────────────────────────────────────────────────────────────
@@ -65,6 +75,7 @@ function SupTabBar({ active, onChange }: { active: SupTab; onChange: (t: SupTab)
   const tabs: { id: SupTab; label: string; icon: JSX.Element }[] = [
     { id: 'overview',  label: 'Overview', icon: <IcoOverview /> },
     { id: 'schedule',  label: 'Schedule', icon: <IcoSchedule /> },
+    { id: 'acse',      label: 'ACSE',     icon: <IcoACSE /> },
     { id: 'insights',  label: 'Insights', icon: <IcoInsights /> },
   ];
   return (
@@ -90,7 +101,10 @@ const SUP_PANEL_TITLES: Record<string, string> = {
 };
 
 // ─── Overview tab ───────────────────────────────────────────────────────────
-function OverviewTab({ user, acseScore, onOpen }: { user: User | null; acseScore: number; onOpen: (id: string) => void }) {
+function OverviewTab({ user, acseScore, onOpen, onComfortMode, comfortActive }: {
+  user: User | null; acseScore: number; onOpen: (id: string) => void;
+  onComfortMode: () => void; comfortActive: boolean;
+}) {
   const scoreColor = acseScore >= 80 ? '#34C759' : acseScore >= 60 ? '#FF9500' : '#FF3B30';
   const eventCount = useLiveQuery<number>(
     () => user?.id ? db.events.where('userId').equals(user.id).count() : Promise.resolve(0),
@@ -103,10 +117,32 @@ function OverviewTab({ user, acseScore, onOpen }: { user: User | null; acseScore
 
   return (
     <div className="tab-scroll">
+      {/* Comfort Mode CTA */}
+      <section className="app-section">
+        <button className="comfort-mode-btn tap-feedback" onClick={onComfortMode} disabled={comfortActive}>
+          <div className="comfort-mode-btn__icon">
+            <svg viewBox="0 0 24 24" fill="none" width="26" height="26">
+              <path d="M12 2C8.5 2 5.5 4 4 7c-.5 1-.5 2-.5 3 0 5 4 9 8.5 12 4.5-3 8.5-7 8.5-12 0-1-.1-2-.5-3C18.5 4 15.5 2 12 2z" fill="rgba(255,255,255,0.25)" stroke="white" strokeWidth="1.8"/>
+              <path d="M9 12l2 2 4-4" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+            </svg>
+          </div>
+          <div className="comfort-mode-btn__body">
+            <p className="comfort-mode-btn__title">{comfortActive ? 'Comfort Mode Active' : 'Activate Comfort Mode'}</p>
+            <p className="comfort-mode-btn__sub">Calming music, soothing visuals & gentle reminders</p>
+          </div>
+          <svg viewBox="0 0 24 24" fill="none" width="20" height="20" style={{ flexShrink: 0, opacity: 0.8 }}>
+            <path d="M9 18l6-6-6-6" stroke="white" strokeWidth="2.2" strokeLinecap="round"/>
+          </svg>
+        </button>
+      </section>
+
       {/* ACSE score */}
       <section className="app-section">
-        <h2 className="app-section-title">Cognitive Health</h2>
-        <div className="app-card score-card" onClick={() => onOpen('stats')}>
+        <div className="sup-section-header">
+          <div className="sup-section-dot" style={{ background: scoreColor }}/>
+          <h2 className="app-section-title" style={{ margin: 0 }}>Cognitive Health</h2>
+        </div>
+        <div className="app-card score-card" onClick={() => onOpen('stats')} style={{ borderLeft: `3px solid ${scoreColor}`, cursor: 'pointer' }}>
           <div className="score-card__ring-wrap">
             <svg viewBox="0 0 56 56" width="56" height="56">
               <circle cx="28" cy="28" r="22" fill="none" stroke="rgba(60,60,67,0.10)" strokeWidth="5"/>
@@ -128,26 +164,34 @@ function OverviewTab({ user, acseScore, onOpen }: { user: User | null; acseScore
         </div>
       </section>
 
-      {/* Quick stats */}
+      {/* Quick stats — colorful cards */}
       <section className="app-section">
-        <h2 className="app-section-title">Today at a Glance</h2>
+        <div className="sup-section-header">
+          <div className="sup-section-dot" style={{ background: '#007AFF' }}/>
+          <h2 className="app-section-title" style={{ margin: 0 }}>Today at a Glance</h2>
+        </div>
         <div className="stat-pair-row">
-          <div className="stat-pair-card" onClick={() => onOpen('events')}>
-            <p className="stat-pair-value">{eventCount}</p>
-            <p className="stat-pair-label">Events</p>
-          </div>
-          <div className="stat-pair-card" onClick={() => onOpen('medications')}>
-            <p className="stat-pair-value">{medCount}</p>
-            <p className="stat-pair-label">Med logs</p>
-          </div>
+          <button className="sup-stat-card tap-feedback" onClick={() => onOpen('events')}
+            style={{ background: 'rgba(0,122,255,0.08)', border: '1px solid rgba(0,122,255,0.15)', flex: 1 }}>
+            <p className="sup-stat-card__value" style={{ color: '#007AFF' }}>{eventCount}</p>
+            <p className="sup-stat-card__label" style={{ color: '#007AFF' }}>Events logged</p>
+          </button>
+          <button className="sup-stat-card tap-feedback" onClick={() => onOpen('medications')}
+            style={{ background: 'rgba(234,108,0,0.08)', border: '1px solid rgba(234,108,0,0.15)', flex: 1 }}>
+            <p className="sup-stat-card__value" style={{ color: '#EA6C00' }}>{medCount}</p>
+            <p className="sup-stat-card__label" style={{ color: '#EA6C00' }}>Med logs</p>
+          </button>
         </div>
       </section>
 
       {/* Patient info */}
       {user && (
         <section className="app-section">
-          <h2 className="app-section-title">Patient</h2>
-          <div className="app-card" style={{ padding: '16px 20px' }}>
+          <div className="sup-section-header">
+            <div className="sup-section-dot" style={{ background: '#5856D6' }}/>
+            <h2 className="app-section-title" style={{ margin: 0 }}>Patient</h2>
+          </div>
+          <div className="app-card" style={{ padding: '16px 20px', borderLeft: '3px solid #5856D6' }}>
             <p style={{ fontWeight: 700, fontSize: 17, margin: '0 0 4px', color: '#1C1C1E' }}>{user.name}</p>
             <p style={{ fontSize: 14, color: 'rgba(60,60,67,0.55)', margin: '0 0 2px' }}>Age {user.age} · {user.city}</p>
             {user.caregiverName && <p style={{ fontSize: 14, color: 'rgba(60,60,67,0.55)', margin: 0 }}>
@@ -159,8 +203,11 @@ function OverviewTab({ user, acseScore, onOpen }: { user: User | null; acseScore
 
       {/* Live activity */}
       <section className="app-section">
-        <h2 className="app-section-title">Recent Activity</h2>
-        <div className="app-card" style={{ padding: '8px 0' }}>
+        <div className="sup-section-header">
+          <div className="sup-section-dot" style={{ background: '#34C759' }}/>
+          <h2 className="app-section-title" style={{ margin: 0 }}>Recent Activity</h2>
+        </div>
+        <div className="app-card" style={{ padding: '8px 0', borderLeft: '3px solid rgba(52,199,89,0.5)' }}>
           <LiveActivityFeed limit={5} />
         </div>
       </section>
@@ -230,10 +277,17 @@ function ScheduleTab({ user, onOpen }: { user: User | null; onOpen: (id: string)
 
 // ─── Insights tab ────────────────────────────────────────────────────────────
 function InsightsTab({ user, onOpen }: { user: User | null; onOpen: (id: string) => void }) {
+  const { acseScore } = useAppStore();
+  const scoreColor = acseScore >= 80 ? '#34C759' : acseScore >= 60 ? '#FF9500' : '#FF3B30';
+
   return (
     <div className="tab-scroll">
+      {/* Quick analytics nav */}
       <section className="app-section">
-        <h2 className="app-section-title">Analytics</h2>
+        <div className="sup-section-header">
+          <div className="sup-section-dot" style={{ background: '#7C3AED' }}/>
+          <h2 className="app-section-title" style={{ margin: 0 }}>Analytics</h2>
+        </div>
         <div className="app-card-group">
           <div className="app-card-nav-row" onClick={() => onOpen('stats')}>
             <span className="nav-row-icon" style={{ background: '#F3EEFF' }}>
@@ -258,13 +312,59 @@ function InsightsTab({ user, onOpen }: { user: User | null; onOpen: (id: string)
         </div>
       </section>
 
+      {/* Score snapshot */}
+      <section className="app-section">
+        <div className="sup-section-header">
+          <div className="sup-section-dot" style={{ background: scoreColor }}/>
+          <h2 className="app-section-title" style={{ margin: 0 }}>Score Snapshot</h2>
+        </div>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 10 }}>
+          {[
+            { label: 'Current', value: acseScore, color: scoreColor, bg: `${scoreColor}14` },
+            { label: 'Status', value: acseScore >= 80 ? 'Stable' : acseScore >= 60 ? 'Mod.' : 'Critical', color: scoreColor, bg: `${scoreColor}14` },
+            { label: 'Trend', value: '+2', color: '#34C759', bg: 'rgba(52,199,89,0.10)' },
+          ].map(m => (
+            <div key={m.label} style={{ background: m.bg, borderRadius: 14, padding: '12px 10px', textAlign: 'center', border: `1px solid ${m.color}22` }}>
+              <p style={{ fontSize: 22, fontWeight: 700, color: m.color, margin: 0 }}>{m.value}</p>
+              <p style={{ fontSize: 11, color: 'rgba(60,60,67,0.55)', margin: '2px 0 0', fontWeight: 500 }}>{m.label}</p>
+            </div>
+          ))}
+        </div>
+      </section>
+
+      {/* Medication adherence */}
+      <section className="app-section">
+        <div className="sup-section-header">
+          <div className="sup-section-dot" style={{ background: '#EA6C00' }}/>
+          <h2 className="app-section-title" style={{ margin: 0 }}>Medication Adherence</h2>
+        </div>
+        <div className="app-card" style={{ padding: '4px', borderLeft: '3px solid rgba(234,108,0,0.4)' }}>
+          <MedicationAdherence />
+        </div>
+      </section>
+
       {/* Weekly insights inline */}
       <section className="app-section">
-        <h2 className="app-section-title">Weekly Summary</h2>
-        <div className="app-card" style={{ padding: '4px' }}>
+        <div className="sup-section-header">
+          <div className="sup-section-dot" style={{ background: '#0891B2' }}/>
+          <h2 className="app-section-title" style={{ margin: 0 }}>Weekly Summary</h2>
+        </div>
+        <div className="app-card" style={{ padding: '4px', borderLeft: '3px solid rgba(8,145,178,0.4)' }}>
           <WeeklyInsights />
         </div>
       </section>
+
+      {/* Vitals dashboard inline */}
+      <section className="app-section">
+        <div className="sup-section-header">
+          <div className="sup-section-dot" style={{ background: '#FF375F' }}/>
+          <h2 className="app-section-title" style={{ margin: 0 }}>Vitals</h2>
+        </div>
+        <div className="app-card" style={{ padding: 4, borderLeft: '3px solid rgba(255,55,95,0.4)' }}>
+          <VitalsDashboard patientName={user?.name} />
+        </div>
+      </section>
+
       <div style={{ height: 24 }} />
     </div>
   );
@@ -275,7 +375,7 @@ export default function SupervisorView() {
   const [tab, setTab] = useState<SupTab>('overview');
   const [panel, setPanel] = useState<string | null>(null);
   const [settingsOpen, setSettingsOpen] = useState(false);
-  const { user, acseScore, supervisorAlerts, clearSupervisorAlert } = useAppStore();
+  const { user, acseScore, supervisorAlerts, clearSupervisorAlert, activateComfortMode, comfortModeActive } = useAppStore();
   const setScreen = useAppStore(s => s.setScreen);
   const panelRef = useRef<HTMLDivElement>(null);
   const mainRef = useRef<HTMLElement>(null);
@@ -354,8 +454,9 @@ export default function SupervisorView() {
       )}
 
       <main ref={mainRef} className="app-main">
-        {tab === 'overview'  && <OverviewTab user={user} acseScore={acseScore} onOpen={openPanel} />}
+        {tab === 'overview'  && <OverviewTab user={user} acseScore={acseScore} onOpen={openPanel} onComfortMode={activateComfortMode} comfortActive={comfortModeActive} />}
         {tab === 'schedule'  && <ScheduleTab user={user} onOpen={openPanel} />}
+        {tab === 'acse'      && <ACSETab user={user} />}
         {tab === 'insights'  && <InsightsTab user={user} onOpen={openPanel} />}
       </main>
 
@@ -691,7 +792,23 @@ function MedicationsTab({ user }: { user: User | null }) {
   );
 }
 
-// ── Stats Tab (vitals + ACSE) ─────────────────────────────────────────────────
+// ── ACSE Tab (dedicated tab) + Stats panel ────────────────────────────────────
+function ACSETab({ user }: { user: User | null }) {
+  return (
+    <div className="tab-scroll">
+      <section className="app-section">
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 10 }}>
+          <div style={{ width: 8, height: 8, borderRadius: '50%', background: '#7C3AED' }}/>
+          <h2 className="app-section-title" style={{ margin: 0 }}>ACSE Score Analysis</h2>
+        </div>
+      </section>
+      <div style={{ padding: '0 16px' }}>
+        <StatsTab user={user} />
+      </div>
+    </div>
+  );
+}
+
 function StatsTab({ user }: { user: User | null }) {
   const { acseScore } = useAppStore();
 

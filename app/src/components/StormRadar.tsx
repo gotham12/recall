@@ -60,7 +60,7 @@ export default function StormRadar({ userId }: { userId?: number }) {
       <div className="storm-radar__header">
         <StudioIcon name="score" size={22} />
         <div>
-          <p className="storm-radar__eyebrow">Storm Radar™</p>
+          <p className="storm-radar__eyebrow">Storm Radar</p>
           <h3 className="storm-radar__title">Cognitive weather forecast</h3>
         </div>
       </div>
