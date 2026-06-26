@@ -1,0 +1,21 @@
+{
+  "name": "recall-healthkit",
+  "version": "1.0.0",
+  "description": "Recall HealthKit bridge for Margaret's vitals",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "files": [
+    "dist/",
+    "ios/Plugin/",
+    "RecallHealthkit.podspec"
+  ],
+  "license": "MIT",
+  "peerDependencies": {
+    "@capacitor/core": "^6.0.0"
+  },
+  "capacitor": {
+    "ios": {
+      "src": "ios"
+    }
+  }
+}

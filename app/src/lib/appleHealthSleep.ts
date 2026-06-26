@@ -1,6 +1,8 @@
 import { db, type SleepLog } from '../db/db';
 import { dateKey, lastNightDate } from './sleep';
 
+import { isNativeHealthKitApp } from './healthKitService';
+
 const STORAGE_KEY = 'recall_apple_health';
 
 export interface AppleHealthState {
@@ -35,28 +37,27 @@ export function getAppleHealthMeta(userId: number): AppleHealthState {
   return loadState(userId);
 }
 
-/** True when a native HealthKit bridge is available (future iOS wrapper). */
+/** @deprecated Use hasNativeHealthKitBridge() from appleHealthVitals instead. */
 export function hasNativeHealthKitBridge(): boolean {
-  const w = window as Window & { webkit?: { messageHandlers?: { healthKit?: unknown } } };
-  return !!w.webkit?.messageHandlers?.healthKit;
+  return isNativeHealthKitApp();
 }
 
 /**
- * Connect Margaret's Apple Watch via Apple Health.
- * In a browser/PWA we simulate the sync; a native shell can wire HealthKit here.
+ * Mark Apple Health as connected for this patient.
+ * Native authorization is handled separately via recall-healthkit.
  */
-export async function connectAppleHealth(userId: number): Promise<AppleHealthState> {
-  if (hasNativeHealthKitBridge()) {
-    // Native companion app would fulfill this promise with real HealthKit data.
-    await new Promise((r) => setTimeout(r, 800));
-  } else {
-    await new Promise((r) => setTimeout(r, 1200));
+export async function connectAppleHealth(
+  userId: number,
+  options?: { deviceName?: string }
+): Promise<AppleHealthState> {
+  if (!isNativeHealthKitApp()) {
+    await new Promise((r) => setTimeout(r, 600));
   }
 
   const state: AppleHealthState = {
     connected: true,
     lastSyncAt: new Date().toISOString(),
-    deviceName: "Margaret's Apple Watch",
+    deviceName: options?.deviceName ?? "Margaret's Apple Watch",
   };
   saveState(userId, state);
   return state;

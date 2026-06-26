@@ -5,10 +5,12 @@ import {
   disconnectAppleHealth,
   getAppleHealthMeta,
   getHealthVitals,
+  hasNativeHealthKitBridge,
   isAppleHealthConnected,
   syncAppleHealthVitals,
   type HealthVitalsSnapshot,
 } from '../../lib/appleHealthVitals';
+import { isNativeHealthKitApp } from '../../lib/healthKitService';
 import StudioIcon from '../StudioIcon';
 
 function formatSyncedAt(iso: string): string {
@@ -60,6 +62,8 @@ export default function PatientHealthVitals({ patientName }: { patientName?: str
   const [vitals, setVitals] = useState<HealthVitalsSnapshot | null>(null);
   const [syncing, setSyncing] = useState(false);
   const [error, setError] = useState('');
+  const [nativeIos, setNativeIos] = useState(false);
+  const [healthKitReady, setHealthKitReady] = useState(false);
 
   const refresh = useCallback(() => {
     if (!userId) return;
@@ -69,6 +73,8 @@ export default function PatientHealthVitals({ patientName }: { patientName?: str
 
   useEffect(() => {
     refresh();
+    setNativeIos(isNativeHealthKitApp());
+    void hasNativeHealthKitBridge().then(setHealthKitReady);
   }, [refresh]);
 
   const handleConnect = async () => {
@@ -122,7 +128,9 @@ export default function PatientHealthVitals({ patientName }: { patientName?: str
           )}
         </div>
         {connected ? (
-          <span className="vitals-live-badge">Apple Health</span>
+          <span className="vitals-live-badge">
+            {vitals?.source === 'healthkit' ? 'HealthKit live' : 'Apple Health'}
+          </span>
         ) : (
           <span className="patient-health-vitals__disconnected">Not connected</span>
         )}
@@ -144,7 +152,11 @@ export default function PatientHealthVitals({ patientName }: { patientName?: str
             {syncing ? 'Connecting…' : 'Connect Apple Health'}
           </button>
           <p className="patient-health-vitals__connect-note">
-            Requires the Recall iOS app with HealthKit permissions. In the browser, a demo sync is used for preview.
+            {nativeIos && healthKitReady
+              ? 'Tap connect — iOS will ask which Health data Recall may read.'
+              : nativeIos
+                ? 'HealthKit is unavailable on this device. Check that Health is enabled in Settings.'
+                : 'Install the Recall iOS app on Margaret\'s iPhone for live HealthKit data. Browser preview uses demo values.'}
           </p>
         </div>
       ) : (

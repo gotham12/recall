@@ -2,16 +2,19 @@ import {
   connectAppleHealth,
   disconnectAppleHealth,
   getAppleHealthMeta,
-  hasNativeHealthKitBridge,
   isAppleHealthConnected,
 } from './appleHealthSleep';
+import {
+  healthKitAvailable,
+  isNativeHealthKitApp,
+  readHealthKitVitals,
+  requestHealthKitAuthorization,
+} from './healthKitService';
 
 export type { AppleHealthState } from './appleHealthSleep';
 export {
-  connectAppleHealth,
   disconnectAppleHealth,
   getAppleHealthMeta,
-  hasNativeHealthKitBridge,
   isAppleHealthConnected,
 };
 
@@ -37,7 +40,7 @@ function seedFromUser(userId: number): number {
   return Math.abs((userId * 2654435761) | 0);
 }
 
-/** Realistic Margaret demo values — replaced when HealthKit bridge returns live data. */
+/** Browser preview values when HealthKit is unavailable. */
 function synthesizeVitals(userId: number, deviceName?: string): HealthVitalsSnapshot {
   const seed = seedFromUser(userId);
   return {
@@ -48,7 +51,7 @@ function synthesizeVitals(userId: number, deviceName?: string): HealthVitalsSnap
     bloodPressureDiastolic: 72 + (seed % 6),
     walkingSpeedMph: Math.round((2.1 + (seed % 5) * 0.1) * 10) / 10,
     syncedAt: new Date().toISOString(),
-    source: hasNativeHealthKitBridge() ? 'healthkit' : 'apple_watch',
+    source: 'apple_watch',
     deviceName: deviceName ?? "Margaret's Apple Watch",
   };
 }
@@ -66,36 +69,64 @@ function saveCachedVitals(userId: number, vitals: HealthVitalsSnapshot): void {
   localStorage.setItem(vitalsStorageKey(userId), JSON.stringify(vitals));
 }
 
-declare global {
-  interface Window {
-    webkit?: {
-      messageHandlers?: {
-        healthKit?: { postMessage: (payload: unknown) => void };
-      };
-    };
-    RecallHealthKit?: {
-      readVitals: () => Promise<Partial<HealthVitalsSnapshot>>;
-    };
-  }
+function hasRequiredFields(
+  partial: Partial<HealthVitalsSnapshot>
+): partial is HealthVitalsSnapshot {
+  return (
+    typeof partial.heartRate === 'number' &&
+    typeof partial.respiratoryRate === 'number' &&
+    typeof partial.bodyTempF === 'number' &&
+    typeof partial.bloodPressureSystolic === 'number' &&
+    typeof partial.bloodPressureDiastolic === 'number' &&
+    typeof partial.walkingSpeedMph === 'number'
+  );
+}
+
+function mergeWithFallback(
+  userId: number,
+  partial: Partial<HealthVitalsSnapshot>,
+  deviceName?: string
+): HealthVitalsSnapshot {
+  const fallback = synthesizeVitals(userId, deviceName);
+  const merged: HealthVitalsSnapshot = {
+    heartRate: partial.heartRate ?? fallback.heartRate,
+    respiratoryRate: partial.respiratoryRate ?? fallback.respiratoryRate,
+    bodyTempF: partial.bodyTempF ?? fallback.bodyTempF,
+    bloodPressureSystolic: partial.bloodPressureSystolic ?? fallback.bloodPressureSystolic,
+    bloodPressureDiastolic: partial.bloodPressureDiastolic ?? fallback.bloodPressureDiastolic,
+    walkingSpeedMph: partial.walkingSpeedMph ?? fallback.walkingSpeedMph,
+    syncedAt: partial.syncedAt ?? new Date().toISOString(),
+    source: partial.source === 'healthkit' ? 'healthkit' : fallback.source,
+    deviceName: partial.deviceName ?? deviceName ?? fallback.deviceName,
+  };
+  return merged;
 }
 
 async function readNativeVitals(userId: number): Promise<HealthVitalsSnapshot | null> {
-  if (window.RecallHealthKit?.readVitals) {
-    try {
-      const partial = await window.RecallHealthKit.readVitals();
-      const base = synthesizeVitals(userId);
-      return { ...base, ...partial, source: 'healthkit', syncedAt: new Date().toISOString() };
-    } catch {
-      return null;
-    }
-  }
-  if (hasNativeHealthKitBridge()) {
-    await new Promise((r) => setTimeout(r, 600));
-  }
-  return null;
+  const native = await readHealthKitVitals();
+  if (!native) return null;
+
+  const merged = mergeWithFallback(userId, {
+    heartRate: native.heartRate,
+    respiratoryRate: native.respiratoryRate,
+    bodyTempF: native.bodyTempF,
+    bloodPressureSystolic: native.bloodPressureSystolic,
+    bloodPressureDiastolic: native.bloodPressureDiastolic,
+    walkingSpeedMph: native.walkingSpeedMph,
+    syncedAt: native.syncedAt ?? new Date().toISOString(),
+    source: 'healthkit',
+    deviceName: native.deviceName,
+  }, native.deviceName);
+
+  return hasRequiredFields(merged) ? merged : null;
 }
 
-/** Latest vitals — cached after sync, or demo when Apple Health is connected. */
+/** True when running in the Recall iOS shell with HealthKit available. */
+export async function hasNativeHealthKitBridge(): Promise<boolean> {
+  return healthKitAvailable();
+}
+
+/** Latest vitals — cached after sync when Apple Health is connected. */
 export function getHealthVitals(userId: number): HealthVitalsSnapshot | null {
   if (!isAppleHealthConnected(userId)) return null;
   return loadCachedVitals(userId) ?? synthesizeVitals(userId, getAppleHealthMeta(userId).deviceName);
@@ -116,6 +147,23 @@ export async function syncAppleHealthVitals(userId: number): Promise<HealthVital
 
 /** Connect Apple Health and pull an initial vitals snapshot. */
 export async function connectAndSyncHealth(userId: number): Promise<HealthVitalsSnapshot> {
-  await connectAppleHealth(userId);
+  if (isNativeHealthKitApp()) {
+    const available = await healthKitAvailable();
+    if (!available) {
+      throw new Error('HealthKit is not available on this device.');
+    }
+    await requestHealthKitAuthorization();
+  }
+
+  await connectAppleHealth(userId, {
+    deviceName: isNativeHealthKitApp() ? "Margaret's Apple Watch" : "Margaret's Apple Watch (preview)",
+  });
   return syncAppleHealthVitals(userId);
+}
+
+export async function connectAppleHealthForUser(userId: number): Promise<void> {
+  if (isNativeHealthKitApp()) {
+    await requestHealthKitAuthorization();
+  }
+  await connectAppleHealth(userId);
 }

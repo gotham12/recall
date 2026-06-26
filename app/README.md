@@ -22,17 +22,37 @@ bash setup.sh
 
 This script:
 1. Installs npm dependencies
-2. Builds the React app
-3. Adds the Capacitor iOS platform
-4. Syncs web assets into the native iOS project
-5. Patches `Info.plist` with microphone + camera permissions
+2. Builds the React app for Capacitor
+3. Adds the Capacitor iOS platform (first run only)
+4. Syncs web assets + the `recall-healthkit` native plugin
+5. Patches `Info.plist` with microphone, camera, and **HealthKit** permissions
+6. Creates `App.entitlements` for HealthKit access
 
 Then open Xcode:
 ```bash
-open ios/App/App.xcworkspace
+npm run ios:open
 ```
 
-Select your simulator or device and press **▶ Run**.
+Select **Margaret's iPhone** (HealthKit vitals require a physical device) and press **▶ Run**.
+
+### Apple Health vitals (supervisor)
+
+1. Build and run the **Recall iOS app** on Margaret's iPhone
+2. Log in as **Supervisor** → **Overview** → **Vitals**
+3. Tap **Connect Apple Health** — iOS will prompt for read access to:
+   - Heart rate
+   - Blood pressure
+   - Respiratory rate
+   - Body temperature
+   - Walking speed
+4. Tap **Sync now** anytime to refresh from Apple Watch / Health
+
+In the browser (GitHub Pages), Connect still works with **preview demo values**. Live HealthKit data only flows through the native iOS shell.
+
+**Xcode checklist (one time):**
+- Target → **Signing & Capabilities** → add **HealthKit**
+- Confirm `App.entitlements` is linked under Code Signing Entitlements
+- Use a real device — Simulator has limited HealthKit data
 
 ---
 
