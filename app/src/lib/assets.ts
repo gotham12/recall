@@ -10,6 +10,8 @@ export const FAMILY_PHOTOS = {
   lily: `${base}photos/lily.png?v=2`,
 } as const;
 
+export const TYLENOL_REFERENCE_URL = `${base}photos/tylenol-reference.png`;
+
 export function familyPhotoUrl(name: string): string | undefined {
   const key = name.trim().toLowerCase() as keyof typeof FAMILY_PHOTOS;
   return FAMILY_PHOTOS[key];

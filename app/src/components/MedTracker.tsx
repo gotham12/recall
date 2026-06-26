@@ -5,6 +5,8 @@ import { verifyMedication } from '../services/vision';
 import { speak } from '../services/elevenlabs';
 import { db, type Medication } from '../db/db';
 import { isMedicationDueSoon } from '../lib/schedule';
+import { isTylenolMed } from '../lib/medicationVision';
+import { TYLENOL_REFERENCE_URL } from '../lib/assets';
 import StudioIcon from './StudioIcon';
 
 const COOLDOWN_HOURS = 6;
@@ -35,6 +37,7 @@ export default function MedTracker() {
   const { recordMedicationReAttempt } = useACSE();
 
   const medications: Medication[] = user?.medications ?? [];
+  const tylenolMed = medications.find((m) => isTylenolMed(m.name)) ?? medications[0];
 
   const stopCamera = useCallback(() => {
     streamRef.current?.getTracks().forEach((t) => t.stop());
@@ -317,14 +320,14 @@ export default function MedTracker() {
               </div>
             );
           })}
-          {medications.length > 0 && (
+          {tylenolMed && (
             <button
               type="button"
               className="med-demo-verify tap-feedback"
-              onClick={() => void demoVerify(medications[0])}
+              onClick={() => void demoVerify(tylenolMed)}
             >
               <StudioIcon name="meds" size={18} />
-              Demo verify {medications[0].name} (no camera)
+              Demo verify Tylenol (no camera)
             </button>
           )}
         </div>
@@ -346,8 +349,16 @@ export default function MedTracker() {
             Show me: {selectedMed?.name}
           </h2>
           <p className="studio-text-muted" style={{ fontSize: 18, margin: '0 0 12px' }}>
-            Hold your medication in front of the camera.
+            {selectedMed && isTylenolMed(selectedMed.name)
+              ? 'Hold the red TYLENOL label facing the camera.'
+              : 'Hold your medication in front of the camera.'}
           </p>
+          {selectedMed && isTylenolMed(selectedMed.name) && (
+            <div className="med-tracker__reference">
+              <img src={TYLENOL_REFERENCE_URL} alt="" className="med-tracker__reference-img" />
+              <p className="med-tracker__reference-hint">Example: white bottle, red TYLENOL label</p>
+            </div>
+          )}
           <div className="med-tracker__video-wrap">
             <video
               ref={videoRef}

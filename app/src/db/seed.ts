@@ -2,6 +2,8 @@ import { db } from './db';
 import { memoryPhotoUrl } from '../lib/memoryPhotos';
 import { FAMILY_PHOTOS } from '../lib/assets';
 import { DEFAULT_ROUTINES } from '../lib/defaultRoutines';
+import { DEMO_TYLENOL } from '../lib/medicationVision';
+import { useAppStore } from '../store/appStore';
 
 const MARGARET_HERO_PHOTO = memoryPhotoUrl('garden');
 const MARGARET_SUSAN_PHOTO = FAMILY_PHOTOS.susan;
@@ -149,6 +151,7 @@ export async function seedIfEmpty(): Promise<void> {
     emergencyNote: 'Margaret has mild dementia. Lives alone with daily caregiver visits. Allergic to penicillin.',
     onboardingComplete: true,
     medications: [
+      DEMO_TYLENOL,
       { name: 'Donepezil', dosage: '10mg', schedule: ['8:00 AM'] },
       { name: 'Levodopa/Carbidopa', dosage: '25-100mg', schedule: ['8:00 AM', '2:00 PM', '8:00 PM'] },
       { name: 'Memantine', dosage: '5mg', schedule: ['8:00 PM'] },
@@ -219,6 +222,23 @@ async function syncMargaretFamilyData(): Promise<void> {
     }
 
     await ensureRoutineGameTasks(user.id);
+    await ensureDemoTylenol(user.id);
+  }
+}
+
+async function ensureDemoTylenol(userId: number): Promise<void> {
+  const user = await db.users.get(userId);
+  if (!user?.id || user.name !== 'Margaret') return;
+
+  const hasTylenol = user.medications?.some((m) => m.name.toLowerCase().includes('tylenol'));
+  if (hasTylenol) return;
+
+  const medications = [DEMO_TYLENOL, ...(user.medications ?? [])];
+  await db.users.update(userId, { medications });
+
+  const active = useAppStore.getState().user;
+  if (active?.id === userId) {
+    useAppStore.setState({ user: { ...active, medications } });
   }
 }
 
@@ -459,11 +479,15 @@ async function seedExtendedData(): Promise<void> {
     if (user.name === 'Margaret' && user.medications?.some(m => m.name === 'Metformin' || m.name === 'Lisinopril')) {
       await db.users.update(user.id, {
         medications: [
+          DEMO_TYLENOL,
           { name: 'Donepezil', dosage: '10mg', schedule: ['8:00 AM'] },
           { name: 'Levodopa/Carbidopa', dosage: '25-100mg', schedule: ['8:00 AM', '2:00 PM', '8:00 PM'] },
           { name: 'Memantine', dosage: '5mg', schedule: ['8:00 PM'] },
         ],
       });
+    }
+    if (user.name === 'Margaret' && user.id) {
+      await ensureDemoTylenol(user.id);
     }
   }
 }

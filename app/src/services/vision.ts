@@ -1,5 +1,10 @@
 import { GOOGLE_VISION_KEY, GROQ_API_KEY } from '../env';
 import { proxyPost, usesApiProxy, warnDirectApiKeys } from './apiClient';
+import {
+  countMedicationSignals,
+  medicationMatchesVision,
+  medicationVisionKeywords,
+} from '../lib/medicationVision';
 
 export interface VisionResult {
   detected: boolean;
@@ -7,11 +12,6 @@ export interface VisionResult {
   description: string;
   source: 'google' | 'groq' | 'manual';
 }
-
-const MED_KEYWORDS = [
-  'pill', 'tablet', 'capsule', 'medication', 'medicine', 'drug',
-  'bottle', 'pharmaceutical', 'prescription', 'blister',
-];
 
 export async function verifyMedication(
   base64Image: string,
@@ -39,14 +39,6 @@ export async function verifyMedication(
   }
 }
 
-function medicationNameInLabels(medicationName: string, labels: string[]): boolean {
-  const normalized = medicationName.toLowerCase();
-  const tokens = normalized.split(/[\s/-]+/).filter((t) => t.length > 3);
-  return labels.some((label) =>
-    tokens.some((token) => label.includes(token)) || label.includes(normalized)
-  );
-}
-
 async function verifyWithGoogle(
   base64Image: string,
   medicationName: string
@@ -56,9 +48,9 @@ async function verifyWithGoogle(
       {
         image: { content: base64Image },
         features: [
-          { type: 'LABEL_DETECTION', maxResults: 15 },
+          { type: 'LABEL_DETECTION', maxResults: 20 },
           { type: 'OBJECT_LOCALIZATION', maxResults: 10 },
-          { type: 'TEXT_DETECTION', maxResults: 5 },
+          { type: 'TEXT_DETECTION', maxResults: 10 },
         ],
       },
     ],
@@ -110,37 +102,37 @@ async function verifyWithGoogle(
   const objects: string[] = (data.responses?.[0]?.localizedObjectAnnotations ?? []).map(
     (o) => o.name.toLowerCase()
   );
-  const text: string[] = (data.responses?.[0]?.textAnnotations ?? []).map(
-    (t) => t.description.toLowerCase()
-  );
+  const ocrText = (data.responses?.[0]?.textAnnotations?.[0]?.description ?? '').toLowerCase();
+  const textChunks = ocrText ? [ocrText, ...ocrText.split(/\s+/)] : [];
 
-  const allDetected = [...labels, ...objects, ...text];
-  const hits = MED_KEYWORDS.filter((kw) => allDetected.some((label) => label.includes(kw)));
-  const nameMatch = medicationNameInLabels(medicationName, allDetected);
+  const allDetected = [...labels, ...objects, ...textChunks];
+  const medSignals = countMedicationSignals(allDetected);
+  const nameMatch = medicationMatchesVision(medicationName, allDetected);
+  const ocrSnippet = ocrText.slice(0, 80).replace(/\s+/g, ' ').trim();
 
-  if (hits.length >= 2 && nameMatch) {
+  if (nameMatch && medSignals >= 1) {
     return {
       detected: true,
-      confidence: 'high',
-      description: `Confirmed ${medicationName} in view.`,
+      confidence: medSignals >= 2 || ocrText.includes('tylenol') ? 'high' : 'medium',
+      description: `Confirmed ${medicationName}${ocrSnippet ? ` — label reads "${ocrSnippet}"` : ''}.`,
       source: 'google',
     };
   }
 
-  if (hits.length >= 1 && nameMatch) {
+  if (nameMatch) {
     return {
       detected: true,
       confidence: 'medium',
-      description: `Likely ${medicationName}: ${allDetected.slice(0, 3).join(', ')}.`,
+      description: `Likely ${medicationName} — packaging text matched.`,
       source: 'google',
     };
   }
 
-  if (hits.length >= 1) {
+  if (medSignals >= 2) {
     return {
       detected: false,
       confidence: 'low',
-      description: `Found medication-like items but could not confirm ${medicationName}.`,
+      description: `Found medication packaging but could not confirm ${medicationName}.${ocrSnippet ? ` Saw: "${ocrSnippet}"` : ''}`,
       source: 'google',
     };
   }
@@ -148,7 +140,7 @@ async function verifyWithGoogle(
   return {
     detected: false,
     confidence: 'low',
-    description: `No ${medicationName} clearly visible. Detected: ${allDetected.slice(0, 3).join(', ') || 'nothing clear'}.`,
+    description: `No ${medicationName} clearly visible.${ocrSnippet ? ` Detected text: "${ocrSnippet}"` : ''}`,
     source: 'google',
   };
 }
@@ -157,9 +149,15 @@ async function verifyWithGroq(
   base64Image: string,
   medicationName: string
 ): Promise<VisionResult> {
-  const prompt = `The patient must take "${medicationName}" right now. Study the image carefully.
-Does it show the correct medication (pill, bottle, blister pack, or packaging) that matches "${medicationName}"?
-Reply with JSON only: { "detected": true/false, "confidence": "high"/"medium"/"low", "description": "brief reason mentioning ${medicationName}" }`;
+  const aliases = medicationVisionKeywords(medicationName).slice(0, 8).join(', ');
+  const prompt = `You are verifying medication for a dementia care app.
+The patient must take: "${medicationName}".
+Also accept these label terms as a match: ${aliases}.
+
+Look for the medication bottle, box, or blister pack in the image. For Tylenol, expect a white bottle with a red TYLENOL label and "Acetaminophen" / "Extra Strength" text.
+
+Reply with JSON only:
+{ "detected": true or false, "confidence": "high" or "medium" or "low", "description": "brief reason" }`;
 
   const payload = {
     model: 'llama-3.2-11b-vision-preview',
@@ -216,9 +214,21 @@ Reply with JSON only: { "detected": true/false, "confidence": "high"/"medium"/"l
   try {
     const jsonMatch = raw.match(/\{[\s\S]*\}/);
     const parsed = JSON.parse(jsonMatch?.[0] ?? '{}');
+    const detected = !!parsed.detected;
+    const confidence = (parsed.confidence ?? 'low') as VisionResult['confidence'];
+
+    if (detected && confidence === 'low') {
+      return {
+        detected: true,
+        confidence: 'medium',
+        description: parsed.description ?? 'Vision model matched medication.',
+        source: 'groq',
+      };
+    }
+
     return {
-      detected: !!parsed.detected,
-      confidence: parsed.confidence ?? 'low',
+      detected,
+      confidence,
       description: parsed.description ?? 'Vision analysis complete.',
       source: 'groq',
     };

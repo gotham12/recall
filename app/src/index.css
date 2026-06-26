@@ -1387,6 +1387,32 @@ h1, h2, h3,
   display: block;
 }
 
+.med-tracker__reference {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 12px;
+  padding: 10px 12px;
+  border-radius: 14px;
+  background: rgba(224, 240, 255, 0.55);
+  border: 1px solid rgba(74, 144, 217, 0.2);
+}
+
+.med-tracker__reference-img {
+  width: 56px;
+  height: 56px;
+  object-fit: cover;
+  border-radius: 10px;
+  flex-shrink: 0;
+}
+
+.med-tracker__reference-hint {
+  margin: 0;
+  font-size: 14px;
+  color: var(--studio-text-muted);
+  line-height: 1.35;
+}
+
 .med-tracker__action-btn {
   display: inline-flex;
   align-items: center;
