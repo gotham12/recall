@@ -336,9 +336,9 @@ function IcoActivity({ size = 16 }: { size?: number }) {
     </svg>
   );
 }
-function IcoSteps({ size = 16 }: { size?: number }) {
+function IcoSteps({ size = 16, color = 'currentColor' }: { size?: number; color?: string }) {
   return (
-    <svg viewBox="0 0 24 24" fill="none" width={size} height={size}>
+    <svg viewBox="0 0 24 24" fill="none" width={size} height={size} style={{ color }}>
       <path d="M6 18l4-12 4 8 3-4" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round"/>
     </svg>
   );
