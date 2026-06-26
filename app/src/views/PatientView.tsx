@@ -141,11 +141,11 @@ const TIPS = [
     url: 'https://www.health.harvard.edu/mind-and-mood/relaxation-techniques-breath-control-helps-quell-errant-stress-response',
   },
   {
-    icon: <IcoMusic color="#FF375F" size={18} />,
-    bg: '#FFF0F3',
+    icon: <IcoMusic color="#1DB954" size={18} />,
+    bg: '#E8F8ED',
     title: 'Listen to familiar music',
-    sub: 'Music therapy strengthens memory recall',
-    url: 'https://www.nia.nih.gov/news/music-may-improve-quality-life-dementia-patients',
+    sub: 'Opens Spotify — search familiar songs',
+    url: 'https://open.spotify.com/search/familiar%20songs%20classic%20hits',
   },
 ];
 
