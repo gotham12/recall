@@ -5,12 +5,20 @@
 
 const CHANNEL = 'recall-sync';
 
+/** Ignore sync messages published by this tab (prevents self-echo side effects). */
+const LOCAL_TAB_ID =
+  typeof crypto !== 'undefined' && 'randomUUID' in crypto
+    ? crypto.randomUUID()
+    : `tab-${Date.now()}-${Math.random()}`;
+
+const handledAt = new Map<string, number>();
+
 export type SyncMessage =
-  | { type: 'acse'; score: number; reason?: string; at: number }
-  | { type: 'comfort'; active: boolean; at: number }
-  | { type: 'alert'; message: string; alertType: string; at: number }
-  | { type: 'presence'; caregiverName: string; at: number }
-  | { type: 'warmth_ack'; at: number };
+  | { type: 'acse'; score: number; reason?: string; at: number; tabId?: string }
+  | { type: 'comfort'; active: boolean; at: number; tabId?: string }
+  | { type: 'alert'; message: string; alertType: string; at: number; tabId?: string }
+  | { type: 'presence'; caregiverName: string; at: number; tabId?: string }
+  | { type: 'warmth_ack'; at: number; tabId?: string };
 
 function roomKey(userId: number): string {
   return `recall-sync-room-${userId}`;
@@ -35,7 +43,7 @@ function writeRoom(userId: number, messages: SyncMessage[]): void {
 }
 
 export function publishSync(userId: number, message: SyncMessage): void {
-  const stamped = { ...message, at: message.at || Date.now() } as SyncMessage;
+  const stamped = { ...message, at: message.at || Date.now(), tabId: LOCAL_TAB_ID } as SyncMessage;
   const room = readRoom(userId);
   room.push(stamped);
   writeRoom(userId, room);
@@ -54,7 +62,12 @@ export function subscribeSync(
   onMessage: (message: SyncMessage) => void
 ): () => void {
   const handle = (msg: SyncMessage) => {
-    if (Date.now() - msg.at < 120_000) onMessage(msg);
+    if (msg.tabId === LOCAL_TAB_ID) return;
+    if (Date.now() - msg.at >= 120_000) return;
+    const dedupeKey = `${msg.type}:${msg.at}`;
+    if ((handledAt.get(dedupeKey) ?? 0) >= msg.at) return;
+    handledAt.set(dedupeKey, msg.at);
+    onMessage(msg);
   };
 
   const existing = readRoom(userId);

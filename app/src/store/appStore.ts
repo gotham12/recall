@@ -120,6 +120,10 @@ export const useAppStore = create<AppState>((set, get) => ({
       }).catch(console.error);
       publishSync(user.id, { type: 'acse', score: next, reason, at: Date.now() });
     }
+
+    if (current >= threshold && next < threshold && !get().comfortModeActive) {
+      get().activateComfortMode();
+    }
   },
 
   recoverAcse: (points, reason) => {
@@ -154,15 +158,21 @@ export const useAppStore = create<AppState>((set, get) => ({
   },
 
   activateComfortMode: () => {
+    if (get().comfortModeActive) return;
+
     const user = get().user;
+    const settings = loadCareSettings(user?.id);
+    const threshold = settings.comfortThreshold;
     set({ comfortModeActive: true });
 
-    get().addSupervisorAlert({
-      message: `Comfort Mode activated at ${new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`,
-      timestamp: new Date().toISOString(),
-      type: 'comfort_mode',
-      persist: true,
-    });
+    if (settings.notifyOnComfortMode) {
+      get().addSupervisorAlert({
+        message: `Comfort Mode activated at ${new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`,
+        timestamp: new Date().toISOString(),
+        type: 'comfort_mode',
+        persist: true,
+      });
+    }
 
     if (user?.id) {
       publishSync(user.id, { type: 'comfort', active: true, at: Date.now() });
@@ -171,7 +181,7 @@ export const useAppStore = create<AppState>((set, get) => ({
         timestamp: new Date().toISOString(),
         type: 'system_alert',
         title: 'Comfort Mode activated',
-        description: `Comfort Mode activated at ${new Date().toLocaleTimeString()}. ACSE score dropped below 50.`,
+        description: `Comfort Mode activated at ${new Date().toLocaleTimeString()}. ACSE score dropped below ${threshold}.`,
         completed: true,
         source: 'system',
       }).catch(console.error);
@@ -179,24 +189,31 @@ export const useAppStore = create<AppState>((set, get) => ({
   },
 
   deactivateComfortMode: () => {
+    if (!get().comfortModeActive) return;
+
+    stopSpeaking();
     set({ comfortModeActive: false, acseScore: 70 });
     const user = get().user;
     if (user?.id) {
+      const at = Date.now();
       db.acseScores.add({
         userId: user.id,
         score: 70,
         timestamp: new Date().toISOString(),
         reason: 'Comfort Mode completed',
       }).catch(console.error);
+      publishSync(user.id, { type: 'comfort', active: false, at });
+      publishSync(user.id, { type: 'acse', score: 70, reason: 'Comfort Mode completed', at });
     }
   },
 
   previewComfortMode: () => {
+    if (get().comfortModeActive) return;
     const current = get().acseScore;
-    const drop = current - 45;
-    if (drop > 0) {
-      get().deductAcse(drop, 'Demo — Comfort Mode preview');
-    } else if (!get().comfortModeActive) {
+    const threshold = loadCareSettings(get().user?.id).comfortThreshold;
+    if (current >= threshold) {
+      get().deductAcse(current - (threshold - 5), 'Demo — Comfort Mode preview');
+    } else {
       get().activateComfortMode();
     }
   },
@@ -273,9 +290,10 @@ export const useAppStore = create<AppState>((set, get) => ({
   applyRemoteAcse: (score) => set({ acseScore: score }),
 
   applyRemoteComfort: (active) => {
-    set({ comfortModeActive: active });
-    if (active && get().acseScore >= 50) {
-      set({ acseScore: 45 });
+    if (active) {
+      if (!get().comfortModeActive) set({ comfortModeActive: true });
+    } else {
+      set({ comfortModeActive: false });
     }
   },
 

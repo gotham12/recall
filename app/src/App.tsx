@@ -12,7 +12,7 @@ import MedicalDisclaimer from './components/MedicalDisclaimer';
 import OfflineBanner from './components/OfflineBanner';
 
 export default function App() {
-  const { screen, comfortModeActive } = useAppStore();
+  const { screen, comfortModeActive, user } = useAppStore();
   const online = useOnlineStatus();
   const [showConsent, setShowConsent] = useState(
     () => localStorage.getItem('recall-consent') !== '1'
@@ -39,7 +39,7 @@ export default function App() {
       {screen === 'patient' && (
         <>
           <PatientView />
-          {comfortModeActive && <ComfortMode />}
+          {comfortModeActive && user && <ComfortMode />}
         </>
       )}
       {screen === 'supervisor' && <SupervisorView />}

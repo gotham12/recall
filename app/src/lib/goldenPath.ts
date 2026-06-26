@@ -106,8 +106,8 @@ export async function executeGoldenPathAction(
       break;
     }
     case 'comfort':
-      if (!store.comfortModeActive && store.acseScore >= 50) {
-        store.deductAcse(store.acseScore - 45, 'Demo — Comfort Mode');
+      if (!store.comfortModeActive) {
+        store.activateComfortMode();
       }
       break;
     case 'resolve':

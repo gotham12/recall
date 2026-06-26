@@ -7,10 +7,8 @@ import { speak, stopSpeaking, unlockAudioPlayback, primeSpeechSynthesis } from '
 import { resumeTibetanBells, startTibetanBells, stopTibetanBells } from '../lib/tibetanBells';
 import { db } from '../db/db';
 
-type Phase = 'grounding' | 'breathing' | 'narrative' | 'done';
+type Phase = 'grounding' | 'breathing' | 'narrative';
 
-// ── Nature Backdrop ─────────────────────────────────────────────────────────
-// Pre-defined positions to avoid Math.random() re-render drift
 const PARTICLES = [
   { x: 12, y: 15, s: 5, d: 7.2, del: 0.0 },
   { x: 28, y: 72, s: 3, d: 9.1, del: 1.4 },
@@ -59,7 +57,6 @@ function NatureBackdrop() {
   );
 }
 
-// ── Main ComfortMode Component ─────────────────────────────────────────────────
 export default function ComfortMode() {
   const { user, deactivateComfortMode } = useAppStore();
   const [phase, setPhase] = useState<Phase>('grounding');
@@ -67,9 +64,12 @@ export default function ComfortMode() {
   const [narrativeText, setNarrativeText] = useState('');
   const [loading, setLoading] = useState(true);
   const stopBellsRef = useRef<(() => void) | null>(null);
+  const cancelledRef = useRef(false);
 
   const exitComfort = useCallback(() => {
+    cancelledRef.current = true;
     stopSpeaking();
+    stopTibetanBells();
     stopBellsRef.current?.();
     deactivateComfortMode();
   }, [deactivateComfortMode]);
@@ -79,87 +79,113 @@ export default function ComfortMode() {
     void resumeTibetanBells(0.55);
   }, []);
 
-  // Prime audio on mount; bells fully resume on user tap (required on iOS)
   useEffect(() => {
+    cancelledRef.current = false;
     primeSpeechSynthesis();
     const stopFn = startTibetanBells(0.55);
     stopBellsRef.current = stopFn;
     return () => {
+      cancelledRef.current = true;
       stopFn();
       stopSpeaking();
     };
   }, []);
 
-  // Fetch grounding & narrative text
   useEffect(() => {
+    const userId = user?.id;
+    if (!userId) {
+      setLoading(false);
+      return;
+    }
+
+    let cancelled = false;
+
     const init = async () => {
-      if (!user?.id) return;
       setLoading(true);
+      try {
+        const events = await db.events
+          .where('userId').equals(userId)
+          .and((e) => e.completed)
+          .toArray();
 
-      const events = await db.events
-        .where('userId').equals(user.id)
-        .and((e) => e.completed)
-        .toArray();
+        if (cancelled) return;
 
-      const ctx = {
-        recentEvents: events
+        const recentEvents = events
           .sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime())
           .slice(0, 5)
-          .map((e) => e.title),
-        upcomingEvents: [] as string[],
-      };
+          .map((e) => e.title);
 
-      try {
-        const grounding = await generateGrounding(user.name, user.city, ctx);
+        const ctx = { recentEvents, upcomingEvents: [] as string[] };
+
+        const [grounding, narrative] = await Promise.all([
+          generateGrounding(user!.name, user!.city, ctx),
+          generateNarrative(user!.name, recentEvents),
+        ]);
+
+        if (cancelled) return;
         setGroundingText(grounding);
-
-        // Delay voice slightly to not clash with bells onset
-        await new Promise<void>((r) => setTimeout(r, 2000));
-        await speak(grounding, { clara: true });
-
-        const narrative = await generateNarrative(user.name, ctx.recentEvents);
         setNarrativeText(narrative);
       } catch {
+        if (cancelled) return;
         setGroundingText(
           `You are safe at home in ${user?.city ?? 'your home'}. Everything is okay. Take a slow breath with me.`
         );
         setNarrativeText('Today has been a gentle day. You are resting peacefully at home.');
       } finally {
-        setLoading(false);
+        if (!cancelled) setLoading(false);
       }
     };
 
-    init();
-  }, [user]);
+    void init();
+    return () => { cancelled = true; };
+  }, [user?.id, user?.name, user?.city]);
 
   useEffect(() => {
     if (phase === 'breathing') ensureBells();
   }, [phase, ensureBells]);
 
-  const handleBreathingComplete = useCallback(async () => {
-    await speak(narrativeText || 'You have done beautifully. You are safe and loved.', { clara: true });
+  const speakNarrative = useCallback(async () => {
+    const text = narrativeText || 'You have done beautifully. You are safe and loved.';
     setPhase('narrative');
+    try {
+      await speak(text, { clara: true });
+    } catch {
+      /* browser TTS fallback inside speak() */
+    }
   }, [narrativeText]);
 
-  const skipToNarrative = useCallback(async () => {
+  const handleBreathingComplete = useCallback(() => {
+    void speakNarrative();
+  }, [speakNarrative]);
+
+  const skipToNarrative = useCallback(() => {
     stopSpeaking();
-    const text = narrativeText || 'You are safe and loved. Today has been a gentle day.';
-    await speak(text, { clara: true });
-    setPhase('narrative');
-  }, [narrativeText]);
+    void speakNarrative();
+  }, [speakNarrative]);
+
+  const startBreathing = useCallback(() => {
+    stopSpeaking();
+    ensureBells();
+    void speak(`Let's breathe together, ${user?.name?.split(' ')[0] ?? 'there'}. Follow the circle.`, { clara: true })
+      .catch(() => undefined);
+    setPhase('breathing');
+  }, [ensureBells, user?.name]);
+
+  const hearGrounding = useCallback(() => {
+    ensureBells();
+    if (!groundingText) return;
+    stopSpeaking();
+    void speak(groundingText, { clara: true }).catch(() => undefined);
+  }, [ensureBells, groundingText]);
 
   const caregiverLabel = user?.caregiverName ? `Call ${user.caregiverName}` : 'Call caregiver';
   const firstName = user?.name?.split(' ')[0] ?? 'there';
 
   return (
-    <div className="comfort-mode-v2" style={{ zIndex: 50 }}>
-      {/* Nature backdrop — always visible */}
+    <div className="comfort-mode-v2" role="dialog" aria-modal="true" aria-label="Comfort Mode">
       <NatureBackdrop />
-
-      {/* Soft scrim over backdrop */}
       <div className="comfort-mode-v2__scrim" />
 
-      {/* Close button — always accessible */}
       <button
         type="button"
         className="comfort-mode-v2__close tap-feedback"
@@ -169,39 +195,41 @@ export default function ComfortMode() {
         <StudioIcon name="close" size={20} />
       </button>
 
-      {/* Content */}
       <div className="comfort-mode-v2__content">
-
-        {/* Bell indicator */}
         <div className="comfort-mode-v2__bell-badge">
           <span className="comfort-mode-v2__bell-pulse" />
-          <span style={{ fontSize: 13, color: 'rgba(255,255,255,0.7)', fontWeight: 500 }}>Tibetan Bells · 40Hz</span>
+          <span className="comfort-mode-v2__bell-label">Tibetan Bells · 40Hz</span>
         </div>
 
         {phase === 'grounding' && (
           <div className="animate-fadeIn comfort-mode-v2__card">
             {loading ? (
-              <div style={{ textAlign: 'center', padding: '20px 0' }}>
+              <div className="comfort-mode-v2__loading">
                 <div className="comfort-mode-v2__loading-dot" />
-                <p style={{ color: 'rgba(255,255,255,0.55)', marginTop: 12, fontSize: 15 }}>Clara is here…</p>
+                <p className="comfort-mode-v2__loading-text">Clara is here…</p>
               </div>
             ) : (
               <>
                 <p className="comfort-mode-v2__text">{groundingText}</p>
                 <div className="comfort-mode-v2__actions">
                   <button
+                    type="button"
                     className="comfort-mode-v2__btn comfort-mode-v2__btn--primary tap-feedback"
-                    onClick={() => {
-                      ensureBells();
-                      void speak(`Let's breathe together, ${firstName}. Follow the circle.`, { clara: true });
-                      setPhase('breathing');
-                    }}
+                    onClick={startBreathing}
                   >
                     Breathe with me
                   </button>
                   <button
+                    type="button"
                     className="comfort-mode-v2__btn comfort-mode-v2__btn--ghost tap-feedback"
-                    onClick={() => void skipToNarrative()}
+                    onClick={hearGrounding}
+                  >
+                    Hear Clara read this
+                  </button>
+                  <button
+                    type="button"
+                    className="comfort-mode-v2__btn comfort-mode-v2__btn--ghost tap-feedback"
+                    onClick={skipToNarrative}
                   >
                     Skip to reassurance
                   </button>
@@ -216,8 +244,9 @@ export default function ComfortMode() {
             <p className="comfort-mode-v2__breathe-heading">Breathe with me, {firstName}</p>
             <BreathingCircle cycles={3} onComplete={handleBreathingComplete} />
             <button
+              type="button"
               className="comfort-mode-v2__btn comfort-mode-v2__btn--ghost tap-feedback"
-              onClick={() => void skipToNarrative()}
+              onClick={skipToNarrative}
               style={{ marginTop: 12 }}
             >
               Skip breathing
@@ -229,12 +258,12 @@ export default function ComfortMode() {
           <div className="animate-fadeIn comfort-mode-v2__card">
             <p className="comfort-mode-v2__text">{narrativeText}</p>
             <div className="comfort-mode-v2__actions">
-              <button className="comfort-mode-v2__btn comfort-mode-v2__btn--primary tap-feedback" onClick={exitComfort}>
+              <button type="button" className="comfort-mode-v2__btn comfort-mode-v2__btn--primary tap-feedback" onClick={exitComfort}>
                 I'm feeling better
               </button>
-              {user?.caregiverName && (
+              {user?.caregiverName && user?.caregiverPhone && (
                 <a
-                  href={`tel:${user?.caregiverPhone ?? '+15555550100'}`}
+                  href={`tel:${user.caregiverPhone}`}
                   className="comfort-mode-v2__btn comfort-mode-v2__btn--ghost tap-feedback"
                 >
                   <StudioIcon name="user" size={16} />
