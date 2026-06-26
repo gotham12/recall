@@ -265,48 +265,13 @@ export default function VoiceAgent() {
         {/* Clara avatar */}
         <div className="cv2-avatar-wrap">
           <div className={`cv2-avatar-ring cv2-avatar-ring--${state}`}>
-            <svg viewBox="0 0 120 120" width="110" height="110" aria-hidden>
-              {/* Background circle */}
-              <circle cx="60" cy="60" r="58" fill="#F5EEE8"/>
-              {/* Hair - back */}
-              <ellipse cx="60" cy="42" rx="32" ry="34" fill="#2C1B0E"/>
-              {/* Neck */}
-              <rect x="51" y="82" width="18" height="16" rx="4" fill="#E8B89A"/>
-              {/* Face */}
-              <ellipse cx="60" cy="60" rx="27" ry="30" fill="#F0C8A8"/>
-              {/* Hair - front / fringe */}
-              <path d="M33 46 Q36 22 60 20 Q84 22 87 46 Q80 34 60 32 Q40 34 33 46Z" fill="#2C1B0E"/>
-              {/* Side hair strands */}
-              <path d="M33 54 Q28 68 30 82 Q34 78 36 72 Q33 65 33 54Z" fill="#2C1B0E"/>
-              <path d="M87 54 Q92 68 90 82 Q86 78 84 72 Q87 65 87 54Z" fill="#2C1B0E"/>
-              {/* Eyebrows */}
-              <path d="M47 47 Q52 44 57 46" stroke="#4A2E1A" strokeWidth="2" fill="none" strokeLinecap="round"/>
-              <path d="M63 46 Q68 44 73 47" stroke="#4A2E1A" strokeWidth="2" fill="none" strokeLinecap="round"/>
-              {/* Eyes */}
-              <ellipse cx="52" cy="54" rx="5.5" ry="6" fill="#fff"/>
-              <ellipse cx="68" cy="54" rx="5.5" ry="6" fill="#fff"/>
-              <circle cx="53" cy="55" r="4" fill="#3D2010"/>
-              <circle cx="69" cy="55" r="4" fill="#3D2010"/>
-              <circle cx="54.5" cy="53.5" r="1.5" fill="white"/>
-              <circle cx="70.5" cy="53.5" r="1.5" fill="white"/>
-              {/* Eyelashes */}
-              <path d="M47 50 L45 47M49 49 L48 46M51 49 L51 46" stroke="#2C1B0E" strokeWidth="1.2" strokeLinecap="round"/>
-              <path d="M63 49 L62 46M65 49 L65 46M68 50 L70 47" stroke="#2C1B0E" strokeWidth="1.2" strokeLinecap="round"/>
-              {/* Nose */}
-              <path d="M58 60 Q60 65 62 60" stroke="#D4956A" strokeWidth="1.5" fill="none" strokeLinecap="round"/>
-              <circle cx="57" cy="66" r="2" fill="#E8A880" opacity="0.5"/>
-              <circle cx="63" cy="66" r="2" fill="#E8A880" opacity="0.5"/>
-              {/* Mouth */}
-              <path d="M53 73 Q60 79 67 73" stroke="#C47A5A" strokeWidth="2" fill="none" strokeLinecap="round"/>
-              <path d="M55 73 Q60 76 65 73" fill="#E8786A" opacity="0.7"/>
-              {/* Cheek blush */}
-              <ellipse cx="43" cy="68" rx="7" ry="4" fill="#F0A0A0" opacity="0.35"/>
-              <ellipse cx="77" cy="68" rx="7" ry="4" fill="#F0A0A0" opacity="0.35"/>
-              {/* Shoulders */}
-              <path d="M20 120 Q20 96 60 92 Q100 96 100 120Z" fill="#6B8FD0"/>
-              {/* Shirt collar */}
-              <path d="M52 92 L60 100 L68 92" stroke="#5577BB" strokeWidth="2" fill="none"/>
-            </svg>
+            <img
+              src="/recall/clara.png"
+              alt="Clara"
+              width="110"
+              height="110"
+              style={{ borderRadius: '50%', objectFit: 'cover', objectPosition: 'center top', display: 'block' }}
+            />
           </div>
           <div className="cv2-avatar-name">
             <span className="cv2-avatar-label">Clara</span>
