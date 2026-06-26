@@ -5,7 +5,9 @@ import {
   formatClaraContextBlock,
 } from '../lib/claraContext';
 import { localClaraReply } from '../lib/claraLocal';
-import { openRouterClaraChat } from './openrouter';
+import { openRouterClaraChat, openRouterRecallAIChat } from './openrouter';
+import { localRecallAIReply } from '../lib/recallAILocal';
+import type { SupervisorBriefingSnapshot } from '../lib/supervisorBriefing';
 
 const GROQ_BASE = 'https://api.groq.com/openai/v1';
 /** Client model hint — worker uses Cloudflare Workers AI (Llama 3.1) server-side */
@@ -263,6 +265,92 @@ Write ONLY the briefing paragraph. No quotes.`;
   }
 
   return { text: localFallback, fromLlm: false };
+}
+
+const RECALL_AI_SYSTEM = `You are Recall AI, an expert care advisor for family caregivers of older adults with neurodegenerative conditions (Alzheimer's, Parkinson's, Lewy body, vascular dementia, and related disorders).
+
+Your user is the SUPERVISOR/CAREGIVER — not the patient. Speak to them directly ("you") with warmth and clinical clarity.
+
+You CAN discuss:
+- Medication adherence, timing, and what to watch for (never prescribe or change doses — defer to their physician)
+- ACSE cognitive stability scores and what trends mean
+- Sundowning, disorientation, repetition, and de-escalation strategies
+- Comfort Mode, Clara companion interactions, and Recall app features
+- Appointment prep, questions for neurologists, and care planning
+- Caregiver burnout, safety, fall risk, nutrition, sleep, and daily structure
+- Treatment OPTIONS in general education terms (benefits, tradeoffs, lifestyle) — always note "confirm with her doctor"
+
+Rules:
+- Ground answers in LIVE PATIENT DATA when provided. Do not invent labs, diagnoses, or events not in the data.
+- If data is missing, say so and suggest what to log in Recall or ask at the next visit.
+- 2–6 sentences for voice-friendly replies; up to 2 short paragraphs for complex treatment questions.
+- No markdown, bullets, or numbered lists — flowing prose only.
+- Include a brief disclaimer when giving treatment-style guidance: remind them to confirm with the medical team.
+- Never claim to be a doctor or replace emergency services. For emergencies, say to call 911.
+- Use the patient's first name naturally when referring to them.`;
+
+export interface RecallAIChatResult {
+  reply: string;
+  fromLlm: boolean;
+}
+
+function sanitizeRecallAIReply(text: string): string {
+  let reply = text
+    .replace(/^["']|["']$/g, '')
+    .replace(/\*\*/g, '')
+    .replace(/^Recall AI:\s*/i, '')
+    .replace(/^Assistant:\s*/i, '')
+    .trim();
+  if (reply.length > 900) {
+    const cut = reply.slice(0, 880);
+    const lastStop = Math.max(cut.lastIndexOf('.'), cut.lastIndexOf('!'), cut.lastIndexOf('?'));
+    reply = lastStop > 200 ? cut.slice(0, lastStop + 1) : cut + '…';
+  }
+  return reply || "I'm here to help with Margaret's care — what would you like to know?";
+}
+
+export async function recallAIChat(
+  userMessage: string,
+  history: { role: 'user' | 'assistant'; content: string }[],
+  contextBlock: string,
+  caregiverName: string,
+  snapshot: SupervisorBriefingSnapshot
+): Promise<RecallAIChatResult> {
+  const messages: Message[] = [
+    {
+      role: 'system',
+      content: `${RECALL_AI_SYSTEM}\n\nCaregiver speaking: ${caregiverName}\n\n${contextBlock}`,
+    },
+    ...history
+      .filter((m) => m.role === 'user' || m.role === 'assistant')
+      .slice(-14)
+      .map((m) => ({ role: m.role, content: m.content })),
+    { role: 'user', content: userMessage },
+  ];
+
+  try {
+    const raw = await openRouterRecallAIChat(messages);
+    return { reply: sanitizeRecallAIReply(raw), fromLlm: true };
+  } catch (openRouterErr) {
+    console.warn('[Recall AI] OpenRouter failed, trying Groq:', openRouterErr);
+  }
+
+  try {
+    const raw = await groqChat(messages, { model: MODEL_PRIMARY, max_tokens: 600, temperature: 0.55 });
+    return { reply: sanitizeRecallAIReply(raw), fromLlm: true };
+  } catch (primaryErr) {
+    console.warn('[Recall AI] Groq primary failed, trying fallback:', primaryErr);
+    try {
+      const raw = await groqChat(messages, { model: MODEL_FALLBACK, max_tokens: 500, temperature: 0.55 });
+      return { reply: sanitizeRecallAIReply(raw), fromLlm: true };
+    } catch (err) {
+      console.warn('[Recall AI] LLM unavailable, using local advisor:', err);
+      return {
+        reply: localRecallAIReply(userMessage, snapshot, caregiverName),
+        fromLlm: false,
+      };
+    }
+  }
 }
 
 export interface MemoryAnchor {

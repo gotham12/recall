@@ -57,3 +57,21 @@ export async function openRouterClaraChat(messages: Message[]): Promise<string> 
     return await openRouterChat(messages, { model: CLARA_MODEL_FALLBACK, max_tokens: 280 });
   }
 }
+
+/** Caregiver Recall AI — longer, more factual responses. */
+export async function openRouterRecallAIChat(messages: Message[]): Promise<string> {
+  try {
+    return await openRouterChat(messages, {
+      model: CLARA_MODEL_PRIMARY,
+      max_tokens: 650,
+      temperature: 0.55,
+    });
+  } catch (primaryErr) {
+    console.warn('[OpenRouter Recall AI] Primary failed, trying fallback:', primaryErr);
+    return await openRouterChat(messages, {
+      model: CLARA_MODEL_FALLBACK,
+      max_tokens: 550,
+      temperature: 0.55,
+    });
+  }
+}

@@ -17,7 +17,7 @@ import ACSESignalAudit from '../components/supervisor/ACSESignalAudit';
 import LiveActivityFeed from '../components/supervisor/LiveActivityFeed';
 import MedicationAdherence from '../components/supervisor/MedicationAdherence';
 import WeeklyInsights from '../components/supervisor/WeeklyInsights';
-import SupervisorBriefing from '../components/supervisor/SupervisorBriefing';
+import RecallAIChat from '../components/supervisor/RecallAIChat';
 import { useAppStore } from '../store/appStore';
 import SettingsSheet from '../components/SettingsSheet';
 import { db, type Event, type User } from '../db/db';
@@ -115,9 +115,8 @@ const SUP_PANEL_TITLES: Record<string, string> = {
 // ─── Recall AI tab ──────────────────────────────────────────────────────────
 function RecallAITab({ user }: { user: User | null }) {
   return (
-    <div className="tab-scroll">
-      <SupervisorBriefing user={user} />
-      <div style={{ height: 24 }} />
+    <div className="recall-ai-tab">
+      <RecallAIChat user={user} />
     </div>
   );
 }
@@ -475,7 +474,7 @@ export default function SupervisorView() {
         </div>
       )}
 
-      <main ref={mainRef} className="app-main">
+      <main ref={mainRef} className={`app-main${tab === 'recall-ai' ? ' app-main--recall-ai' : ''}`}>
         {tab === 'overview'  && <OverviewTab user={user} acseScore={acseScore} onOpen={openPanel} onComfortMode={activateComfortMode} comfortActive={comfortModeActive} />}
         {tab === 'recall-ai'   && <RecallAITab user={user} />}
         {tab === 'schedule'  && <ScheduleTab user={user} onOpen={openPanel} />}
