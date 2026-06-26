@@ -1,8 +1,8 @@
 node_modules/
 .wrangler/
-dist/
-ios/
-android/
+/dist/
+/ios/
+/android/
 .env
 *.local
 .DS_Store
