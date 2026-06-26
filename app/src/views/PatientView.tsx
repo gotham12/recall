@@ -401,11 +401,13 @@ function WatchStrip({ onOpen }: { onOpen: (id: string) => void }) {
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10 }}>
         <h2 className="app-section-title" style={{ margin: 0 }}>Activity</h2>
         <button onClick={() => onOpen('watch')} style={{
-          display: 'flex', alignItems: 'center', gap: 4,
-          background: 'none', border: 'none', color: '#007AFF', fontSize: 12, fontWeight: 500,
-          cursor: 'pointer', padding: 0, fontFamily: 'inherit',
+          display: 'flex', alignItems: 'center', gap: 6,
+          background: 'rgba(0,122,255,0.10)', border: 'none', color: '#007AFF',
+          fontSize: 14, fontWeight: 600,
+          cursor: 'pointer', padding: '8px 14px', borderRadius: 20,
+          fontFamily: 'inherit',
         }}>
-          <IcoWatch size={13} /> Details
+          <IcoWatch size={15} /> Details
         </button>
       </div>
       <div className="app-card" style={{ padding: '16px 20px' }}>
