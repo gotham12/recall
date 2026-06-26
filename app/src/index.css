@@ -6251,10 +6251,11 @@ body, html { background: var(--studio-bg) !important; font-family: -apple-system
 .dash-login__hero-illustration { width: 100%; overflow: hidden; border-radius: 14px 14px 0 0; }
 .dash-login__hero-svg { width: 100%; height: auto; display: block; }
 .dash-btn {
-  display: flex; align-items: center; gap: 12px;
-  padding: 14px 16px; border: none; border-bottom: 0.5px solid rgba(60,60,67,0.12);
+  display: flex; align-items: center; gap: 14px;
+  padding: 18px 18px; border: none; border-bottom: 0.5px solid rgba(60,60,67,0.12);
   background: transparent; cursor: pointer; width: 100%; text-align: left;
   -webkit-tap-highlight-color: transparent; transition: background 0.1s ease;
+  min-height: 64px;
 }
 .dash-btn:last-child { border-bottom: none; }
 .dash-btn:active { background: rgba(0,0,0,0.04); }
@@ -7623,7 +7624,14 @@ html, body, #root {
 .dash-back  { color: #007AFF !important; }
 .dash-error { color: #FF3B30 !important; }
 .dash-login__logo-img {
-  box-shadow: 0 4px 20px rgba(0,0,0,0.12) !important;
+  width: 62px !important;
+  height: 62px !important;
+  border-radius: 16px !important;
+  object-fit: cover !important;
+  display: block !important;
+  margin: 0 auto 14px !important;
+  background: #1D4ED8 !important;
+  box-shadow: 0 4px 18px rgba(29,78,216,0.32), 0 1px 4px rgba(0,0,0,0.12) !important;
 }
 
 /* ═══════════════════════════════════════════════════════════════════
