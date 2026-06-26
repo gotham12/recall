@@ -22,6 +22,29 @@ type Phase =
   | 'cooldown'
   | 'manual_confirm';
 
+async function waitForVideoFrame(video: HTMLVideoElement): Promise<boolean> {
+  if (video.readyState >= HTMLMediaElement.HAVE_CURRENT_DATA && video.videoWidth > 0 && video.videoHeight > 0) {
+    return true;
+  }
+
+  await new Promise<void>((resolve) => {
+    const cleanup = () => {
+      window.clearTimeout(timeout);
+      video.removeEventListener('loadeddata', onReady);
+      video.removeEventListener('canplay', onReady);
+    };
+    const onReady = () => {
+      cleanup();
+      resolve();
+    };
+    const timeout = window.setTimeout(onReady, 2500);
+    video.addEventListener('loadeddata', onReady, { once: true });
+    video.addEventListener('canplay', onReady, { once: true });
+  });
+
+  return video.readyState >= HTMLMediaElement.HAVE_CURRENT_DATA && video.videoWidth > 0 && video.videoHeight > 0;
+}
+
 export default function MedTracker() {
   const user = useAppStore((s) => s.user);
   const addSupervisorAlert = useAppStore((s) => s.addSupervisorAlert);
@@ -31,6 +54,7 @@ export default function MedTracker() {
   const [countdown, setCountdown] = useState(10);
   const [cooldownMsg, setCooldownMsg] = useState('');
   const [visionMsg, setVisionMsg] = useState('');
+  const [cameraReady, setCameraReady] = useState(false);
   const videoRef = useRef<HTMLVideoElement>(null);
   const streamRef = useRef<MediaStream | null>(null);
   const countdownTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
@@ -42,6 +66,7 @@ export default function MedTracker() {
   const stopCamera = useCallback(() => {
     streamRef.current?.getTracks().forEach((t) => t.stop());
     streamRef.current = null;
+    setCameraReady(false);
   }, []);
 
   const clearCountdown = useCallback(() => {
@@ -66,7 +91,9 @@ export default function MedTracker() {
     const stream = streamRef.current;
     if (video && stream && video.srcObject !== stream) {
       video.srcObject = stream;
-      void video.play().catch(() => {});
+      void video.play().then(() => {
+        if (video.videoWidth > 0 && video.videoHeight > 0) setCameraReady(true);
+      }).catch(() => {});
     }
   }, [phase]);
 
@@ -179,6 +206,8 @@ export default function MedTracker() {
 
     setPhase('camera');
     setRetries(0);
+    setCameraReady(false);
+    setVisionMsg('');
     await speak(`It's time to take your ${med.name}. Please show me the medication.`);
 
     try {
@@ -187,6 +216,9 @@ export default function MedTracker() {
       if (videoRef.current) {
         videoRef.current.srcObject = stream;
         await videoRef.current.play();
+        if (videoRef.current.videoWidth > 0 && videoRef.current.videoHeight > 0) {
+          setCameraReady(true);
+        }
       }
     } catch {
       setVisionMsg('Camera access is not available.');
@@ -196,14 +228,23 @@ export default function MedTracker() {
   }, [checkCooldown, recordMedicationReAttempt, user]);
 
   const captureAndVerify = useCallback(async () => {
-    if (!videoRef.current || !selectedMed) return;
+    const video = videoRef.current;
+    if (!video || !selectedMed) return;
+
+    const hasFrame = await waitForVideoFrame(video);
+    if (!hasFrame) {
+      setVisionMsg('Camera is still warming up. Please wait a moment and try again.');
+      setCameraReady(false);
+      return;
+    }
+
     setPhase('verifying');
 
     const canvas = document.createElement('canvas');
-    canvas.width = videoRef.current.videoWidth || 320;
-    canvas.height = videoRef.current.videoHeight || 240;
+    canvas.width = video.videoWidth;
+    canvas.height = video.videoHeight;
     const ctx = canvas.getContext('2d')!;
-    ctx.drawImage(videoRef.current, 0, 0);
+    ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
     const dataUrl = canvas.toDataURL('image/jpeg', 0.8);
     const base64 = dataUrl.split(',')[1];
 
@@ -234,11 +275,15 @@ export default function MedTracker() {
           setVisionMsg(`I couldn't see your medication clearly. ${MAX_RETRIES - newRetries} attempt(s) remaining.`);
           await speak(`I couldn't see your medication clearly. Please try again.`);
           setPhase('camera');
+          setCameraReady(false);
           const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' } });
           streamRef.current = stream;
           if (videoRef.current) {
             videoRef.current.srcObject = stream;
             await videoRef.current.play();
+            if (videoRef.current.videoWidth > 0 && videoRef.current.videoHeight > 0) {
+              setCameraReady(true);
+            }
           }
         }
       }
@@ -266,6 +311,7 @@ export default function MedTracker() {
     setRetries(0);
     setVisionMsg('');
     setCooldownMsg('');
+    setCameraReady(false);
   };
 
   const btnStyle = {
@@ -361,8 +407,15 @@ export default function MedTracker() {
               playsInline
               muted
               className="med-tracker__video"
+              onLoadedData={() => setCameraReady(true)}
+              onCanPlay={() => setCameraReady(true)}
             />
           </div>
+          {visionMsg && (
+            <p className="studio-text-muted" style={{ fontSize: 16, textAlign: 'center', margin: '8px 0 0' }}>
+              {visionMsg}
+            </p>
+          )}
           {retries > 0 && (
             <p style={{ color: '#F59E0B', fontSize: 18, textAlign: 'center' }}>
               Attempt {retries + 1} of {MAX_RETRIES}
@@ -371,10 +424,11 @@ export default function MedTracker() {
           <button
             className="btn-electric tap-feedback med-tracker__action-btn"
             onClick={captureAndVerify}
+            disabled={!cameraReady}
             style={btnStyle}
           >
             <StudioIcon name="check" size={22} />
-            Capture &amp; Verify
+            {cameraReady ? 'Capture & Verify' : 'Starting camera...'}
           </button>
           <button className="med-tracker__cancel tap-feedback" onClick={reset}>
             Cancel
