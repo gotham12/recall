@@ -190,6 +190,9 @@ export default function LoginScreen() {
               <button className="dash-btn dash-btn--primary" onClick={handleSupervisorLogin}>
                 <span className="dash-btn__body"><span className="dash-btn__label">Sign In</span></span>
               </button>
+              <p style={{ fontSize: 12, color: 'var(--studio-text-tertiary, #8E8E93)', textAlign: 'center', marginTop: 8 }}>
+                Demo password: <strong>care</strong>
+              </p>
             </div>
           </div>
         )}
