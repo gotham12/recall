@@ -94,7 +94,7 @@ Opens on `http://localhost:3000` — full hot-reload.
 - **Lava Lamps** — Pure CSS `@keyframes`, zero JS overhead, 6 animated blobs.
 - **State Reconstruction** — Groq LLM generates a warm one-sentence reality card every 5 minutes.
 - **Clara Voice Agent** — Web Speech API STT → Groq LLM → ElevenLabs TTS (browser fallback).
-- **Vision Medication** — Google Cloud Vision → Groq Vision fallback → manual confirm fallback.
+- **Vision Medication** — Cloudflare Workers AI Vision → Gemini Vision → Groq Vision → Google Cloud Vision → manual confirm fallback.
 - **ACSE Engine** — Cognitive stability score with auto Comfort Mode at <50.
 - **Comfort Mode** — Grounding message + breathing exercise + day narrative + score reset to 70.
 - **All local** — IndexedDB (Dexie.js) stores all data on-device. No server required.
@@ -111,7 +111,9 @@ VITE_ELEVENLABS_API_KEY=...
 VITE_GOOGLE_VISION_KEY=...
 ```
 
-Graceful fallbacks: ElevenLabs → browser TTS. Google Vision → Groq Vision → manual confirm.
+Production uses Cloudflare Workers AI through the Worker `AI` binding for the primary vision path, so no separate vision API key is required. Optional provider keys such as `GEMINI_API_KEY` should be set as Cloudflare Worker secrets if you want fallbacks.
+
+Graceful fallbacks: ElevenLabs → browser TTS. Workers AI Vision → Gemini Vision → Groq Vision → Google Vision → manual confirm.
 
 ---
 

@@ -4,6 +4,7 @@
   "type": "module",
   "scripts": {
     "deploy": "wrangler deploy",
+    "secret:gemini": "wrangler secret put GEMINI_API_KEY",
     "secret:groq": "wrangler secret put GROQ_API_KEY",
     "secret:elevenlabs": "wrangler secret put ELEVENLABS_API_KEY",
     "secret:vision": "wrangler secret put GOOGLE_VISION_KEY"

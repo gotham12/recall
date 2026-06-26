@@ -1,7 +1,7 @@
 /**
  * Recall API — Cloudflare Worker
  * Primary LLM: Workers AI (Llama, no external API key)
- * Fallbacks: Groq / ElevenLabs / Google Vision when secrets are set
+ * Fallbacks: Gemini / Groq / ElevenLabs / Google Vision when secrets are set
  */
 
 const CORS = {
@@ -14,6 +14,8 @@ const CF_CHAT_MODELS = [
   '@cf/meta/llama-3.1-8b-instruct',
   '@cf/meta/llama-3-8b-instruct',
 ];
+const CF_VISION_MODEL = '@cf/meta/llama-3.2-11b-vision-instruct';
+const CF_VISION_FALLBACK_MODEL = '@cf/llava-hf/llava-1.5-7b-hf';
 
 export default {
   async fetch(request, env) {
@@ -28,7 +30,7 @@ export default {
         ok: true,
         service: 'recall-api',
         llm: env.AI ? 'workers-ai' : 'groq-only',
-        routes: ['/api/groq/chat', '/api/groq/vision', '/api/groq/transcribe', '/api/elevenlabs/tts', '/api/vision/annotate'],
+        routes: ['/api/workers-ai/vision', '/api/gemini/vision', '/api/groq/chat', '/api/groq/vision', '/api/groq/transcribe', '/api/elevenlabs/tts', '/api/vision/annotate'],
       });
     }
 
@@ -44,6 +46,14 @@ export default {
     }
 
     try {
+      if (url.pathname === '/api/workers-ai/vision') {
+        return await handleWorkersAiVision(body, env);
+      }
+
+      if (url.pathname === '/api/gemini/vision') {
+        return await handleGeminiVision(body, env);
+      }
+
       if (url.pathname === '/api/groq/chat') {
         return await handleChat(body, env);
       }
@@ -70,6 +80,68 @@ export default {
     }
   },
 };
+
+async function handleWorkersAiVision(body, env) {
+  if (!env.AI) {
+    return json({ error: 'Workers AI binding is not configured' }, 503);
+  }
+  if (!body.image?.trim() || !body.prompt?.trim()) {
+    return json({ error: 'image and prompt are required' }, 400);
+  }
+
+  const image = body.image.startsWith('data:')
+    ? body.image
+    : `data:${body.mimeType || 'image/jpeg'};base64,${body.image}`;
+  let response;
+  let model = CF_VISION_MODEL;
+  try {
+    response = await env.AI.run(CF_VISION_MODEL, {
+      messages: [
+        { role: 'system', content: 'You verify medication labels from camera images. Reply only with valid JSON.' },
+        { role: 'user', content: body.prompt },
+      ],
+      image,
+      max_tokens: body.max_tokens ?? 160,
+      temperature: body.temperature ?? 0,
+    });
+  } catch (err) {
+    const message = String(err);
+    if (!message.includes('5016') && !message.toLowerCase().includes('agree')) {
+      throw err;
+    }
+    const bytes = base64ToBytes(image.replace(/^data:[^,]+,/, ''));
+    model = CF_VISION_FALLBACK_MODEL;
+    response = await env.AI.run(CF_VISION_FALLBACK_MODEL, {
+      prompt: body.prompt,
+      image: [...new Uint8Array(bytes)],
+      max_tokens: body.max_tokens ?? 160,
+      temperature: body.temperature ?? 0,
+    });
+  }
+
+  return json({
+    content: extractAIText(response) || response?.response || response?.description || JSON.stringify(response ?? {}),
+    provider: 'workers-ai',
+    model,
+  });
+}
+
+async function handleGeminiVision(body, env) {
+  requireSecret(env.GEMINI_API_KEY, 'GEMINI_API_KEY');
+  const model = body.model || 'gemini-2.0-flash';
+  const { model: _model, ...geminiBody } = body;
+  const res = await fetch(
+    `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${env.GEMINI_API_KEY}`,
+    {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(geminiBody),
+    }
+  );
+  const data = await res.json();
+  if (!res.ok) return json({ error: data }, res.status);
+  return json({ content: data.candidates?.[0]?.content?.parts?.[0]?.text ?? '{}' });
+}
 
 /** Clara / Groq-compatible chat — Workers AI first, Groq fallback */
 async function handleChat(body, env) {

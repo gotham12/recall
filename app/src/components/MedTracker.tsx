@@ -218,6 +218,10 @@ export default function MedTracker() {
         await logMedication(selectedMed, result.confidence, result.description, dataUrl);
         setPhase('countdown');
         startCountdown();
+      } else if (result.source === 'manual') {
+        setVisionMsg(result.description);
+        await speak('I could not verify automatically. Please confirm manually.');
+        setPhase('manual_confirm');
       } else {
         const newRetries = retries + 1;
         setRetries(newRetries);
@@ -263,15 +267,6 @@ export default function MedTracker() {
     setVisionMsg('');
     setCooldownMsg('');
   };
-
-  const demoVerify = useCallback(async (med: Medication) => {
-    setSelectedMed(med);
-    setVisionMsg(`Demo verified — ${med.name} ${med.dosage}`);
-    await speak(`Confirmed — your ${med.name}. Please take it now.`);
-    await logMedication(med, 'high', 'Demo verification — pill bottle matched.', '');
-    setPhase('countdown');
-    startCountdown();
-  }, [logMedication, startCountdown]);
 
   const btnStyle = {
     minHeight: 52,
@@ -324,10 +319,10 @@ export default function MedTracker() {
             <button
               type="button"
               className="med-demo-verify tap-feedback"
-              onClick={() => void demoVerify(tylenolMed)}
+              onClick={() => void startCamera(tylenolMed)}
             >
               <StudioIcon name="meds" size={18} />
-              Demo verify Tylenol (no camera)
+              Demo verify Tylenol with camera
             </button>
           )}
         </div>
