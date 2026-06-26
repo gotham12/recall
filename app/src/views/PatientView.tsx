@@ -25,7 +25,7 @@ import GoldenPathDemo from '../components/GoldenPathDemo';
 
 gsap.registerPlugin(ScrollTrigger);
 
-type PatientTab = 'today' | 'care' | 'mind' | 'routine';
+type PatientTab = 'today' | 'care' | 'clara' | 'routine';
 
 const PANEL_TITLES: Record<string, string> = {
   voice: 'Clara',
@@ -299,8 +299,15 @@ function IcoToday() {
 function IcoCare() {
   return <svg viewBox="0 0 24 24" fill="none" width="26" height="26"><path d="M12 21s-7-5-7-10.5A5.5 5.5 0 0 1 12 5.5 5.5 5.5 0 0 1 19 10.5C19 16 12 21 12 21z" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round"/></svg>;
 }
-function IcoMindTab() {
-  return <svg viewBox="0 0 24 24" fill="none" width="26" height="26"><circle cx="12" cy="12" r="9" stroke="currentColor" strokeWidth="1.7"/><path d="M9 12c0-1.65 1.34-3 3-3s3 1.35 3 3" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round"/><line x1="12" y1="15" x2="12" y2="17" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round"/></svg>;
+function IcoClara() {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" width="26" height="26">
+      <rect x="9" y="2" width="6" height="11" rx="3" stroke="currentColor" strokeWidth="1.7"/>
+      <path d="M5 10c0 3.9 3.1 7 7 7s7-3.1 7-7" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round"/>
+      <line x1="12" y1="17" x2="12" y2="21" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round"/>
+      <line x1="8" y1="21" x2="16" y2="21" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round"/>
+    </svg>
+  );
 }
 function IcoRoutine() {
   return <svg viewBox="0 0 24 24" fill="none" width="26" height="26"><path d="M5 12l4 4 10-9" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round"/></svg>;
@@ -689,8 +696,8 @@ function HealthTips() {
 }
 
 // ── Today tab ─────────────────────────────────────────────────────────────
-function TodayTab({ events, medications, acseScore, onOpen }: {
-  events: Event[]; medications: Medication[]; acseScore: number; onOpen: (id: string) => void;
+function TodayTab({ events, medications, acseScore, onOpen, onClara }: {
+  events: Event[]; medications: Medication[]; acseScore: number; onOpen: (id: string) => void; onClara: () => void;
 }) {
   const containerRef = useRef<HTMLDivElement>(null);
   const scoreRingRef = useRef<SVGCircleElement>(null);
@@ -833,7 +840,7 @@ function TodayTab({ events, medications, acseScore, onOpen }: {
       <section className="app-section">
         <h2 className="app-section-title">Quick Actions</h2>
         <div className="quick-action-row">
-          <button className="quick-action-btn quick-action-btn--blue tap-feedback" onClick={() => onOpen('voice')} style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+          <button className="quick-action-btn quick-action-btn--blue tap-feedback" onClick={onClara} style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
             <IcoMic color="#fff" size={20}/> Talk to Clara
           </button>
           <button className="quick-action-btn quick-action-btn--red tap-feedback" onClick={() => onOpen('safety')} style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
@@ -867,6 +874,27 @@ function CareTab({ onOpen }: { onOpen: (id: string) => void }) {
             <div className="nav-row-body">
               <span className="nav-row-label">Medication Tracker</span>
               <span className="nav-row-sub">Log & track all medications</span>
+            </div>
+            <Chevron />
+          </div>
+        </div>
+      </section>
+      <section className="app-section">
+        <h2 className="app-section-title">Mind</h2>
+        <div className="app-card-group">
+          <div className="app-card-nav-row" onClick={() => onOpen('games')}>
+            <span className="nav-row-icon" style={{ background: '#F3EEFF' }}><IcoGrid color="#7C3AED" size={20}/></span>
+            <div className="nav-row-body">
+              <span className="nav-row-label">Mind Games</span>
+              <span className="nav-row-sub">Wordle, Sudoku & more</span>
+            </div>
+            <Chevron />
+          </div>
+          <div className="app-card-nav-row" onClick={() => onOpen('memory')}>
+            <span className="nav-row-icon" style={{ background: '#F3EEFF' }}><IcoBrain color="#7C3AED" size={20}/></span>
+            <div className="nav-row-body">
+              <span className="nav-row-label">Memory Dashboard</span>
+              <span className="nav-row-sub">Cognitive score & recap</span>
             </div>
             <Chevron />
           </div>
@@ -1096,9 +1124,9 @@ export default function PatientView() {
       </header>
 
       <main ref={mainRef} className="app-main">
-        {tab === 'today'   && <TodayTab events={events} medications={medications} acseScore={acseScore} onOpen={openPanel} />}
+        {tab === 'today'   && <TodayTab events={events} medications={medications} acseScore={acseScore} onOpen={openPanel} onClara={() => handleTabChange('clara')} />}
         {tab === 'care'    && <CareTab onOpen={openPanel} />}
-        {tab === 'mind'    && <MindTab onOpen={openPanel} />}
+        {tab === 'clara'   && <VoiceAgent />}
         {tab === 'routine' && <div className="tab-scroll"><RoutineChecklist /></div>}
       </main>
 
@@ -1106,7 +1134,7 @@ export default function PatientView() {
         {([
           { id: 'today',   label: 'Today',   icon: <IcoToday /> },
           { id: 'care',    label: 'Care',    icon: <IcoCare /> },
-          { id: 'mind',    label: 'Mind',    icon: <IcoMindTab /> },
+          { id: 'clara',   label: 'Clara',   icon: <IcoClara /> },
           { id: 'routine', label: 'Routine', icon: <IcoRoutine /> },
         ] as const).map(t => (
           <button key={t.id} className={`app-tab${tab === t.id ? ' app-tab--active' : ''}`}
