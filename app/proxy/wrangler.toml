@@ -1,6 +1,7 @@
 name = "recall-api"
 main = "worker.mjs"
 compatibility_date = "2024-06-01"
+account_id = "f3ef8ef6ea55d1d3c0e408d00d4a6c57"
 
 # Cloudflare Workers AI — runs Llama on CF edge (no Groq key required)
 [ai]
