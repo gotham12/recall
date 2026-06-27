@@ -18,6 +18,7 @@ import {
 } from '../services/elevenlabs';
 import { addRoutineEvent, parseRoutineUtterance } from '../lib/routineUtils';
 import StudioIcon, { type IconName } from './StudioIcon';
+import ClaraFlowerPulse from './ClaraFlowerPulse';
 
 type VoiceState = 'idle' | 'listening' | 'thinking' | 'speaking';
 
