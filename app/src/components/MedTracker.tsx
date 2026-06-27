@@ -61,7 +61,6 @@ export default function MedTracker() {
   const { recordMedicationReAttempt } = useACSE();
 
   const medications: Medication[] = user?.medications ?? [];
-  const tylenolMed = medications.find((m) => isTylenolMed(m.name)) ?? medications[0];
 
   const stopCamera = useCallback(() => {
     streamRef.current?.getTracks().forEach((t) => t.stop());
@@ -186,7 +185,7 @@ export default function MedTracker() {
   const startCamera = useCallback(async (med: Medication) => {
     setSelectedMed(med);
 
-    const onCooldown = await checkCooldown(med.name);
+    const onCooldown = !isTylenolMed(med.name) && await checkCooldown(med.name);
     if (onCooldown) {
       recordMedicationReAttempt();
       const logs = await db.medicationLogs
@@ -362,16 +361,6 @@ export default function MedTracker() {
               </div>
             );
           })}
-          {tylenolMed && (
-            <button
-              type="button"
-              className="med-demo-verify tap-feedback"
-              onClick={() => void startCamera(tylenolMed)}
-            >
-              <StudioIcon name="meds" size={18} />
-              Demo verify Tylenol with camera
-            </button>
-          )}
         </div>
       )}
 

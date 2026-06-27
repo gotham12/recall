@@ -66,3 +66,7 @@ export function countMedicationSignals(detected: string[]): number {
 export function isTylenolMed(name: string): boolean {
   return name.toLowerCase().includes('tylenol');
 }
+
+export function isDonepezilMed(name: string): boolean {
+  return name.toLowerCase().includes('donepezil');
+}

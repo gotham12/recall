@@ -251,8 +251,37 @@ async function syncMargaretFamilyData(): Promise<void> {
 
     await ensureRoutineGameTasks(user.id);
     await ensureDemoTylenol(user.id);
+    await ensureDonepezilDemoLog(user.id);
     await ensureCheckupAppointment(user.id);
   }
+}
+
+const DONEPEZIL_COOLDOWN_HOURS = 6;
+
+async function ensureDonepezilDemoLog(userId: number): Promise<void> {
+  const user = await db.users.get(userId);
+  if (!user?.id || user.name !== 'Margaret') return;
+
+  const hasDonepezil = user.medications?.some((m) => m.name.toLowerCase().includes('donepezil'));
+  if (!hasDonepezil) return;
+
+  const cutoff = new Date(Date.now() - DONEPEZIL_COOLDOWN_HOURS * 60 * 60 * 1000).toISOString();
+  const recent = await db.medicationLogs
+    .where('userId')
+    .equals(userId)
+    .and((log) => log.medicationName.toLowerCase().includes('donepezil') && log.timestamp > cutoff && log.confirmed !== false)
+    .first();
+  if (recent) return;
+
+  const timestamp = new Date(Date.now() - 45 * 60 * 1000).toISOString();
+  await db.medicationLogs.add({
+    userId,
+    medicationName: 'Donepezil',
+    timestamp,
+    visionConfidence: 'high',
+    visionDescription: 'Morning dose verified.',
+    confirmed: true,
+  });
 }
 
 async function ensureDemoTylenol(userId: number): Promise<void> {
@@ -528,6 +557,7 @@ async function seedExtendedData(): Promise<void> {
     }
     if (user.name === 'Margaret' && user.id) {
       await ensureDemoTylenol(user.id);
+      await ensureDonepezilDemoLog(user.id);
     }
   }
 }

@@ -19,8 +19,6 @@ import LiveActivityFeed from '../components/supervisor/LiveActivityFeed';
 import MedicationAdherence from '../components/supervisor/MedicationAdherence';
 import WeeklyInsights from '../components/supervisor/WeeklyInsights';
 import RecallAIChat from '../components/supervisor/RecallAIChat';
-import FamiliarFaces from '../components/FamiliarFaces';
-import SafetyCircle from '../components/SafetyCircle';
 import RoutineChecklist from '../components/RoutineChecklist';
 import { isMedicationDueSoon } from '../lib/schedule';
 import { useAppStore } from '../store/appStore';
@@ -330,27 +328,6 @@ function OverviewTab({ user, acseScore, onOpen, onComfortMode, comfortActive }: 
         </div>
         <div className="app-card" style={{ padding: '4px 0', borderLeft: '3px solid rgba(22,163,74,0.5)' }}>
           <RoutineChecklist />
-        </div>
-      </section>
-
-      {/* People — mirrors patient People tab */}
-      <section className="app-section">
-        <div className="sup-section-header">
-          <div className="sup-section-dot" style={{ background: '#AF52DE' }}/>
-          <h2 className="app-section-title" style={{ margin: 0 }}>Familiar Faces</h2>
-        </div>
-        <div className="app-card" style={{ padding: '8px 4px', borderLeft: '3px solid rgba(175,82,222,0.5)' }}>
-          <FamiliarFaces />
-        </div>
-      </section>
-
-      <section className="app-section">
-        <div className="sup-section-header">
-          <div className="sup-section-dot" style={{ background: '#FF375F' }}/>
-          <h2 className="app-section-title" style={{ margin: 0 }}>Safety Circle</h2>
-        </div>
-        <div className="app-card" style={{ padding: '8px 4px', borderLeft: '3px solid rgba(255,55,95,0.5)' }}>
-          <SafetyCircle />
         </div>
       </section>
 
