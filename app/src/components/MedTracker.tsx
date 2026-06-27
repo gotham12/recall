@@ -9,7 +9,7 @@ import { isTylenolMed } from '../lib/medicationVision';
 import { TYLENOL_REFERENCE_URL } from '../lib/assets';
 import StudioIcon from './StudioIcon';
 
-const COOLDOWN_HOURS = 6;
+const COOLDOWN_HOURS = 0; // demo: no cooldown so medication can be taken repeatedly
 const MAX_RETRIES = 3;
 
 type Phase =

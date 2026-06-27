@@ -25,6 +25,12 @@ const POST_SPEAK_PAUSE_MS = 120;
 const CASCADE_DELAY_MS = 400;
 const CLARA_CONTEXT_TTL_MS = 15_000;
 
+const SUGGESTIONS = [
+  { label: 'What day is it?', icon: '📅' },
+  { label: 'Tell me something nice', icon: '✨' },
+  { label: "I'm feeling confused", icon: '💙' },
+];
+
 async function speakAloud(text: string): Promise<void> {
   unlockAudioPlayback();
   await speak(text, { clara: true });
@@ -43,6 +49,8 @@ export default function VoiceAgent() {
   const [error, setError] = useState('');
   const [llmConnected, setLlmConnected] = useState<boolean | null>(null);
   const [typedInput, setTypedInput] = useState('');
+  const [chatLog, setChatLog] = useState<{ role: 'user' | 'assistant'; content: string }[]>([]);
+  const chatBottomRef = useRef<HTMLDivElement>(null);
 
   const { startListening, stopListening } = useClaraVoice();
   const { checkRepeatQuestion } = useACSE();
@@ -117,7 +125,6 @@ export default function VoiceAgent() {
       console.error('[Clara TTS] all methods failed:', err);
     } finally {
       await new Promise<void>((r) => setTimeout(r, POST_SPEAK_PAUSE_MS));
-      // Always leave speaking state — loop will set listening next
       if (sessionActiveRef.current) {
         setState('listening');
         setClaraLine("I'm listening…");
@@ -192,6 +199,14 @@ export default function VoiceAgent() {
       { role: 'assistant' as const, content: response },
     ].slice(-20);
 
+    setChatLog((prev) =>
+      [
+        ...prev,
+        { role: 'user' as const, content: trimmed },
+        { role: 'assistant' as const, content: response },
+      ].slice(-8)
+    );
+
     if (user?.id) {
       void logClaraVoiceExchange(user.id, trimmed, response, intent.intent);
     }
@@ -222,7 +237,6 @@ export default function VoiceAgent() {
         }
 
         await processUtterance(heard);
-        // speakResponse sets state back to listening in its finally block
       } catch (err) {
         console.error('[Clara voice]', err);
         if (!sessionActiveRef.current) break;
@@ -280,97 +294,177 @@ export default function VoiceAgent() {
     });
   };
 
+  const handleSuggestion = (text: string) => {
+    unlockAudioPlayback();
+    primeSpeechSynthesis();
+    stopSpeaking();
+    stopListening();
+    sessionActiveRef.current = true;
+    setInSession(true);
+    setError('');
+    void processUtterance(text).finally(() => {
+      sessionActiveRef.current = false;
+      setInSession(false);
+      setState('idle');
+    });
+  };
+
+  useEffect(() => {
+    chatBottomRef.current?.scrollIntoView({ behavior: 'smooth' });
+  }, [chatLog]);
+
   const micIcon: IconName = inSession ? 'close' : 'mic';
-  const micHint =
-    state === 'listening' ? 'Listening… speak now' :
-    state === 'thinking'  ? 'Thinking…'            :
-    state === 'speaking'  ? 'Clara is speaking…'     :
-    'Tap to talk';
+
+  const statusLabel =
+    state === 'listening' ? 'Listening…' :
+    state === 'thinking'  ? 'Thinking…'  :
+    state === 'speaking'  ? 'Speaking…'  : '';
 
   return (
-    <div className="cv2-room">
-      {/* Status pill — replaces duplicate header; real title is in vis-feature-header */}
-      <div className="cv2-status-bar">
-        <span className={`cv2-status cv2-status--${state}`}>
-          {state === 'listening' ? '● Listening' :
-           state === 'thinking'  ? '◌ Thinking…' :
-           state === 'speaking'  ? '▶ Speaking'  : 'Ready'}
-        </span>
-        {llmConnected === false && <span className="cv2-offline">Offline</span>}
-      </div>
+    <div className="cv2-room cv2-room--premium">
 
-      <div className="cv2-body studio-scroll">
-        {/* Clara avatar */}
-        <div className="cv2-avatar-wrap">
-          <div className={`cv2-avatar-ring cv2-avatar-ring--${state}`}>
-            <img
-              src="/recall/clara.png"
-              alt="Clara"
-              width="110"
-              height="110"
-              style={{ borderRadius: '50%', objectFit: 'cover', objectPosition: 'center top', display: 'block' }}
-            />
+      <div className="cv2-body cv2-body--premium studio-scroll">
+
+        {/* Avatar + name */}
+        <div className="cv2-avatar-wrap cv2-avatar-wrap--premium">
+
+          <div className="cv2-name-block">
+            <span className="cv2-name-block__name">Clara</span>
+            <span className="cv2-name-block__tag">Your AI Companion</span>
           </div>
-          <div className="cv2-avatar-name">
-            <span className="cv2-avatar-label">Clara</span>
-            <span className={`cv2-avatar-status cv2-avatar-status--${state}`}>
-              {state === 'listening' ? 'Listening…' :
-               state === 'thinking'  ? 'Thinking…'  :
-               state === 'speaking'  ? 'Speaking…'  : 'Ready to talk'}
-            </span>
+
+          <div className={`cv2-halo cv2-halo--${state}`}>
+            <div className="cv2-halo__ring cv2-halo__ring--2" />
+            <div className="cv2-halo__ring cv2-halo__ring--1" />
+            <div className="cv2-halo__core">
+              <img
+                src="/recall/clara.png"
+                alt="Clara"
+                width="140"
+                height="140"
+                className="cv2-avatar-img"
+              />
+            </div>
+          </div>
+
+          <div
+            className={`cv2-pill cv2-pill--${state}${statusLabel ? ' cv2-pill--visible' : ''}`}
+            aria-live="polite"
+          >
+            {state === 'thinking' ? (
+              <span className="cv2-thinking-dots"><span /><span /><span /></span>
+            ) : (statusLabel || ' ')}
+          </div>
+
+          <div className="cv2-flower-hidden" aria-hidden="true">
+            <ClaraFlowerPulse active={flowerActive} />
           </div>
         </div>
 
-        <div className="cv2-stage" style={{ display: state === 'listening' ? 'flex' : 'none' }}>
-          <div className="cv2-wave" aria-hidden>
+        {/* Listening wave bars */}
+        {state === 'listening' && (
+          <div className="cv2-wave cv2-wave--premium" aria-hidden>
             {[0, 1, 2, 3, 4].map((i) => (
               <span key={i} className="cv2-wave__bar" style={{ animationDelay: `${i * 0.12}s` }} />
             ))}
           </div>
-        </div>
+        )}
 
-        <div className="cv2-speech" aria-live="polite">
-          {error     && <p className="cv2-speech__error">{error}</p>}
-          {claraLine && <p className="cv2-speech__line">{claraLine}</p>}
-        </div>
+        {/* Greeting text — only when no chat history */}
+        {chatLog.length === 0 && (
+          <div className="cv2-speech cv2-speech--premium" aria-live="polite">
+            {error     && <p className="cv2-speech__error">{error}</p>}
+            {claraLine && <p className="cv2-speech__line">{claraLine}</p>}
+          </div>
+        )}
 
-        <div style={{ flex: 1, minHeight: 16 }} />
+        {/* Chat history bubbles */}
+        {chatLog.length > 0 && (
+          <div className="cv2-chat-log">
+            {chatLog.map((entry, i) => (
+              <div key={i} className={`cv2-chat-bubble cv2-chat-bubble--${entry.role}`}>
+                {entry.content}
+              </div>
+            ))}
+            {state === 'speaking' && claraLine && claraLine !== chatLog[chatLog.length - 1]?.content && (
+              <div className="cv2-chat-bubble cv2-chat-bubble--assistant cv2-chat-bubble--active">
+                {claraLine}
+              </div>
+            )}
+            <div ref={chatBottomRef} />
+          </div>
+        )}
+
+        {/* Quick-reply chips — idle only, before first message */}
+        {!inSession && chatLog.length === 0 && (
+          <div className="cv2-suggestions">
+            {SUGGESTIONS.map((s) => (
+              <button
+                key={s.label}
+                type="button"
+                className="cv2-suggestion-chip tap-feedback"
+                onClick={() => handleSuggestion(s.label)}
+              >
+                <span className="cv2-suggestion-chip__icon">{s.icon}</span>
+                <span>{s.label}</span>
+              </button>
+            ))}
+          </div>
+        )}
+
+        {llmConnected === false && (
+          <span className="cv2-offline cv2-offline--premium">Offline mode</span>
+        )}
+
+        <div style={{ flex: 1, minHeight: 24 }} />
       </div>
 
-      <div className="cv2-input-bar">
-        <button
-          type="button"
-          className={`cv2-mic tap-feedback cv2-mic--${state}`}
-          onClick={handleMicTap}
-          aria-label={inSession ? 'End conversation' : 'Talk to Clara'}
-        >
-          <span className="cv2-mic__ring" />
-          <StudioIcon name={micIcon} size={32} />
-        </button>
+      {/* Composer */}
+      <div className="cv2-composer">
+        <div className="cv2-composer__card">
+          <div className={`cv2-text-wrap cv2-text-wrap--premium${inSession ? ' cv2-text-wrap--disabled' : ''}`}>
+            <input
+              type="text"
+              className="cv2-text-field cv2-text-field--premium"
+              placeholder="Message Clara…"
+              value={typedInput}
+              onChange={(e) => setTypedInput(e.target.value)}
+              onKeyDown={(e) => { if (e.key === 'Enter') handleTextSend(); }}
+              aria-label="Type a message to Clara"
+              disabled={inSession}
+            />
+            {typedInput.trim() && !inSession && (
+              <button
+                type="button"
+                className="cv2-send cv2-send--premium tap-feedback"
+                onClick={handleTextSend}
+                aria-label="Send"
+              >
+                <StudioIcon name="send" size={15} />
+              </button>
+            )}
+          </div>
 
-        <div className="cv2-text-wrap">
-          <input
-            type="text"
-            className="cv2-text-field"
-            placeholder="Type to Clara…"
-            value={typedInput}
-            onChange={(e) => setTypedInput(e.target.value)}
-            onKeyDown={(e) => { if (e.key === 'Enter') handleTextSend(); }}
-            aria-label="Type a message to Clara"
-            disabled={inSession}
-          />
           <button
             type="button"
-            className="cv2-send tap-feedback"
-            onClick={handleTextSend}
-            aria-label="Send"
-            style={{ visibility: typedInput.trim() && !inSession ? 'visible' : 'hidden' }}
+            className={`cv2-mic cv2-mic--premium tap-feedback cv2-mic--${state}`}
+            onClick={handleMicTap}
+            aria-label={inSession ? 'End conversation' : 'Talk to Clara'}
           >
-            <StudioIcon name="send" size={16} />
+            <span className="cv2-mic__ring" />
+            <StudioIcon name={micIcon} size={26} />
           </button>
         </div>
 
-        <p className="cv2-mic-hint">{micHint}</p>
+        {inSession && (
+          <button
+            type="button"
+            className="cv2-end-session tap-feedback"
+            onClick={stopSession}
+          >
+            End conversation
+          </button>
+        )}
       </div>
     </div>
   );

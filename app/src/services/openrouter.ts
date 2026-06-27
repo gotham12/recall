@@ -2,10 +2,20 @@ import { OPENROUTER_API_KEY } from '../env';
 
 const OPENROUTER_BASE = 'https://openrouter.ai/api/v1';
 
-/** Fast, high-quality model for Clara conversations */
-const CLARA_MODEL_PRIMARY = 'anthropic/claude-3-haiku';
+/** Fast, accurate model for Clara and Recall AI */
+const CLARA_MODEL_PRIMARY = 'anthropic/claude-3-haiku-20240307';
 /** Fallback within OpenRouter */
 const CLARA_MODEL_FALLBACK = 'meta-llama/llama-3.3-70b-instruct';
+
+/** Reject if a promise takes longer than `ms` milliseconds. */
+function withTimeout<T>(p: Promise<T>, ms: number): Promise<T> {
+  return Promise.race([
+    p,
+    new Promise<T>((_, reject) =>
+      setTimeout(() => reject(new Error(`OpenRouter timed out after ${ms}ms`)), ms)
+    ),
+  ]);
+}
 
 interface Message {
   role: 'system' | 'user' | 'assistant';
@@ -26,7 +36,7 @@ async function openRouterChat(messages: Message[], opts: OpenRouterOptions = {})
   const max_tokens = opts.max_tokens ?? 320;
   const temperature = opts.temperature ?? 0.78;
 
-  const res = await fetch(`${OPENROUTER_BASE}/chat/completions`, {
+  const res = await withTimeout(fetch(`${OPENROUTER_BASE}/chat/completions`, {
     method: 'POST',
     headers: {
       Authorization: `Bearer ${key}`,
@@ -35,7 +45,7 @@ async function openRouterChat(messages: Message[], opts: OpenRouterOptions = {})
       'X-Title': 'Recall — Clara Companion',
     },
     body: JSON.stringify({ model, messages, max_tokens, temperature }),
-  });
+  }), 6000);
 
   if (!res.ok) {
     const err = await res.text().catch(() => '');
