@@ -11,6 +11,7 @@ export const LOGIN_HERO = {
   patientPin: `${base}login/patient-steps.jpg`,
   supervisorList: `${base}login/supervisor-care.jpg`,
   supervisorAuth: `${base}login/supervisor-together.jpg`,
+  margaretProfile: `${base}login/margaret-profile.jpg`,
 } as const;
 
 /** Familiar-face profile photos (remote — used in app, not login heroes) */

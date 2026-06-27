@@ -27,11 +27,8 @@ interface ChatMessage {
 
 const POST_SPEAK_PAUSE_MS = 400;
 const SUGGESTED_PROMPTS = [
-  'What should I ask at her next checkup?',
   'Explain her ACSE score today',
-  'Sundowning strategies for tonight',
-  'Review today\'s medications',
-  'When should I call the doctor?',
+  'What should I ask at her next checkup?',
 ];
 
 interface Props {

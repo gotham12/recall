@@ -6,6 +6,7 @@ import { db, type User } from '../db/db';
 import { seedIfEmpty } from '../db/seed';
 import { checkSupervisorAuth } from '../lib/auth';
 import { loadUserSession } from '../lib/session';
+import { LOGIN_HERO } from '../lib/assets';
 import { photoForContact } from '../lib/safetyContacts';
 import StudioIcon from './StudioIcon';
 import OnboardingWizard from './OnboardingWizard';
@@ -19,8 +20,36 @@ type LoginStep =
   | 'supervisor-list'
   | 'supervisor-auth';
 
+const STEP_HERO: Record<LoginStep, { src: string; alt: string; caption: string }> = {
+  welcome: {
+    src: LOGIN_HERO.welcome,
+    alt: 'Three generations sharing memories together',
+    caption: 'Memory · Medication · Moments',
+  },
+  'patient-list': {
+    src: LOGIN_HERO.patientList,
+    alt: 'Patient and caregiver watching the sunset',
+    caption: 'Your journey. You\'re not alone.',
+  },
+  'patient-pin': {
+    src: LOGIN_HERO.patientPin,
+    alt: 'Small meaningful steps on a garden path',
+    caption: 'Small steps. Meaningful days.',
+  },
+  'supervisor-list': {
+    src: LOGIN_HERO.supervisorList,
+    alt: 'Hands held in caring support',
+    caption: 'Care. Support. Together.',
+  },
+  'supervisor-auth': {
+    src: LOGIN_HERO.supervisorAuth,
+    alt: 'Caregiver at a desk with patient insights',
+    caption: 'You don\'t have to do it all alone.',
+  },
+};
+
 function patientPhoto(user: User): string | undefined {
-  return photoForContact(user.name) ?? user.familyPhotoUrl ?? undefined;
+  return user.familyPhotoUrl ?? photoForContact(user.name);
 }
 
 function initials(name: string): string {
@@ -41,6 +70,8 @@ export default function LoginScreen() {
   const containerRef = useRef<HTMLDivElement>(null);
   const cardRef = useRef<HTMLDivElement>(null);
   const stepRef = useRef<HTMLDivElement>(null);
+  const heroRef = useRef<HTMLDivElement>(null);
+  const heroImgRef = useRef<HTMLImageElement>(null);
 
   const patients = useLiveQuery(() => db.users.toArray(), []) ?? [];
 
@@ -54,10 +85,31 @@ export default function LoginScreen() {
     return 'supervisor-auth';
   }, [role, selectedPatient, supervisorPatient]);
 
+  const hero = STEP_HERO[step];
+
+  const profilePatient = useMemo(() => {
+    if (selectedPatient) return selectedPatient;
+    if (supervisorPatient) return supervisorPatient;
+    if (step === 'patient-list' || step === 'supervisor-list' || step === 'patient-pin' || step === 'supervisor-auth') {
+      return patients.find((p) => p.name === 'Margaret') ?? patients[0] ?? null;
+    }
+    return null;
+  }, [selectedPatient, supervisorPatient, step, patients]);
+
+  const profilePhotoUrl = profilePatient ? patientPhoto(profilePatient) : undefined;
+
+  const flowDots = useMemo(() => {
+    if (role === null) return ['welcome'] as const;
+    if (role === 'patient') return ['patient-list', 'patient-pin'] as const;
+    return ['supervisor-list', 'supervisor-auth'] as const;
+  }, [role]);
+
   useEffect(() => {
     void seedIfEmpty();
     if (!containerRef.current) return;
-    gsap.from(cardRef.current, { y: 24, opacity: 0, duration: 0.55, ease: 'power3.out' });
+    const tl = gsap.timeline();
+    tl.from(cardRef.current, { y: 24, opacity: 0, duration: 0.55, ease: 'power3.out' });
+    tl.from('.dash-login__hero-photo', { scale: 1.08, opacity: 0, duration: 0.6, ease: 'power2.out' }, 0.08);
   }, []);
 
   const animateStepIn = useCallback(() => {
@@ -72,9 +124,22 @@ export default function LoginScreen() {
     );
   }, []);
 
+  const animateHeroSwap = useCallback(() => {
+    if (!heroRef.current || !heroImgRef.current) return;
+    gsap.fromTo(heroRef.current,
+      { opacity: 0.5 },
+      { opacity: 1, duration: 0.4, ease: 'power2.out' }
+    );
+    gsap.fromTo(heroImgRef.current,
+      { scale: 1.06, opacity: 0 },
+      { scale: 1, opacity: 1, duration: 0.5, ease: 'power3.out' }
+    );
+  }, []);
+
   useEffect(() => {
+    animateHeroSwap();
     animateStepIn();
-  }, [step, animateStepIn]);
+  }, [step, animateHeroSwap, animateStepIn]);
 
   const pulseButton = (el: HTMLElement) => {
     gsap.fromTo(el, { scale: 0.96 }, { scale: 1, duration: 0.28, ease: 'back.out(2.5)' });
@@ -148,10 +213,42 @@ export default function LoginScreen() {
   return (
     <div ref={containerRef} className="dash-login">
       <div ref={cardRef} className="dash-login__card">
-        <div className="dash-login__brand">
-          <img src="/recall/logo.png" alt="Recall" className="dash-login__logo-img" />
-          <h1 className="dash-login__wordmark">Recall</h1>
-          <p className="dash-login__tagline">Memory · Medication · Moments</p>
+        <div ref={heroRef} className="dash-login__hero">
+          <div className="dash-login__hero-frame">
+            <img
+              ref={heroImgRef}
+              key={hero.src}
+              src={hero.src}
+              alt={hero.alt}
+              className="dash-login__hero-photo"
+              loading="eager"
+              decoding="async"
+            />
+            <div className="dash-login__hero-shade" />
+            {step === 'welcome' && (
+              <div className="dash-login__brand dash-login__brand--overlay">
+                <h1 className="dash-login__wordmark">Recall</h1>
+              </div>
+            )}
+            {profilePhotoUrl && step !== 'welcome' && (
+              <div className="dash-login__hero-profile">
+                <img
+                  src={profilePhotoUrl}
+                  alt={profilePatient?.name ?? 'Patient'}
+                  loading="eager"
+                />
+              </div>
+            )}
+            <p className="dash-login__hero-caption">{hero.caption}</p>
+          </div>
+          <div className="dash-login__step-dots" aria-hidden>
+            {flowDots.map((id) => (
+              <span
+                key={id}
+                className={`dash-login__dot${step === id ? ' dash-login__dot--active' : ''}`}
+              />
+            ))}
+          </div>
         </div>
 
         <div ref={stepRef} className="dash-login__step">
@@ -228,7 +325,7 @@ export default function LoginScreen() {
                 />
                 {error && <p className="dash-error">{error}</p>}
                 <p className="dash-login__demo-hint">
-                  Demo password: <strong>care2026</strong>
+                  Demo password: <strong>care</strong>
                 </p>
               </>
             )}

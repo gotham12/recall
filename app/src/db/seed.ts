@@ -1,11 +1,10 @@
 import { db } from './db';
-import { memoryPhotoUrl } from '../lib/memoryPhotos';
-import { FAMILY_PHOTOS } from '../lib/assets';
+import { FAMILY_PHOTOS, LOGIN_HERO } from '../lib/assets';
 import { DEFAULT_ROUTINES } from '../lib/defaultRoutines';
 import { DEMO_TYLENOL } from '../lib/medicationVision';
 import { useAppStore } from '../store/appStore';
 
-const MARGARET_HERO_PHOTO = memoryPhotoUrl('garden');
+const MARGARET_HERO_PHOTO = LOGIN_HERO.margaretProfile;
 const MARGARET_SUSAN_PHOTO = FAMILY_PHOTOS.susan;
 const MARGARET_ROBERT_PHOTO = FAMILY_PHOTOS.robert;
 const MARGARET_LILY_PHOTO = FAMILY_PHOTOS.lily;
@@ -447,8 +446,10 @@ async function seedExtendedData(): Promise<void> {
         emergencyNote: `${user.name} uses Recall for cognitive support. Contact ${user.caregiverName} first.`,
       });
     }
-    if (user.name === 'Margaret' && user.familyPhotoUrl?.includes('unsplash.com')) {
-      await db.users.update(user.id, { familyPhotoUrl: MARGARET_HERO_PHOTO });
+    if (user.name === 'Margaret' && user.id) {
+      if (!user.familyPhotoUrl || user.familyPhotoUrl.includes('unsplash.com')) {
+        await db.users.update(user.id, { familyPhotoUrl: MARGARET_HERO_PHOTO });
+      }
     }
     const hasFaces = (await db.familiarFaces.where('userId').equals(user.id).count()) > 0;
     if (!hasFaces && user.name === 'Margaret') {
