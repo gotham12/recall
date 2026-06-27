@@ -166,7 +166,7 @@ export const useAppStore = create<AppState>((set, get) => ({
     const threshold = settings.comfortThreshold;
     set({ comfortModeActive: true });
 
-    if (settings.notifyOnComfortMode) {
+    if (settings.notifyOnComfortMode && get().screen === 'patient') {
       get().addSupervisorAlert({
         message: `Comfort Mode activated at ${new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`,
         timestamp: new Date().toISOString(),
@@ -193,18 +193,10 @@ export const useAppStore = create<AppState>((set, get) => ({
     if (!get().comfortModeActive) return;
 
     stopSpeaking();
-    set({ comfortModeActive: false, acseScore: 70 });
     const user = get().user;
+    set({ comfortModeActive: false });
     if (user?.id) {
-      const at = Date.now();
-      db.acseScores.add({
-        userId: user.id,
-        score: 70,
-        timestamp: new Date().toISOString(),
-        reason: 'Comfort Mode completed',
-      }).catch(console.error);
-      publishSync(user.id, { type: 'comfort', active: false, at });
-      publishSync(user.id, { type: 'acse', score: 70, reason: 'Comfort Mode completed', at });
+      publishSync(user.id, { type: 'comfort', active: false, at: Date.now() });
     }
   },
 
@@ -220,9 +212,9 @@ export const useAppStore = create<AppState>((set, get) => ({
   },
 
   addSupervisorAlert: (alert) => {
-    const id = `${Date.now()}-${Math.random()}`;
+    const tempId = `${Date.now()}-${Math.random()}`;
     set((state) => ({
-      supervisorAlerts: [{ ...alert, id }, ...state.supervisorAlerts],
+      supervisorAlerts: [{ ...alert, id: tempId }, ...state.supervisorAlerts],
     }));
 
     const user = get().user;
@@ -240,18 +232,32 @@ export const useAppStore = create<AppState>((set, get) => ({
           timestamp: alert.timestamp,
           type: alert.type,
           dismissed: false,
+        }).then((dbId) => {
+          set((state) => ({
+            supervisorAlerts: state.supervisorAlerts.map((a) =>
+              a.id === tempId ? { ...a, id: String(dbId) } : a
+            ),
+          }));
         }).catch(console.error);
       }
     }
   },
 
   clearSupervisorAlert: (id) => {
+    const alert = get().supervisorAlerts.find((a) => a.id === id);
     set((state) => ({
       supervisorAlerts: state.supervisorAlerts.filter((a) => a.id !== id),
     }));
     const numericId = Number(id);
     if (!Number.isNaN(numericId)) {
       db.supervisorAlerts.update(numericId, { dismissed: true }).catch(console.error);
+    } else if (alert && get().user?.id) {
+      db.supervisorAlerts
+        .where('userId')
+        .equals(get().user!.id!)
+        .and((a) => a.message === alert.message && a.timestamp === alert.timestamp)
+        .modify({ dismissed: true })
+        .catch(console.error);
     }
   },
 

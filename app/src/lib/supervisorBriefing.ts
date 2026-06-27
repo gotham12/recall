@@ -126,7 +126,9 @@ export async function gatherSupervisorBriefingSnapshot(
     .filter((a) => new Date(a.timestamp).getTime() >= sinceMs && !a.dismissed)
     .map((a) => a.message);
 
-  const liveAlerts = store.supervisorAlerts.map((a) => a.message);
+  const liveAlerts = store.supervisorAlerts
+    .filter((a) => new Date(a.timestamp).getTime() >= sinceMs)
+    .map((a) => a.message);
   const alertsSinceCheckIn = [...new Set([...liveAlerts, ...dbAlerts])].slice(0, 6);
 
   const todayConfirmedLogs = medLogs.filter(

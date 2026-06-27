@@ -31,7 +31,7 @@ function demoEventTimes(now: Date): { past: (h: number, m?: number) => string; f
     };
   }
   return {
-    past: (h, m) => makeTime(now, Math.min(h, 11), m),
+    past: (h, m) => makeTime(now, h, m),
     future: (h, m) => {
       const target = h <= 12 ? hour + 1 : h;
       return makeTime(now, Math.max(target, hour + 1), m);

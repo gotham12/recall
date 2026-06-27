@@ -27,7 +27,7 @@ export async function buildRecallAIContext(
   const contextBlock = `[CAREGIVER BRIEFING DATA]
 ${briefingBlock}
 
-[PATIENT LIVE STATE — same data Margaret's companion Clara sees]
+[PATIENT LIVE STATE — same data ${snapshot.patientName}'s companion Clara sees]
 ${claraBlock}
 
 Use ONLY the facts above when discussing ${snapshot.patientName}. This is the complete patient-interface mirror — medications, routines, people, safety circle, vitals, events, and Clara activity. If something is not listed, say you don't have that information in Recall yet.`;

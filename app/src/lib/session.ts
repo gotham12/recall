@@ -1,6 +1,8 @@
 import { db, type User } from '../db/db';
 import { useAppStore } from '../store/appStore';
 
+import { stopSpeaking } from '../services/elevenlabs';
+
 export async function loadUserSession(user: User): Promise<void> {
   if (!user.id) return;
 
@@ -33,5 +35,6 @@ export async function loadUserSession(user: User): Promise<void> {
 }
 
 export function logout(): void {
+  stopSpeaking();
   useAppStore.getState().resetSession();
 }

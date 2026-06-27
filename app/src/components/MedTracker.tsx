@@ -189,10 +189,11 @@ export default function MedTracker() {
     const onCooldown = await checkCooldown(med.name);
     if (onCooldown) {
       recordMedicationReAttempt();
-      const log = await db.medicationLogs
+      const logs = await db.medicationLogs
         .where('userId').equals(user!.id!)
-        .and((l) => l.medicationName === med.name)
-        .last();
+        .and((l) => l.medicationName === med.name && l.confirmed !== false)
+        .sortBy('timestamp');
+      const log = logs.length > 0 ? logs[logs.length - 1] : undefined;
       const minsAgo = log
         ? Math.round((Date.now() - new Date(log.timestamp).getTime()) / 60000)
         : 0;

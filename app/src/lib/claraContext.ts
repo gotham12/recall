@@ -49,11 +49,39 @@ export async function buildClaraRichContext(
   acseScore = 100,
   comfortModeActive = false
 ): Promise<ClaraRichContext> {
+  if (!user?.id) {
+    return {
+      userName: 'Patient',
+      firstName: 'friend',
+      age: 0,
+      city: '',
+      caregiverName: '',
+      caregiverRelationship: '',
+      acseScore,
+      comfortModeActive,
+      timeStr: '',
+      dayStr: '',
+      completedToday: [],
+      upcomingToday: [],
+      pendingRoutines: [],
+      completedRoutines: [],
+      medications: [],
+      dueMedsNow: [],
+      familiarFaces: [],
+      familiarFacesDetail: [],
+      safetyCircle: [],
+      recentActivity: [],
+      routineEvents: [],
+      appleHealthConnected: false,
+      allEventsUpcoming: [],
+    };
+  }
+
   const now = new Date();
   const timeStr = now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
   const dayStr = now.toLocaleDateString([], { weekday: 'long', month: 'long', day: 'numeric' });
   const start = todayStart();
-  const userId = user?.id ?? 1;
+  const userId = user.id;
   const [events, routines, medLogs, sleepLogs, faces, emergencyContacts] = await Promise.all([
     db.events.where('userId').equals(userId).toArray(),
     db.routineTasks.where('userId').equals(userId).sortBy('sortOrder'),
@@ -75,21 +103,26 @@ export async function buildClaraRichContext(
     .slice(0, 5)
     .map((e) => `${e.title} at ${new Date(e.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`);
 
-  const todayMedNames = new Set(
-    medLogs
-      .filter((l) => new Date(l.timestamp) >= start && l.confirmed !== false)
-      .map((l) => l.medicationName.toLowerCase())
+  const todayConfirmedLogs = medLogs.filter(
+    (l) => new Date(l.timestamp) >= start && l.confirmed !== false
   );
 
-  const medications = (user?.medications ?? []).map((m) => ({
+  const medTakenToday = (medName: string) =>
+    todayConfirmedLogs.some((l) => {
+      const a = l.medicationName.toLowerCase();
+      const b = medName.toLowerCase();
+      return a.includes(b) || b.includes(a);
+    });
+
+  const medications = (user.medications ?? []).map((m) => ({
     name: m.name,
     dosage: m.dosage,
     schedule: m.schedule.join(', '),
-    takenToday: todayMedNames.has(m.name.toLowerCase()),
+    takenToday: medTakenToday(m.name),
   }));
 
-  const dueMedsNow = (user?.medications ?? [])
-    .filter((m) => isMedicationDueSoon(m.schedule) && !todayMedNames.has(m.name.toLowerCase()))
+  const dueMedsNow = (user.medications ?? [])
+    .filter((m) => isMedicationDueSoon(m.schedule) && !medTakenToday(m.name))
     .map((m) => `${m.name} (${m.dosage})`);
 
   const pendingRoutines = routines

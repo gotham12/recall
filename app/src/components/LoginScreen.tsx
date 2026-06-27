@@ -133,7 +133,6 @@ export default function LoginScreen() {
       onComplete: () => {
         action();
         gsap.set(node, { x: 32, opacity: 0 });
-        animateStepIn();
       },
     });
   };

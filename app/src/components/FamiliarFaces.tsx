@@ -33,7 +33,7 @@ export default function FamiliarFaces() {
       </div>
       <div className="familiar-faces__scroll">
         {faces.map((face) => {
-          const photo = photoForContact(face.name) ?? face.photoUrl ?? null;
+          const photo = face.photoUrl ?? photoForContact(face.name) ?? null;
           return (
             <button
               key={face.id}

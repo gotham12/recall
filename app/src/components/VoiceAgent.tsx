@@ -18,7 +18,6 @@ import {
 } from '../services/elevenlabs';
 import { addRoutineEvent, parseRoutineUtterance } from '../lib/routineUtils';
 import StudioIcon, { type IconName } from './StudioIcon';
-import ClaraFlowerPulse from './ClaraFlowerPulse';
 
 type VoiceState = 'idle' | 'listening' | 'thinking' | 'speaking';
 
@@ -66,6 +65,15 @@ export default function VoiceAgent() {
       stopListening();
     };
   }, [stopListening, firstName]);
+
+  useEffect(() => {
+    if (!user?.id || !comfortModeActive) return;
+    sessionActiveRef.current = false;
+    setInSession(false);
+    stopSpeaking();
+    stopListening();
+    setState('idle');
+  }, [comfortModeActive, user?.id, stopListening]);
 
   const stopSession = useCallback(() => {
     sessionActiveRef.current = false;

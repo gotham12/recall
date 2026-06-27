@@ -1099,7 +1099,7 @@ function Panel({ id, panelRef, onClose, user }: {
         <span className="app-panel-title">{PANEL_TITLES[id] ?? id}</span>
         <div style={{ width: 60 }} />
       </div>
-      <div className="app-panel-content">
+      <div className={`app-panel-content${id === 'voice' ? ' app-panel-content--clara' : ''}`}>
         {id === 'voice'    && (
           <div className="recall-ai-tab">
             <VoiceAgent />
@@ -1151,8 +1151,11 @@ export default function PatientView() {
 
   const handleTabChange = useCallback((t: PatientTab) => {
     if (t === tab) return;
+    setPanel(null);
     if (mainRef.current) {
-      gsap.from(mainRef.current, { opacity: 0, y: 12, duration: 0.3, ease: 'power2.out' });
+      gsap.killTweensOf(mainRef.current);
+      gsap.set(mainRef.current, { opacity: 1, y: 0 });
+      gsap.fromTo(mainRef.current, { opacity: 0, y: 12 }, { opacity: 1, y: 0, duration: 0.3, ease: 'power2.out', overwrite: 'auto' });
     }
     setTab(t);
     recordNavigation();
@@ -1237,7 +1240,7 @@ export default function PatientView() {
       </header>
 
       <main ref={mainRef} className={`app-main${tab === 'clara' ? ' app-main--recall-ai' : ''}`}>
-        {tab === 'today'   && <TodayTab events={events} medications={medications} acseScore={acseScore} onOpen={openPanel} onClara={() => handleTabChange('meds')} />}
+        {tab === 'today'   && <TodayTab events={events} medications={medications} acseScore={acseScore} onOpen={openPanel} onClara={() => handleTabChange('clara')} />}
         {tab === 'people'  && <PeopleTab />}
         {tab === 'meds'    && <MedsTab medications={medications} onOpen={openPanel} />}
         {tab === 'clara'   && (
@@ -1266,7 +1269,14 @@ export default function PatientView() {
 
       <SettingsSheet open={settingsOpen} onClose={() => setSettingsOpen(false)} />
       <MemoryPhotoRecap />
-      {demoMode && <GoldenPathDemo onNavigate={openPanel} onClose={() => setDemoMode(false)} />}
+      {demoMode && (
+        <GoldenPathDemo
+          onNavigate={(tab) => {
+            if (tab === 'voice') handleTabChange('clara');
+          }}
+          onClose={() => setDemoMode(false)}
+        />
+      )}
       {panel && <Panel id={panel} panelRef={panelRef} onClose={closePanel} user={user} />}
     </div>
   );

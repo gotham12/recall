@@ -8466,6 +8466,37 @@ html, body, #root {
   overflow-y: auto;
   -webkit-overflow-scrolling: touch;
   scrollbar-width: none;
+  padding-bottom: calc(env(safe-area-inset-bottom, 0px) + 90px);
+}
+.sup-patient-card__photo--initials {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(88, 86, 214, 0.12);
+  color: #5856D6;
+  font-size: 24px;
+  font-weight: 700;
+}
+.app-panel-content--clara {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-height: 0;
+  overflow: hidden;
+}
+.app-shell .cv2-room input:not([type=range]),
+.app-shell .cv2-text-field,
+.app-shell .cv2-text-wrap {
+  background: transparent !important;
+  background-color: transparent !important;
+  border: none !important;
+  box-shadow: none !important;
+}
+.app-shell .rai-room input:not([type=range]),
+.app-shell .rai-text-field,
+.app-shell .rai-text-wrap {
+  background: transparent !important;
+  background-color: transparent !important;
 }
 .meds-tab-wrap::-webkit-scrollbar { display: none; }
 

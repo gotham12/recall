@@ -9,6 +9,7 @@ import {
   formatBriefingContext,
   localSupervisorBriefing,
   validateBriefingAgainstSnapshot,
+  markSupervisorCheckIn,
 } from '../../lib/supervisorBriefing';
 import { recallAIChat, generateSupervisorBriefing } from '../../services/groq';
 import {
@@ -29,10 +30,13 @@ interface ChatMessage {
 
 const CONTEXT_REFRESH_MS = 20_000;
 const POST_SPEAK_PAUSE_MS = 400;
-const SUGGESTED_PROMPTS = [
-  'Explain her ACSE score today',
-  'What should I ask at her next checkup?',
-];
+
+function suggestedPrompts(patientFirst: string): string[] {
+  return [
+    `Explain ${patientFirst}'s ACSE score today`,
+    `What should I ask at ${patientFirst}'s next checkup?`,
+  ];
+}
 
 interface Props {
   user: User | null;
@@ -61,9 +65,11 @@ export default function RecallAIChat({ user }: Props) {
   const sessionActiveRef = useRef(false);
   const scrollRef = useRef<HTMLDivElement>(null);
   const initRef = useRef(false);
+  const userIdRef = useRef<number | undefined>(undefined);
 
   const caregiverName = user?.caregiverName ?? 'Caregiver';
   const patientFirst = user?.name?.split(' ')[0] ?? 'Margaret';
+  const preprompts = suggestedPrompts(patientFirst);
 
   const scrollToBottom = useCallback(() => {
     requestAnimationFrame(() => {
@@ -125,8 +131,17 @@ export default function RecallAIChat({ user }: Props) {
   }, [stopListening]);
 
   useEffect(() => {
-    if (!user?.id || initRef.current) return;
+    if (!user?.id) return;
+    if (userIdRef.current !== user.id) {
+      userIdRef.current = user.id;
+      initRef.current = false;
+      setMessages([]);
+      setContextReady(false);
+      historyRef.current = [];
+    }
+    if (initRef.current) return;
     initRef.current = true;
+    markSupervisorCheckIn(user.id);
 
     const boot = async () => {
       setState('thinking');
@@ -150,7 +165,7 @@ export default function RecallAIChat({ user }: Props) {
 
         unlockAudioPlayback();
         void speak(
-          `Hello ${caregiverName}. I've reviewed ${patientFirst}'s day. Ask me anything about her care.`,
+          `Hello ${caregiverName}. I've reviewed ${patientFirst}'s day. Ask me anything about ${patientFirst}'s care.`,
           { clara: true }
         ).catch(() => undefined);
       } catch (err) {
@@ -365,7 +380,7 @@ export default function RecallAIChat({ user }: Props) {
 
         {showPrompts && !inSession && contextReady && messages.length <= 2 && (
           <div className="rai-prompts">
-            {SUGGESTED_PROMPTS.map((p) => (
+            {preprompts.map((p) => (
               <button key={p} type="button" className="rai-prompt-chip tap-feedback" onClick={() => handlePrompt(p)}>
                 {p}
               </button>

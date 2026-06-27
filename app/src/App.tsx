@@ -38,7 +38,7 @@ export default function App() {
       {screen === 'login' && <LoginScreen />}
       {screen === 'patient' && <PatientView />}
       {screen === 'supervisor' && <SupervisorView />}
-      {comfortModeActive && user && <ComfortMode />}
+      {comfortModeActive && user && screen === 'patient' && <ComfortMode />}
     </>
   );
 }

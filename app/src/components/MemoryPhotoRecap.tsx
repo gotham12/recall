@@ -101,7 +101,7 @@ export default function MemoryPhotoRecap() {
       setIndex(0);
       setImgSrc('');
     }
-  }, [memoryRecapActive, user?.id, cancelRecap]);
+  }, [memoryRecapActive, user?.id, faces.length, cancelRecap]);
 
   useEffect(() => () => cancelRecap(), [cancelRecap]);
 

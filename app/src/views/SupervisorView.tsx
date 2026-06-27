@@ -26,7 +26,7 @@ import { isMedicationDueSoon } from '../lib/schedule';
 import { useAppStore } from '../store/appStore';
 import { logout } from '../lib/session';
 import SettingsSheet from '../components/SettingsSheet';
-import { db, type Event, type User } from '../db/db';
+import { db, type AcseScore, type Event, type User } from '../db/db';
 
 type SupTab = 'overview' | 'schedule' | 'acse' | 'insights' | 'recall-ai';
 
@@ -78,7 +78,11 @@ function SupHeader({ patientName, supervisorName, acseScore, onSettings, onSwitc
           <span className="app-header__score-dot" style={{ background: scoreColor }} />
           {acseScore}
         </div>
-        <button className="app-header__avatar tap-feedback" onClick={onSwitch} title="Switch user"
+        <button className="app-header__avatar tap-feedback" onClick={onSettings} title="Settings" aria-label="Settings"
+          style={{ background: 'rgba(60,60,67,0.12)', color: '#1C1C1E', fontSize: 0 }}>
+          <svg viewBox="0 0 24 24" fill="none" width="18" height="18"><circle cx="12" cy="12" r="3" stroke="currentColor" strokeWidth="1.8"/><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M4.93 19.07l1.41-1.41M17.66 6.34l1.41-1.41" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round"/></svg>
+        </button>
+        <button className="app-header__avatar tap-feedback" onClick={onSwitch} title="Switch user" aria-label="Switch user"
           style={{ background: '#5856D6' }}>
           {initials}
         </button>
@@ -134,17 +138,25 @@ function OverviewTab({ user, acseScore, onOpen, onComfortMode, comfortActive }: 
 }) {
   const scoreColor = acseScore >= 80 ? '#34C759' : acseScore >= 60 ? '#FF9500' : '#FF3B30';
   const now = new Date();
+  const todayStart = new Date(now);
+  todayStart.setHours(0, 0, 0, 0);
+  const todayMs = todayStart.getTime();
   const events = useLiveQuery<Event[]>(
     () => user?.id ? db.events.where('userId').equals(user.id).sortBy('timestamp') : Promise.resolve([]),
     [user?.id]
   ) ?? [];
-  const eventCount = events.length;
+  const eventCount = events.filter((e) => new Date(e.timestamp).getTime() >= todayMs).length;
   const medCount = useLiveQuery<number>(
-    () => user?.id ? db.medicationLogs.where('userId').equals(user.id).count() : Promise.resolve(0),
-    [user?.id]
+    () => user?.id
+      ? db.medicationLogs.where('userId').equals(user.id)
+          .and((l) => new Date(l.timestamp).getTime() >= todayMs)
+          .count()
+      : Promise.resolve(0),
+    [user?.id, todayMs]
   ) ?? 0;
   const medications = user?.medications ?? [];
   const dueMeds = medications.filter((m) => isMedicationDueSoon(m.schedule));
+  const patientFirst = user?.name?.split(' ')[0] ?? 'patient';
   const upcoming = events
     .filter((e) => !e.completed && new Date(e.timestamp) > now)
     .sort((a, b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime())
@@ -163,7 +175,7 @@ function OverviewTab({ user, acseScore, onOpen, onComfortMode, comfortActive }: 
           </div>
           <div className="comfort-mode-btn__body">
             <p className="comfort-mode-btn__title">{comfortActive ? 'End Comfort Mode' : 'Activate Comfort Mode'}</p>
-            <p className="comfort-mode-btn__sub">{comfortActive ? 'Tap to return to normal view' : 'Calming music, soothing visuals & gentle reminders'}</p>
+            <p className="comfort-mode-btn__sub">{comfortActive ? `Patient is in calming mode — tap to end remotely` : `Send calming music & grounding to ${patientFirst}'s device`}</p>
           </div>
           <svg viewBox="0 0 24 24" fill="none" width="20" height="20" style={{ flexShrink: 0, opacity: 0.8 }}>
             <path d="M9 18l6-6-6-6" stroke="white" strokeWidth="2.2" strokeLinecap="round"/>
@@ -238,8 +250,12 @@ function OverviewTab({ user, acseScore, onOpen, onComfortMode, comfortActive }: 
             <h2 className="app-section-title" style={{ margin: 0 }}>Patient Profile</h2>
           </div>
           <div className="app-card sup-patient-card" style={{ borderLeft: '3px solid #5856D6' }}>
-            {user.familyPhotoUrl && (
+            {user.familyPhotoUrl ? (
               <img src={user.familyPhotoUrl} alt={user.name} className="sup-patient-card__photo" />
+            ) : (
+              <div className="sup-patient-card__photo sup-patient-card__photo--initials" aria-hidden>
+                {user.name.charAt(0)}
+              </div>
             )}
             <div>
               <p style={{ fontWeight: 700, fontSize: 17, margin: '0 0 4px', color: '#1C1C1E' }}>{user.name}</p>
@@ -247,9 +263,22 @@ function OverviewTab({ user, acseScore, onOpen, onComfortMode, comfortActive }: 
               {user.homeAddress && <p style={{ fontSize: 13, color: 'rgba(60,60,67,0.50)', margin: '0 0 2px' }}>{user.homeAddress}</p>}
               {user.caregiverName && <p style={{ fontSize: 14, color: 'rgba(60,60,67,0.55)', margin: 0 }}>
                 Caregiver: {user.caregiverName} ({user.caregiverRelationship})
+                {user.caregiverPhone && (
+                  <> · <a href={`tel:${user.caregiverPhone}`} style={{ color: '#007AFF', textDecoration: 'none' }}>{user.caregiverPhone}</a></>
+                )}
               </p>}
             </div>
           </div>
+          {user.medications.length > 0 && (
+            <div className="app-card" style={{ marginTop: 10, padding: '12px 16px', borderLeft: '3px solid #EA6C00' }}>
+              <p style={{ fontSize: 12, fontWeight: 600, color: '#EA6C00', margin: '0 0 6px', textTransform: 'uppercase', letterSpacing: '0.04em' }}>Medications</p>
+              {user.medications.map((m) => (
+                <p key={m.name} style={{ fontSize: 14, color: '#1C1C1E', margin: '0 0 4px', lineHeight: 1.4 }}>
+                  {m.name} · {m.dosage} · {m.schedule.join(', ')}
+                </p>
+              ))}
+            </div>
+          )}
           {user.emergencyNote && (
             <div className="app-card" style={{ marginTop: 10, padding: '12px 16px', borderLeft: '3px solid #FF9500' }}>
               <p style={{ fontSize: 12, fontWeight: 600, color: '#FF9500', margin: '0 0 4px', textTransform: 'uppercase', letterSpacing: '0.04em' }}>Emergency note</p>
@@ -412,6 +441,16 @@ function ScheduleTab({ user, onOpen }: { user: User | null; onOpen: (id: string)
 function InsightsTab({ user, onOpen }: { user: User | null; onOpen: (id: string) => void }) {
   const { acseScore } = useAppStore();
   const scoreColor = acseScore >= 80 ? '#34C759' : acseScore >= 60 ? '#FF9500' : '#FF3B30';
+  const scores = useLiveQuery<AcseScore[]>(
+    () => user?.id ? db.acseScores.where('userId').equals(user.id).sortBy('timestamp') : Promise.resolve([]),
+    [user?.id]
+  ) ?? [];
+  const weekAgo = Date.now() - 7 * 24 * 60 * 60 * 1000;
+  const recent = scores.filter((s) => new Date(s.timestamp).getTime() >= weekAgo);
+  const oldest = recent[0]?.score ?? acseScore;
+  const trendDelta = acseScore - oldest;
+  const trendLabel = trendDelta > 0 ? `+${trendDelta}` : trendDelta < 0 ? `${trendDelta}` : '0';
+  const trendColor = trendDelta > 0 ? '#34C759' : trendDelta < 0 ? '#FF3B30' : 'rgba(60,60,67,0.55)';
 
   return (
     <div className="tab-scroll">
@@ -455,7 +494,7 @@ function InsightsTab({ user, onOpen }: { user: User | null; onOpen: (id: string)
           {[
             { label: 'Current', value: acseScore, color: scoreColor, bg: `${scoreColor}14` },
             { label: 'Status', value: acseScore >= 80 ? 'Stable' : acseScore >= 60 ? 'Mod.' : 'Critical', color: scoreColor, bg: `${scoreColor}14` },
-            { label: 'Trend', value: '+2', color: '#34C759', bg: 'rgba(52,199,89,0.10)' },
+            { label: 'Trend', value: trendLabel, color: trendColor, bg: trendDelta > 0 ? 'rgba(52,199,89,0.10)' : trendDelta < 0 ? 'rgba(255,59,48,0.10)' : 'rgba(60,60,67,0.08)' },
           ].map(m => (
             <div key={m.label} style={{ background: m.bg, borderRadius: 14, padding: '12px 10px', textAlign: 'center', border: `1px solid ${m.color}22` }}>
               <p style={{ fontSize: 22, fontWeight: 700, color: m.color, margin: 0 }}>{m.value}</p>
@@ -525,8 +564,11 @@ export default function SupervisorView() {
 
   const handleTabChange = (t: SupTab) => {
     if (t === tab) return;
+    setPanel(null);
     if (mainRef.current) {
-      gsap.fromTo(mainRef.current, { opacity: 0.5, y: 8 }, { opacity: 1, y: 0, duration: 0.28, ease: 'power2.out' });
+      gsap.killTweensOf(mainRef.current);
+      gsap.set(mainRef.current, { opacity: 1, y: 0 });
+      gsap.fromTo(mainRef.current, { opacity: 0.5, y: 8 }, { opacity: 1, y: 0, duration: 0.28, ease: 'power2.out', overwrite: 'auto' });
     }
     setTab(t);
   };
