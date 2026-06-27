@@ -244,7 +244,7 @@ export default function RecallAIChat({ user }: Props) {
     setState('speaking');
     try {
       unlockAudioPlayback();
-      await speak(voiceSummary(response), { advisor: true });
+      await speak(voiceSummary(response), { clara: true });
     } catch (err) {
       console.error('[Recall AI TTS]', err);
     } finally {
