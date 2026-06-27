@@ -160,6 +160,7 @@ export const useAppStore = create<AppState>((set, get) => ({
   activateComfortMode: () => {
     if (get().comfortModeActive) return;
 
+    get().dismissMemoryRecap();
     const user = get().user;
     const settings = loadCareSettings(user?.id);
     const threshold = settings.comfortThreshold;

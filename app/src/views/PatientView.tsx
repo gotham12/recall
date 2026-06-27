@@ -10,6 +10,7 @@ import { useAppStore } from '../store/appStore';
 import { useACSE } from '../hooks/useACSE';
 import { db, type Event, type Medication, type User } from '../db/db';
 import { isMedicationDueSoon } from '../lib/schedule';
+import { logout } from '../lib/session';
 import VoiceAgent from '../components/VoiceAgent';
 import MedTracker from '../components/MedTracker';
 import ACSEDashboard from '../components/ACSEDashboard';
@@ -22,10 +23,11 @@ import MemoryPhotoRecap from '../components/MemoryPhotoRecap';
 import RoutineChecklist from '../components/RoutineChecklist';
 import GameHub from '../components/games/GameHub';
 import GoldenPathDemo from '../components/GoldenPathDemo';
+import StudioIcon from '../components/StudioIcon';
 
 gsap.registerPlugin(ScrollTrigger);
 
-type PatientTab = 'today' | 'meds' | 'clara' | 'routine';
+type PatientTab = 'today' | 'people' | 'meds' | 'clara' | 'routine';
 
 const PANEL_TITLES: Record<string, string> = {
   voice: 'Clara',
@@ -318,6 +320,14 @@ function IcoClara() {
 }
 function IcoRoutine() {
   return <svg viewBox="0 0 24 24" fill="none" width="26" height="26"><path d="M5 12l4 4 10-9" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round"/></svg>;
+}
+function IcoPeople() {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" width="26" height="26">
+      <circle cx="12" cy="8" r="3.5" stroke="currentColor" strokeWidth="1.7"/>
+      <path d="M5 20v-1.2a7 7 0 0 1 14 0V20" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round"/>
+    </svg>
+  );
 }
 function IcoWatch({ size = 16 }: { size?: number }) {
   return (
@@ -735,13 +745,12 @@ function TodayTab({ events, medications, acseScore, onOpen, onClara }: {
   useEffect(() => {
     if (!containerRef.current) return;
     const sections = containerRef.current.querySelectorAll<HTMLElement>('.app-section');
-    gsap.set(sections, { opacity: 0, y: 24 });
-    ScrollTrigger.batch(sections, {
-      scroller: containerRef.current,
-      onEnter: els => gsap.to(els, { opacity: 1, y: 0, duration: 0.5, stagger: 0.07, ease: 'power2.out', overwrite: 'auto' }),
-      start: 'top 95%',
-    });
-    return () => ScrollTrigger.getAll().forEach(t => t.kill());
+    gsap.fromTo(
+      sections,
+      { opacity: 0, y: 20 },
+      { opacity: 1, y: 0, duration: 0.45, stagger: 0.06, ease: 'power2.out', overwrite: 'auto' }
+    );
+    return () => { gsap.killTweensOf(sections); };
   }, []);
 
   const openAppleHealth = () => window.open('x-apple-health://', '_blank', 'noopener,noreferrer');
@@ -859,28 +868,31 @@ function TodayTab({ events, medications, acseScore, onOpen, onClara }: {
         </div>
       </section>
 
-      {/* People quick access */}
-      <section className="app-section">
-        <h2 className="app-section-title">People</h2>
-        <div className="app-card-group">
-          <div className="app-card-nav-row" onClick={() => onOpen('faces')}>
-            <span className="nav-row-icon" style={{ background: '#E5F6FB' }}><IcoUsers color="#0891B2" size={20}/></span>
-            <div className="nav-row-body">
-              <span className="nav-row-label">Familiar Faces</span>
-              <span className="nav-row-sub">Friends and family</span>
-            </div>
-            <Chevron />
-          </div>
-          <div className="app-card-nav-row" onClick={() => onOpen('safety')}>
-            <span className="nav-row-icon" style={{ background: '#FFEBEA' }}><IcoShield color="#DC2626" size={20}/></span>
-            <div className="nav-row-body">
-              <span className="nav-row-label">Safety Circle</span>
-              <span className="nav-row-sub">Emergency contacts & SOS</span>
-            </div>
-            <Chevron />
-          </div>
-        </div>
-      </section>
+      {/* People quick access — moved to People tab */}
+      <div style={{ height: 32 }} />
+    </div>
+  );
+}
+
+// ── People tab ────────────────────────────────────────────────────────────
+function PeopleTab() {
+  const containerRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!containerRef.current) return;
+    const blocks = containerRef.current.querySelectorAll<HTMLElement>('.people-tab__block');
+    gsap.fromTo(blocks, { opacity: 0, y: 20 }, { opacity: 1, y: 0, duration: 0.45, stagger: 0.12, ease: 'power2.out' });
+  }, []);
+
+  return (
+    <div ref={containerRef} className="tab-scroll people-tab">
+      <p className="people-tab__intro">The people who care for you — tap a face to hear a memory, or call someone in your safety circle.</p>
+      <div className="people-tab__block">
+        <FamiliarFaces />
+      </div>
+      <div className="people-tab__block">
+        <SafetyCircle />
+      </div>
       <div style={{ height: 32 }} />
     </div>
   );
@@ -969,27 +981,6 @@ function CareTab({ onOpen }: { onOpen: (id: string) => void }) {
             <div className="nav-row-body">
               <span className="nav-row-label">Memory Dashboard</span>
               <span className="nav-row-sub">Cognitive score & recap</span>
-            </div>
-            <Chevron />
-          </div>
-        </div>
-      </section>
-      <section className="app-section">
-        <h2 className="app-section-title">People</h2>
-        <div className="app-card-group">
-          <div className="app-card-nav-row" onClick={() => onOpen('faces')}>
-            <span className="nav-row-icon" style={{ background: '#E5F6FB' }}><IcoUsers color="#0891B2" size={20}/></span>
-            <div className="nav-row-body">
-              <span className="nav-row-label">Familiar Faces</span>
-              <span className="nav-row-sub">Friends and family</span>
-            </div>
-            <Chevron />
-          </div>
-          <div className="app-card-nav-row" onClick={() => onOpen('safety')}>
-            <span className="nav-row-icon" style={{ background: '#FFEBEA' }}><IcoShield color="#DC2626" size={20}/></span>
-            <div className="nav-row-body">
-              <span className="nav-row-label">Safety Circle</span>
-              <span className="nav-row-sub">Emergency contacts & SOS</span>
             </div>
             <Chevron />
           </div>
@@ -1109,7 +1100,11 @@ function Panel({ id, panelRef, onClose, user }: {
         <div style={{ width: 60 }} />
       </div>
       <div className="app-panel-content">
-        {id === 'voice'    && <VoiceAgent />}
+        {id === 'voice'    && (
+          <div className="recall-ai-tab">
+            <VoiceAgent />
+          </div>
+        )}
         {id === 'meds'     && <MedTracker />}
         {id === 'games'    && <GameHub />}
         {id === 'watch'    && <WatchDetailPanel />}
@@ -1138,9 +1133,9 @@ export default function PatientView() {
   const [settingsOpen, setSettingsOpen] = useState(false);
   const { user, acseScore, demoMode, setDemoMode } = useAppStore();
   const { recordNavigation } = useACSE();
-  const setScreen = useAppStore(s => s.setScreen);
   const panelRef = useRef<HTMLDivElement>(null);
   const mainRef = useRef<HTMLElement>(null);
+  const panelCloseGen = useRef(0);
 
   const events = useLiveQuery<Event[]>(
     () => user?.id ? db.events.where('userId').equals(user.id).sortBy('timestamp') : Promise.resolve([]),
@@ -1156,29 +1151,45 @@ export default function PatientView() {
 
   const handleTabChange = useCallback((t: PatientTab) => {
     if (t === tab) return;
-    if (mainRef.current) gsap.fromTo(mainRef.current, { opacity: 0, y: 12 }, { opacity: 1, y: 0, duration: 0.3, ease: 'power2.out' });
+    if (mainRef.current) {
+      gsap.from(mainRef.current, { opacity: 0, y: 12, duration: 0.3, ease: 'power2.out' });
+    }
     setTab(t);
     recordNavigation();
   }, [tab, recordNavigation]);
 
-  const openPanel = (id: string) => { recordNavigation(); setPanel(id); };
-  const closePanel = () => {
+  const openPanel = useCallback((id: string) => {
+    panelCloseGen.current += 1;
+    if (panelRef.current) gsap.killTweensOf(panelRef.current);
+    recordNavigation();
+    setPanel(id);
+  }, [recordNavigation]);
+
+  const closePanel = useCallback(() => {
+    const gen = ++panelCloseGen.current;
     if (panelRef.current) {
-      gsap.to(panelRef.current, { x: '100%', opacity: 0.7, duration: 0.28, ease: 'power2.in', onComplete: () => setPanel(null) });
-    } else setPanel(null);
-  };
+      gsap.killTweensOf(panelRef.current);
+      gsap.to(panelRef.current, {
+        x: '100%',
+        opacity: 0.7,
+        duration: 0.28,
+        ease: 'power2.in',
+        onComplete: () => {
+          if (panelCloseGen.current === gen) {
+            setPanel(null);
+            if (panelRef.current) gsap.set(panelRef.current, { clearProps: 'transform,opacity' });
+            ScrollTrigger.refresh();
+          }
+        },
+      });
+    } else {
+      setPanel(null);
+    }
+  }, []);
 
   const hour = new Date().getHours();
   const greeting = hour < 12 ? 'Good morning' : hour < 17 ? 'Good afternoon' : 'Good evening';
   const dateStr = new Date().toLocaleDateString([], { weekday: 'long', month: 'long', day: 'numeric' });
-
-  if (panel) return (
-    <>
-      <Panel id={panel} panelRef={panelRef} onClose={closePanel} user={user} />
-      <SettingsSheet open={settingsOpen} onClose={() => setSettingsOpen(false)} />
-      <MemoryPhotoRecap />
-    </>
-  );
 
   return (
     <div className="app-shell">
@@ -1190,7 +1201,10 @@ export default function PatientView() {
                 <span className="app-header__score-dot" style={{ background: acseScore >= 80 ? '#34C759' : acseScore >= 60 ? '#FF9500' : '#FF3B30' }} />
                 {acseScore}
               </div>
-              <button className="app-header__avatar tap-feedback" onClick={() => setScreen('login')} title="Switch user">
+              <button className="app-header__avatar tap-feedback" onClick={() => setSettingsOpen(true)} title="Settings" aria-label="Settings" style={{ background: 'rgba(60,60,67,0.12)', color: '#1C1C1E', fontSize: 0 }}>
+                <StudioIcon name="settings" size={18} />
+              </button>
+              <button className="app-header__avatar tap-feedback" onClick={logout} title="Switch user">
                 {firstName.charAt(0).toUpperCase()}
               </button>
             </div>
@@ -1211,7 +1225,10 @@ export default function PatientView() {
                 <span className="app-header__score-dot" style={{ background: acseScore >= 80 ? '#34C759' : acseScore >= 60 ? '#FF9500' : '#FF3B30' }} />
                 {acseScore}
               </div>
-              <button className="app-header__avatar tap-feedback" onClick={() => setScreen('login')} title="Switch user">
+              <button className="app-header__avatar tap-feedback" onClick={() => setSettingsOpen(true)} title="Settings" aria-label="Settings" style={{ background: 'rgba(60,60,67,0.12)', color: '#1C1C1E', fontSize: 0 }}>
+                <StudioIcon name="settings" size={18} />
+              </button>
+              <button className="app-header__avatar tap-feedback" onClick={logout} title="Switch user">
                 {firstName.charAt(0).toUpperCase()}
               </button>
             </div>
@@ -1219,16 +1236,22 @@ export default function PatientView() {
         )}
       </header>
 
-      <main ref={mainRef} className="app-main">
+      <main ref={mainRef} className={`app-main${tab === 'clara' ? ' app-main--recall-ai' : ''}`}>
         {tab === 'today'   && <TodayTab events={events} medications={medications} acseScore={acseScore} onOpen={openPanel} onClara={() => handleTabChange('meds')} />}
+        {tab === 'people'  && <PeopleTab />}
         {tab === 'meds'    && <MedsTab medications={medications} onOpen={openPanel} />}
-        {tab === 'clara'   && <VoiceAgent />}
+        {tab === 'clara'   && (
+          <div className="recall-ai-tab">
+            <VoiceAgent />
+          </div>
+        )}
         {tab === 'routine' && <div className="tab-scroll"><RoutineChecklist /></div>}
       </main>
 
-      <nav className="app-tab-bar">
+      <nav className="app-tab-bar app-tab-bar--five">
         {([
           { id: 'today',   label: 'Today',   icon: <IcoToday /> },
+          { id: 'people',  label: 'People',  icon: <IcoPeople /> },
           { id: 'meds',    label: 'Meds',    icon: <IcoMeds /> },
           { id: 'clara',   label: 'Clara',   icon: <IcoClara /> },
           { id: 'routine', label: 'Routine', icon: <IcoRoutine /> },
@@ -1244,6 +1267,7 @@ export default function PatientView() {
       <SettingsSheet open={settingsOpen} onClose={() => setSettingsOpen(false)} />
       <MemoryPhotoRecap />
       {demoMode && <GoldenPathDemo onNavigate={openPanel} onClose={() => setDemoMode(false)} />}
+      {panel && <Panel id={panel} panelRef={panelRef} onClose={closePanel} user={user} />}
     </div>
   );
 }

@@ -36,13 +36,9 @@ export default function App() {
     <>
       {!online && <OfflineBanner />}
       {screen === 'login' && <LoginScreen />}
-      {screen === 'patient' && (
-        <>
-          <PatientView />
-          {comfortModeActive && user && <ComfortMode />}
-        </>
-      )}
+      {screen === 'patient' && <PatientView />}
       {screen === 'supervisor' && <SupervisorView />}
+      {comfortModeActive && user && <ComfortMode />}
     </>
   );
 }

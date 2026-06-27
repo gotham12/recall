@@ -82,9 +82,12 @@ export default function MemoryPhotoRecap() {
     const album = buildMemorySlides(user, facesRef.current);
     slidesRef.current = album;
     setSlides(album);
-    if (album.length === 0) return;
+    if (album.length === 0) {
+      dismissMemoryRecap();
+      return;
+    }
     void runRecapLoop(session, 0);
-  }, [user, cancelRecap, runRecapLoop]);
+  }, [user, cancelRecap, runRecapLoop, dismissMemoryRecap]);
 
   const startRecapRef = useRef(startRecap);
   startRecapRef.current = startRecap;

@@ -20,6 +20,7 @@ import MedicationAdherence from '../components/supervisor/MedicationAdherence';
 import WeeklyInsights from '../components/supervisor/WeeklyInsights';
 import RecallAIChat from '../components/supervisor/RecallAIChat';
 import { useAppStore } from '../store/appStore';
+import { logout } from '../lib/session';
 import SettingsSheet from '../components/SettingsSheet';
 import { db, type Event, type User } from '../db/db';
 
@@ -141,7 +142,7 @@ function OverviewTab({ user, acseScore, onOpen, onComfortMode, comfortActive }: 
     <div className="tab-scroll">
       {/* Comfort Mode CTA */}
       <section className="app-section">
-        <button className="comfort-mode-btn tap-feedback" onClick={onComfortMode} disabled={comfortActive}>
+        <button className="comfort-mode-btn tap-feedback" onClick={onComfortMode}>
           <div className="comfort-mode-btn__icon">
             <svg viewBox="0 0 24 24" fill="none" width="26" height="26">
               <path d="M12 2C8.5 2 5.5 4 4 7c-.5 1-.5 2-.5 3 0 5 4 9 8.5 12 4.5-3 8.5-7 8.5-12 0-1-.1-2-.5-3C18.5 4 15.5 2 12 2z" fill="rgba(255,255,255,0.25)" stroke="white" strokeWidth="1.8"/>
@@ -149,8 +150,8 @@ function OverviewTab({ user, acseScore, onOpen, onComfortMode, comfortActive }: 
             </svg>
           </div>
           <div className="comfort-mode-btn__body">
-            <p className="comfort-mode-btn__title">{comfortActive ? 'Comfort Mode Active' : 'Activate Comfort Mode'}</p>
-            <p className="comfort-mode-btn__sub">Calming music, soothing visuals & gentle reminders</p>
+            <p className="comfort-mode-btn__title">{comfortActive ? 'End Comfort Mode' : 'Activate Comfort Mode'}</p>
+            <p className="comfort-mode-btn__sub">{comfortActive ? 'Tap to return to normal view' : 'Calming music, soothing visuals & gentle reminders'}</p>
           </div>
           <svg viewBox="0 0 24 24" fill="none" width="20" height="20" style={{ flexShrink: 0, opacity: 0.8 }}>
             <path d="M9 18l6-6-6-6" stroke="white" strokeWidth="2.2" strokeLinecap="round"/>
@@ -408,10 +409,10 @@ export default function SupervisorView() {
   const [tab, setTab] = useState<SupTab>('overview');
   const [panel, setPanel] = useState<string | null>(null);
   const [settingsOpen, setSettingsOpen] = useState(false);
-  const { user, acseScore, supervisorAlerts, clearSupervisorAlert, activateComfortMode, comfortModeActive } = useAppStore();
-  const setScreen = useAppStore(s => s.setScreen);
+  const { user, acseScore, supervisorAlerts, clearSupervisorAlert, activateComfortMode, deactivateComfortMode, comfortModeActive } = useAppStore();
   const panelRef = useRef<HTMLDivElement>(null);
   const mainRef = useRef<HTMLElement>(null);
+  const panelCloseGen = useRef(0);
 
   const firstName = user?.name?.split(' ')[0] ?? 'Patient';
 
@@ -431,16 +432,70 @@ export default function SupervisorView() {
     setTab(t);
   };
 
-  const openPanel = (id: string) => setPanel(id);
-  const closePanel = () => {
-    if (panelRef.current) {
-      gsap.to(panelRef.current, { x: '100%', opacity: 0.7, duration: 0.26, ease: 'power2.in', onComplete: () => setPanel(null) });
-    } else setPanel(null);
+  const openPanel = (id: string) => {
+    panelCloseGen.current += 1;
+    if (panelRef.current) gsap.killTweensOf(panelRef.current);
+    setPanel(id);
   };
 
-  if (panel) {
-    return (
-      <>
+  const closePanel = () => {
+    const gen = ++panelCloseGen.current;
+    if (panelRef.current) {
+      gsap.killTweensOf(panelRef.current);
+      gsap.to(panelRef.current, {
+        x: '100%',
+        opacity: 0.7,
+        duration: 0.26,
+        ease: 'power2.in',
+        onComplete: () => {
+          if (panelCloseGen.current === gen) {
+            setPanel(null);
+            if (panelRef.current) gsap.set(panelRef.current, { clearProps: 'transform,opacity' });
+          }
+        },
+      });
+    } else {
+      setPanel(null);
+    }
+  };
+
+  const toggleComfortMode = () => {
+    if (comfortModeActive) deactivateComfortMode();
+    else activateComfortMode();
+  };
+
+  return (
+    <div className="app-shell">
+      <SupHeader
+        patientName={firstName}
+        supervisorName={user?.caregiverName ?? ''}
+        acseScore={acseScore}
+        onSettings={() => setSettingsOpen(true)}
+        onSwitch={logout}
+      />
+
+      {supervisorAlerts.length > 0 && (
+        <div className="alert-banner">
+          <StudioIcon name="alert" size={18} />
+          <span style={{ flex: 1, fontSize: 14 }}>{supervisorAlerts[0].message}</span>
+          <button onClick={() => clearSupervisorAlert(supervisorAlerts[0].id)}
+            className="studio-icon-btn" aria-label="Dismiss">
+            <StudioIcon name="close" size={14} />
+          </button>
+        </div>
+      )}
+
+      <main ref={mainRef} className={`app-main${tab === 'recall-ai' ? ' app-main--recall-ai' : ''}`}>
+        {tab === 'overview'  && <OverviewTab user={user} acseScore={acseScore} onOpen={openPanel} onComfortMode={toggleComfortMode} comfortActive={comfortModeActive} />}
+        {tab === 'recall-ai'   && <RecallAITab user={user} />}
+        {tab === 'schedule'  && <ScheduleTab user={user} onOpen={openPanel} />}
+        {tab === 'acse'      && <ACSETab user={user} />}
+        {tab === 'insights'  && <InsightsTab user={user} onOpen={openPanel} />}
+      </main>
+
+      <SupTabBar active={tab} onChange={handleTabChange} />
+      <SettingsSheet open={settingsOpen} onClose={() => setSettingsOpen(false)} />
+      {panel && (
         <div ref={panelRef} className="app-panel">
           <div className="app-panel-header">
             <button className="app-back-btn" onClick={closePanel}>
@@ -460,42 +515,7 @@ export default function SupervisorView() {
             {panel === 'journal'     && <div className="panel-scroll-inner"><CareJournal /></div>}
           </div>
         </div>
-        <SettingsSheet open={settingsOpen} onClose={() => setSettingsOpen(false)} />
-      </>
-    );
-  }
-
-  return (
-    <div className="app-shell">
-      <SupHeader
-        patientName={firstName}
-        supervisorName={user?.caregiverName ?? ''}
-        acseScore={acseScore}
-        onSettings={() => setSettingsOpen(true)}
-        onSwitch={() => setScreen('login')}
-      />
-
-      {supervisorAlerts.length > 0 && (
-        <div className="alert-banner">
-          <StudioIcon name="alert" size={18} />
-          <span style={{ flex: 1, fontSize: 14 }}>{supervisorAlerts[0].message}</span>
-          <button onClick={() => clearSupervisorAlert(supervisorAlerts[0].id)}
-            className="studio-icon-btn" aria-label="Dismiss">
-            <StudioIcon name="close" size={14} />
-          </button>
-        </div>
       )}
-
-      <main ref={mainRef} className={`app-main${tab === 'recall-ai' ? ' app-main--recall-ai' : ''}`}>
-        {tab === 'overview'  && <OverviewTab user={user} acseScore={acseScore} onOpen={openPanel} onComfortMode={activateComfortMode} comfortActive={comfortModeActive} />}
-        {tab === 'recall-ai'   && <RecallAITab user={user} />}
-        {tab === 'schedule'  && <ScheduleTab user={user} onOpen={openPanel} />}
-        {tab === 'acse'      && <ACSETab user={user} />}
-        {tab === 'insights'  && <InsightsTab user={user} onOpen={openPanel} />}
-      </main>
-
-      <SupTabBar active={tab} onChange={handleTabChange} />
-      <SettingsSheet open={settingsOpen} onClose={() => setSettingsOpen(false)} />
     </div>
   );
 }
