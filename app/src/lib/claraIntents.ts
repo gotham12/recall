@@ -139,11 +139,11 @@ export function detectClaraIntent(text: string): ClaraIntentResult {
   }
 
   if (SCHEDULE_PATTERNS.some((p) => p.test(t))) {
-    return { intent: 'schedule', cascade: 'none', tailoredFirst: false };
+    return { intent: 'schedule', cascade: 'none', tailoredFirst: true };
   }
 
   if (MED_PATTERNS.some((p) => p.test(t))) {
-    return { intent: 'medication', cascade: 'none', tailoredFirst: false };
+    return { intent: 'medication', cascade: 'none', tailoredFirst: true };
   }
 
   if (DISORIENTATION_PATTERNS.some((p) => p.test(t))) {
@@ -163,7 +163,7 @@ export function detectClaraIntent(text: string): ClaraIntentResult {
   }
 
   if (GREETING_PATTERNS.some((p) => p.test(t))) {
-    return { intent: 'greeting', cascade: 'none', tailoredFirst: false };
+    return { intent: 'greeting', cascade: 'none', tailoredFirst: true };
   }
 
   if (THANKS_PATTERNS.some((p) => p.test(t))) {

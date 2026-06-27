@@ -33,36 +33,38 @@ async function groqChat(messages: Message[], opts: GroqOptions = {}): Promise<st
 
   const payload = { model, messages, max_tokens, temperature };
 
+  // Direct Groq first when key is available — faster than proxy waterfall
+  if (GROQ_API_KEY?.trim()) {
+    try {
+      const res = await fetch(`${GROQ_BASE}/chat/completions`, {
+        method: 'POST',
+        headers: {
+          Authorization: `Bearer ${GROQ_API_KEY}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(payload),
+      });
+      if (res.ok) {
+        const data = await res.json();
+        const text = data.choices?.[0]?.message?.content?.trim() ?? '';
+        if (text) return text;
+      }
+    } catch (err) {
+      console.warn('[Clara] Direct Groq failed, trying proxy:', err);
+    }
+  }
+
   if (usesApiProxy()) {
     try {
       const data = await proxyPost<{ content: string }>('/api/groq/chat', payload);
       const text = data.content?.trim();
       if (text) return text;
-      throw new Error('Empty response from Groq proxy');
     } catch (err) {
-      console.warn('Groq proxy failed, trying direct API:', err);
-      if (!GROQ_API_KEY?.trim()) throw err;
+      console.warn('Groq proxy failed:', err);
     }
   }
 
-  const res = await fetch(`${GROQ_BASE}/chat/completions`, {
-    method: 'POST',
-    headers: {
-      Authorization: `Bearer ${GROQ_API_KEY}`,
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify(payload),
-  });
-
-  if (!res.ok) {
-    const err = await res.text();
-    throw new Error(`Groq error ${res.status}: ${err}`);
-  }
-
-  const data = await res.json();
-  const text = data.choices?.[0]?.message?.content?.trim() ?? '';
-  if (!text) throw new Error('Empty Groq response');
-  return text;
+  throw new Error('Groq not configured or all paths failed');
 }
 
 async function groqChatWithFallback(messages: Message[]): Promise<string> {
@@ -160,28 +162,28 @@ export async function claraChat(
     { role: 'user', content: userMessage },
   ];
 
-  // Try OpenRouter first (Claude Haiku — best quality, fast)
+  // Groq 70B first (fast) — OpenRouter Haiku as quality fallback
+  try {
+    const raw = await groqChatWithFallback(messages);
+    return { reply: sanitizeClaraReply(raw, firstName), fromLlm: true };
+  } catch (groqErr) {
+    console.warn('[Clara] Groq failed, trying OpenRouter:', groqErr);
+  }
+
   try {
     const raw = await openRouterClaraChat(messages);
     return { reply: sanitizeClaraReply(raw, firstName), fromLlm: true };
   } catch (openRouterErr) {
-    console.warn('[Clara] OpenRouter failed, trying Groq:', openRouterErr);
+    console.warn('[Clara] OpenRouter failed, using local reply:', openRouterErr);
   }
 
-  // Fall back to Groq (Llama 3.3 70B)
-  try {
-    const raw = await groqChatWithFallback(messages);
-    return { reply: sanitizeClaraReply(raw, firstName), fromLlm: true };
-  } catch (err) {
-    console.warn('[Clara] All LLMs unavailable, using local context reply:', err);
-    const chatHistory = history
-      .filter((m): m is Message & { role: 'user' | 'assistant' } => m.role === 'user' || m.role === 'assistant')
-      .map((m) => ({ role: m.role, content: m.content }));
-    return {
-      reply: localClaraReply(userMessage, ctx, chatHistory),
-      fromLlm: false,
-    };
-  }
+  const chatHistory = history
+    .filter((m): m is Message & { role: 'user' | 'assistant' } => m.role === 'user' || m.role === 'assistant')
+    .map((m) => ({ role: m.role, content: m.content }));
+  return {
+    reply: localClaraReply(userMessage, ctx, chatHistory),
+    fromLlm: false,
+  };
 }
 
 function sanitizeClaraReply(text: string, firstName: string): string {

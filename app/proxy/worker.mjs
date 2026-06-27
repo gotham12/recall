@@ -150,6 +150,28 @@ async function handleChat(body, env) {
     return json({ error: 'messages array required' }, 400);
   }
 
+  // Groq 70B first — Workers AI 8B is faster but noticeably weaker for Clara
+  if (env.GROQ_API_KEY?.trim()) {
+    try {
+      const res = await fetch('https://api.groq.com/openai/v1/chat/completions', {
+        method: 'POST',
+        headers: {
+          Authorization: `Bearer ${env.GROQ_API_KEY}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(body),
+      });
+      const data = await res.json();
+      if (res.ok) {
+        const content = data.choices?.[0]?.message?.content?.trim() ?? '';
+        if (content) return json({ content, provider: 'groq' });
+      }
+      console.error('Groq chat failed:', res.status, JSON.stringify(data).slice(0, 200));
+    } catch (err) {
+      console.error('Groq chat error:', err);
+    }
+  }
+
   if (env.AI) {
     let lastErr;
     for (const model of CF_CHAT_MODELS) {
@@ -166,24 +188,10 @@ async function handleChat(body, env) {
         console.error(`Workers AI ${model} failed:`, err);
       }
     }
-    if (lastErr) console.error('All Workers AI models failed, trying Groq fallback');
+    if (lastErr) console.error('All Workers AI models failed');
   }
 
-  requireSecret(env.GROQ_API_KEY, 'GROQ_API_KEY');
-  const res = await fetch('https://api.groq.com/openai/v1/chat/completions', {
-    method: 'POST',
-    headers: {
-      Authorization: `Bearer ${env.GROQ_API_KEY}`,
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify(body),
-  });
-  const data = await res.json();
-  if (!res.ok) return json({ error: data }, res.status);
-  return json({
-    content: data.choices?.[0]?.message?.content?.trim() ?? '',
-    provider: 'groq',
-  });
+  return json({ error: 'Chat not configured — set GROQ_API_KEY or Workers AI binding' }, 503);
 }
 
 async function handleGroqTranscribe(body, env) {
@@ -228,16 +236,13 @@ async function handleGroqVision(body, env) {
 }
 
 async function handleTts(body, env) {
-  // ElevenLabs first — MeloTTS sounds robotic and was shadowing the real voice
-  if (env.ELEVENLABS_API_KEY?.trim()) {
-    try {
-      return await elevenLabsTts(body, env);
-    } catch (err) {
-      console.error('ElevenLabs TTS failed:', err);
-    }
+  const hasElevenLabs = Boolean(env.ELEVENLABS_API_KEY?.trim());
+
+  if (hasElevenLabs) {
+    return await elevenLabsTts(body, env);
   }
 
-  // MeloTTS only when ElevenLabs key is missing
+  // MeloTTS only when ElevenLabs is not configured — never mask EL failures
   if (env.AI && body.text?.trim()) {
     try {
       const result = await env.AI.run('@cf/myshell-ai/melotts', {
@@ -276,9 +281,9 @@ async function elevenLabsTts(body, env) {
       voice_settings: body.voice_settings ?? {
         stability: 0.35,
         similarity_boost: 0.9,
-        style: 0.55,
+        style: 0.68,
         use_speaker_boost: true,
-        speed: 1.0,
+        speed: 1.02,
       },
     }),
   });

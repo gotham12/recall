@@ -7,7 +7,7 @@ const GROQ_TRANSCRIBE_URL = 'https://api.groq.com/openai/v1/audio/transcriptions
 const WHISPER_MODEL = 'whisper-large-v3-turbo';
 
 const LISTEN_MAX_MS = 20_000;
-const SILENCE_AFTER_SPEECH_MS = 1_600;
+const SILENCE_AFTER_SPEECH_MS = 900;
 const MIN_SPEECH_MS = 300;
 const VAD_THRESHOLD = 0.006;
 

@@ -7,7 +7,7 @@ const VOICE_ID = 'EXAVITQu4vr4xnSDxMaL';
 const CLARA_VOICE_ID = 'cgSgspJ2msm6clMCkdW9';
 const ELEVENLABS_BASE = 'https://api.elevenlabs.io/v1';
 const MODEL_IDS = ['eleven_turbo_v2_5', 'eleven_flash_v2_5'];
-const CLARA_MODEL_IDS = ['eleven_turbo_v2_5', 'eleven_flash_v2_5'];
+const CLARA_MODEL_IDS = ['eleven_multilingual_v2', 'eleven_flash_v2_5', 'eleven_turbo_v2_5'];
 
 let currentAudio: HTMLAudioElement | null = null;
 let sharedAudioCtx: AudioContext | null = null;
@@ -119,7 +119,7 @@ async function speakElevenLabs(text: string, gen: number, options?: SpeakOptions
 
 function claraVoiceSettings(clara: boolean, warm: boolean) {
   if (clara) {
-    return { stability: 0.38, similarity_boost: 0.9, style: 0.62, use_speaker_boost: true, speed: 1.05 };
+    return { stability: 0.35, similarity_boost: 0.92, style: 0.68, use_speaker_boost: true, speed: 1.02 };
   }
   if (warm) {
     return { stability: 0.42, similarity_boost: 0.88, style: 0.5, use_speaker_boost: true, speed: 0.98 };
@@ -159,7 +159,7 @@ async function fetchElevenLabsAudio(text: string, modelId: string, options?: Spe
     }
   }
 
-  // 2️⃣ Proxy (now ElevenLabs-first on worker)
+  // 2️⃣ Proxy ElevenLabs (reject MeloTTS WAV masquerading as TTS)
   if (usesApiProxy()) {
     const blob = await proxyPostBlob('/api/elevenlabs/tts', { voiceId, ...payload });
     if (!blob.size) throw new Error('Proxy returned empty audio');

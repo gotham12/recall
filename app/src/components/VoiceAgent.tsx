@@ -3,7 +3,7 @@ import { useClaraVoice } from '../hooks/useClaraVoice';
 import { useACSE } from '../hooks/useACSE';
 import { claraChat } from '../services/groq';
 import { useAppStore } from '../store/appStore';
-import { buildClaraRichContext } from '../lib/claraContext';
+import { buildClaraRichContext, type ClaraRichContext } from '../lib/claraContext';
 import {
   detectClaraIntent,
   getTailoredResponse,
@@ -21,8 +21,9 @@ import StudioIcon, { type IconName } from './StudioIcon';
 
 type VoiceState = 'idle' | 'listening' | 'thinking' | 'speaking';
 
-const POST_SPEAK_PAUSE_MS = 500;
-const CASCADE_DELAY_MS = 1_800;
+const POST_SPEAK_PAUSE_MS = 120;
+const CASCADE_DELAY_MS = 400;
+const CLARA_CONTEXT_TTL_MS = 15_000;
 
 async function speakAloud(text: string): Promise<void> {
   unlockAudioPlayback();
@@ -49,9 +50,27 @@ export default function VoiceAgent() {
   const historyRef = useRef<{ role: 'user' | 'assistant'; content: string }[]>([]);
   const sessionActiveRef = useRef(false);
   const greetingSetRef = useRef(false);
+  const ctxRef = useRef<ClaraRichContext | null>(null);
+  const ctxLoadedAtRef = useRef(0);
 
   const firstName = user?.name?.split(' ')[0] ?? 'friend';
   const flowerActive = state === 'thinking' || state === 'speaking';
+
+  const loadClaraContext = useCallback(async (): Promise<ClaraRichContext> => {
+    const now = Date.now();
+    if (ctxRef.current && now - ctxLoadedAtRef.current < CLARA_CONTEXT_TTL_MS) {
+      return ctxRef.current;
+    }
+    const ctx = await buildClaraRichContext(user, acseScore, comfortModeActive);
+    ctxRef.current = ctx;
+    ctxLoadedAtRef.current = now;
+    return ctx;
+  }, [user, acseScore, comfortModeActive]);
+
+  useEffect(() => {
+    ctxRef.current = null;
+    ctxLoadedAtRef.current = 0;
+  }, [user?.id, acseScore, comfortModeActive]);
 
   useEffect(() => {
     unlockAudioPlayback();
@@ -110,7 +129,8 @@ export default function VoiceAgent() {
 
   const runCascade = useCallback(
     async (cascade: 'memory_recap' | 'comfort_mode', recapReason?: MemoryRecapReason) => {
-      if (!sessionActiveRef.current) return;
+    if (!sessionActiveRef.current) return;
+    void (async () => {
       await new Promise<void>((r) => setTimeout(r, CASCADE_DELAY_MS));
       if (!sessionActiveRef.current) return;
       sessionActiveRef.current = false;
@@ -118,6 +138,7 @@ export default function VoiceAgent() {
       setState('idle');
       if (cascade === 'memory_recap') triggerMemoryRecap(recapReason ?? 'disorientation');
       else if (cascade === 'comfort_mode' && !useAppStore.getState().comfortModeActive) activateComfortMode();
+    })();
     },
     [triggerMemoryRecap, activateComfortMode]
   );
@@ -135,7 +156,7 @@ export default function VoiceAgent() {
     setClaraLine('One moment…');
 
     const intent = detectClaraIntent(trimmed);
-    const ctx = await buildClaraRichContext(user, acseScore, comfortModeActive);
+    const ctx = await loadClaraContext();
     let response: string;
 
     if (intent.intent === 'add_routine') {
@@ -179,9 +200,9 @@ export default function VoiceAgent() {
     await speakResponse(response);
 
     if (!sessionActiveRef.current) return;
-    if (intent.cascade === 'memory_recap') await runCascade('memory_recap', intent.recapReason);
-    else if (intent.cascade === 'comfort_mode') await runCascade('comfort_mode');
-  }, [checkRepeatQuestion, user, acseScore, comfortModeActive, speakResponse, runCascade, firstName]);
+    if (intent.cascade === 'memory_recap') void runCascade('memory_recap', intent.recapReason);
+    else if (intent.cascade === 'comfort_mode') void runCascade('comfort_mode');
+  }, [checkRepeatQuestion, user, loadClaraContext, speakResponse, runCascade, firstName]);
 
   const runConversation = useCallback(async () => {
     while (sessionActiveRef.current) {
@@ -234,11 +255,12 @@ export default function VoiceAgent() {
     }
 
     stopSpeaking();
+    void loadClaraContext();
     sessionActiveRef.current = true;
     setInSession(true);
     setError('');
     void runConversation();
-  }, [inSession, stopSession, runConversation]);
+  }, [inSession, stopSession, runConversation, loadClaraContext]);
 
   const handleTextSend = () => {
     const text = typedInput.trim();

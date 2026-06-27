@@ -37,5 +37,20 @@ export async function proxyPostBlob(path: string, body: unknown): Promise<Blob> 
     body: JSON.stringify(body),
   });
   if (!res.ok) throw new Error(`Proxy ${path} failed (${res.status})`);
-  return res.blob();
+  const contentType = res.headers.get('Content-Type') ?? '';
+  const blob = await res.blob();
+  if (path.includes('/tts')) {
+    if (contentType.includes('audio/wav') || contentType.includes('audio/wave')) {
+      throw new Error('Proxy TTS returned robotic WAV — ElevenLabs unavailable on worker');
+    }
+    if (!contentType.includes('mpeg') && !contentType.includes('mp3') && blob.size > 12) {
+      const head = new Uint8Array(await blob.slice(0, 4).arrayBuffer());
+      const isMp3 = head[0] === 0xff && (head[1] & 0xe0) === 0xe0;
+      const isId3 = head[0] === 0x49 && head[1] === 0x44 && head[2] === 0x33;
+      if (!isMp3 && !isId3) {
+        throw new Error(`Proxy TTS returned unexpected format (${contentType || 'unknown'})`);
+      }
+    }
+  }
+  return blob;
 }
