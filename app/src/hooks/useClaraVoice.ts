@@ -1,6 +1,7 @@
 import { useCallback, useRef, useState } from 'react';
 import { GROQ_API_KEY } from '../env';
 import { proxyPost } from '../services/apiClient';
+import { prepareMicForScreenRecord, releaseMicAfterClara } from '../lib/iosAudioSession';
 
 // ── Constants ─────────────────────────────────────────────────────────────────
 const GROQ_TRANSCRIBE_URL = 'https://api.groq.com/openai/v1/audio/transcriptions';
@@ -58,7 +59,16 @@ function extractTranscript(results: SpeechResultList): string {
 }
 
 // ── Web Speech API path (preferred — works on iOS Safari, Chrome, Edge) ───────
-function listenWithSpeechAPI(abortSignal: { aborted: boolean }): Promise<string> {
+async function listenWithSpeechAPI(abortSignal: { aborted: boolean }): Promise<string> {
+  await prepareMicForScreenRecord();
+  try {
+    return await listenWithSpeechAPIInner(abortSignal);
+  } finally {
+    await releaseMicAfterClara();
+  }
+}
+
+function listenWithSpeechAPIInner(abortSignal: { aborted: boolean }): Promise<string> {
   return new Promise((resolve, reject) => {
     const SR = getSpeechRecognitionClass();
     if (!SR) { reject(new Error('Speech recognition not available')); return; }
@@ -232,7 +242,16 @@ async function transcribeBlob(blob: Blob, mimeType: string): Promise<string> {
   }
 }
 
-function listenWithRecorder(abortSignal: { aborted: boolean }): Promise<string> {
+async function listenWithRecorder(abortSignal: { aborted: boolean }): Promise<string> {
+  await prepareMicForScreenRecord();
+  try {
+    return await listenWithRecorderInner(abortSignal);
+  } finally {
+    await releaseMicAfterClara();
+  }
+}
+
+function listenWithRecorderInner(abortSignal: { aborted: boolean }): Promise<string> {
   return new Promise((resolve, reject) => {
     // Try with full constraints first, fall back to plain `audio: true`
     const tryGetMedia = (constraints: MediaStreamConstraints) =>
@@ -340,6 +359,7 @@ export function useClaraVoice() {
   const stopListening = useCallback(() => {
     abortRef.current = true;
     setIsListening(false);
+    void releaseMicAfterClara();
   }, []);
 
   const startListening = useCallback((): Promise<string> => {

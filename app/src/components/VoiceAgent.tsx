@@ -17,6 +17,7 @@ import {
   primeSpeechSynthesis,
 } from '../services/elevenlabs';
 import { addRoutineEvent, parseRoutineUtterance } from '../lib/routineUtils';
+import { isIOSBrowser, isScreenRecordingActive } from '../lib/iosAudioSession';
 import StudioIcon, { type IconName } from './StudioIcon';
 import ClaraFlowerPulse from './ClaraFlowerPulse';
 
@@ -51,6 +52,7 @@ export default function VoiceAgent() {
   const [llmConnected, setLlmConnected] = useState<boolean | null>(null);
   const [typedInput, setTypedInput] = useState('');
   const [chatLog, setChatLog] = useState<{ role: 'user' | 'assistant'; content: string }[]>([]);
+  const [screenRecording, setScreenRecording] = useState(false);
   const chatBottomRef = useRef<HTMLDivElement>(null);
 
   const { startListening, stopListening } = useClaraVoice();
@@ -82,7 +84,6 @@ export default function VoiceAgent() {
   }, [user?.id, acseScore, comfortModeActive]);
 
   useEffect(() => {
-    unlockAudioPlayback();
     if (!greetingSetRef.current) {
       setClaraLine(`Hello, ${firstName}. I'm Clara — tap the microphone and we can talk.`);
       greetingSetRef.current = true;
@@ -93,6 +94,21 @@ export default function VoiceAgent() {
       stopListening();
     };
   }, [stopListening, firstName]);
+
+  useEffect(() => {
+    if (!isIOSBrowser()) return;
+    let cancelled = false;
+    const poll = async () => {
+      const captured = await isScreenRecordingActive();
+      if (!cancelled) setScreenRecording(captured);
+    };
+    void poll();
+    const timer = window.setInterval(() => { void poll(); }, 2500);
+    return () => {
+      cancelled = true;
+      window.clearInterval(timer);
+    };
+  }, []);
 
   useEffect(() => {
     if (!user?.id || !comfortModeActive) return;
@@ -422,6 +438,11 @@ export default function VoiceAgent() {
 
       {/* Composer */}
       <div className="cv2-composer">
+        {screenRecording && !inSession && (
+          <p className="cv2-screen-record-hint">
+            Screen recording detected — type below to keep your demo audio. Voice works when you are not recording.
+          </p>
+        )}
         <div className="cv2-composer__card">
           <div className={`cv2-text-wrap cv2-text-wrap--premium${inSession ? ' cv2-text-wrap--disabled' : ''}`}>
             <input

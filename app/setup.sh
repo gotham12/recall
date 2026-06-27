@@ -14,7 +14,7 @@ else
   echo "==> iOS platform already present."
 fi
 
-echo "==> Syncing web assets + HealthKit plugin to iOS..."
+echo "==> Syncing web assets + native plugins to iOS..."
 npx cap sync ios
 
 PLIST="ios/App/App/Info.plist"

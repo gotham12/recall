@@ -1,0 +1,21 @@
+{
+  "name": "recall-audio-session",
+  "version": "1.0.0",
+  "description": "Recall iOS AVAudioSession bridge — mix with screen recording",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "files": [
+    "dist/",
+    "ios/Plugin/",
+    "RecallAudioSession.podspec"
+  ],
+  "license": "MIT",
+  "peerDependencies": {
+    "@capacitor/core": "^6.0.0"
+  },
+  "capacitor": {
+    "ios": {
+      "src": "ios"
+    }
+  }
+}
