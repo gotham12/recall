@@ -5718,11 +5718,14 @@ html[data-easy-mode='true'] .home-widget__label { font-size: 16px; }
   display: block;
 }
 .memory-recap__photo--enter {
-  animation: memoryPhotoIn 0.7s ease-out;
+  animation: memoryPhotoIn 0.35s ease-out;
 }
 @keyframes memoryPhotoIn {
-  from { opacity: 0; transform: scale(1.04); }
+  from { opacity: 0.3; transform: scale(1.02); }
   to { opacity: 1; transform: scale(1); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .memory-recap__photo--enter { animation: none; }
 }
 .memory-recap__caption {
   position: absolute;

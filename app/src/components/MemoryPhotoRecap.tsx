@@ -2,12 +2,14 @@ import { useCallback, useEffect, useRef, useState, type RefObject } from 'react'
 import { useLiveQuery } from 'dexie-react-hooks';
 import { db, type FamiliarFace } from '../db/db';
 import { useAppStore } from '../store/appStore';
-import { buildMemorySlides, type MemorySlide } from '../lib/memoryRecap';
-import { memoryPhotoUrl } from '../lib/memoryPhotos';
+import { buildMemorySlides, shuffleSlides, type MemorySlide } from '../lib/memoryRecap';
+import { LOGIN_HERO } from '../lib/assets';
 import { speak, stopSpeaking, unlockAudioPlayback } from '../services/elevenlabs';
 import StudioIcon from './StudioIcon';
 
-const FALLBACK_PHOTO = memoryPhotoUrl('garden');
+const FALLBACK_PHOTO = LOGIN_HERO.margaretProfile;
+const AUTO_ADVANCE_MS = 5500;
+const SPEAK_TIMEOUT_MS = 8000;
 
 function waitMs(ms: number, session: number, sessionRef: RefObject<number>): Promise<boolean> {
   return new Promise((resolve) => {
@@ -15,14 +17,23 @@ function waitMs(ms: number, session: number, sessionRef: RefObject<number>): Pro
   });
 }
 
+function speakWithTimeout(text: string): Promise<void> {
+  return Promise.race([
+    speak(text, { warm: true }),
+    new Promise<void>((resolve) => setTimeout(resolve, SPEAK_TIMEOUT_MS)),
+  ]);
+}
+
 export default function MemoryPhotoRecap() {
   const { user, memoryRecapActive, memoryRecapReason, dismissMemoryRecap } = useAppStore();
   const [slides, setSlides] = useState<MemorySlide[]>([]);
   const [index, setIndex] = useState(0);
-  const [imgSrc, setImgSrc] = useState('');
+  const [failedSlideId, setFailedSlideId] = useState<string | null>(null);
   const sessionRef = useRef(0);
+  const loadGenRef = useRef(0);
   const slidesRef = useRef<MemorySlide[]>([]);
   const loopRunningRef = useRef(false);
+  const facesFingerprintRef = useRef('');
 
   const faces = useLiveQuery<FamiliarFace[]>(
     () => (user?.id ? db.familiarFaces.where('userId').equals(user.id).toArray() : []),
@@ -34,8 +45,18 @@ export default function MemoryPhotoRecap() {
 
   const cancelRecap = useCallback(() => {
     sessionRef.current += 1;
+    loadGenRef.current += 1;
     loopRunningRef.current = false;
     stopSpeaking();
+  }, []);
+
+  const showSlide = useCallback((idx: number) => {
+    const list = slidesRef.current;
+    const slide = list[idx];
+    if (!slide) return;
+    loadGenRef.current += 1;
+    setIndex(idx);
+    setFailedSlideId(null);
   }, []);
 
   const playSlideAt = useCallback(async (idx: number, session: number, autoAdvance: boolean) => {
@@ -43,28 +64,28 @@ export default function MemoryPhotoRecap() {
     const slide = list[idx];
     if (!slide || session !== sessionRef.current) return;
 
-    setIndex(idx);
-    setImgSrc(slide.photoUrl);
+    showSlide(idx);
 
-    if (session !== sessionRef.current) return;
+    const loadGen = loadGenRef.current;
+    void (async () => {
+      try {
+        unlockAudioPlayback();
+        await speakWithTimeout(slide.speakText);
+      } catch (err) {
+        console.error(err);
+      }
+      if (loadGen !== loadGenRef.current || session !== sessionRef.current) return;
+    })();
 
-    try {
-      unlockAudioPlayback();
-      await speak(slide.speakText, { warm: true });
-    } catch (err) {
-      console.error(err);
-    }
+    if (!autoAdvance || list.length <= 1) return;
 
-    if (session !== sessionRef.current || !autoAdvance || list.length <= 1) return;
-
-    const stillActive = await waitMs(700, session, sessionRef);
+    const stillActive = await waitMs(AUTO_ADVANCE_MS, session, sessionRef);
     if (!stillActive || session !== sessionRef.current) return;
 
     await playSlideAt((idx + 1) % list.length, session, true);
-  }, []);
+  }, [showSlide]);
 
   const runRecapLoop = useCallback(async (session: number, startIdx = 0) => {
-    if (loopRunningRef.current && session === sessionRef.current) return;
     loopRunningRef.current = true;
     try {
       await playSlideAt(startIdx, session, true);
@@ -75,17 +96,26 @@ export default function MemoryPhotoRecap() {
     }
   }, [playSlideAt]);
 
-  const startRecap = useCallback(() => {
+  const startRecap = useCallback((reshuffle = false) => {
     if (!user) return;
     cancelRecap();
     const session = sessionRef.current;
-    const album = buildMemorySlides(user, facesRef.current);
+
+    let album = buildMemorySlides(user, facesRef.current);
+    if (reshuffle) {
+      album = shuffleSlides(album);
+    }
+
     slidesRef.current = album;
     setSlides(album);
+    setIndex(0);
+    setFailedSlideId(null);
+
     if (album.length === 0) {
       dismissMemoryRecap();
       return;
     }
+
     void runRecapLoop(session, 0);
   }, [user, cancelRecap, runRecapLoop, dismissMemoryRecap]);
 
@@ -93,15 +123,24 @@ export default function MemoryPhotoRecap() {
   startRecapRef.current = startRecap;
 
   useEffect(() => {
-    if (memoryRecapActive && user) {
-      startRecapRef.current();
-    } else if (!memoryRecapActive) {
-      cancelRecap();
-      setSlides([]);
-      setIndex(0);
-      setImgSrc('');
+    if (!memoryRecapActive || !user) {
+      if (!memoryRecapActive) {
+        cancelRecap();
+        setSlides([]);
+        setIndex(0);
+        setFailedSlideId(null);
+      }
+      return;
     }
-  }, [memoryRecapActive, user?.id, faces.length, cancelRecap]);
+
+    const fingerprint = faces.map((f) => `${f.id ?? ''}:${f.photoUrl}`).join('|');
+    if (fingerprint !== facesFingerprintRef.current) {
+      facesFingerprintRef.current = fingerprint;
+      startRecapRef.current(false);
+    } else if (slidesRef.current.length === 0) {
+      startRecapRef.current(false);
+    }
+  }, [memoryRecapActive, user?.id, faces, cancelRecap]);
 
   useEffect(() => () => cancelRecap(), [cancelRecap]);
 
@@ -116,15 +155,16 @@ export default function MemoryPhotoRecap() {
     cancelRecap();
     const session = sessionRef.current;
     const next = (index + 1) % list.length;
+    showSlide(next);
     void runRecapLoop(session, next);
   };
 
   const handleShuffle = () => {
-    startRecap();
+    startRecap(true);
   };
 
-  const handleImgError = () => {
-    setImgSrc(FALLBACK_PHOTO);
+  const handleImgError = (slideId: string) => {
+    setFailedSlideId((prev) => (prev === slideId ? prev : slideId));
   };
 
   if (!memoryRecapActive) return null;
@@ -141,6 +181,7 @@ export default function MemoryPhotoRecap() {
   }
 
   const slide = slides[index] ?? slides[0];
+  const photoSrc = failedSlideId === slide.id ? FALLBACK_PHOTO : slide.photoUrl;
   const firstName = user?.name?.split(' ')[0] ?? 'friend';
 
   return (
@@ -167,14 +208,15 @@ export default function MemoryPhotoRecap() {
         </header>
 
         <div className="memory-recap__stage">
-          <div className="memory-recap__photo-wrap" key={`${slide.id}-${imgSrc}`}>
+          <div className="memory-recap__photo-wrap">
             <img
-              src={imgSrc || slide.photoUrl}
+              key={slide.id}
+              src={photoSrc}
               alt={slide.caption}
               className="memory-recap__photo memory-recap__photo--enter"
               loading="eager"
               decoding="async"
-              onError={handleImgError}
+              onError={() => handleImgError(slide.id)}
             />
             <div className="memory-recap__caption">
               {slide.person && <span className="memory-recap__person">{slide.person}</span>}

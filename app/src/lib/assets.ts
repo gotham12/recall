@@ -14,11 +14,11 @@ export const LOGIN_HERO = {
   margaretProfile: `${base}login/margaret-profile.jpg`,
 } as const;
 
-/** Familiar-face profile photos (remote — used in app, not login heroes) */
+/** Familiar-face profile photos — bundled in public/photos/ */
 export const FAMILY_PHOTOS = {
-  susan: 'https://images.unsplash.com/photo-1544005313-94ddf0286df2?w=240&h=240&fit=crop&crop=faces&auto=format&q=80',
-  robert: 'https://images.unsplash.com/photo-1560250097-0b93528c311a?w=240&h=240&fit=crop&crop=faces&auto=format&q=80',
-  lily: 'https://images.unsplash.com/photo-1438761681033-6461ffad8d80?w=240&h=240&fit=crop&crop=faces&auto=format&q=80',
+  susan: `${base}photos/susan.png`,
+  robert: `${base}photos/robert.png`,
+  lily: `${base}photos/lily.png`,
 } as const;
 
 /** Safety circle contacts — curated portrait photos */

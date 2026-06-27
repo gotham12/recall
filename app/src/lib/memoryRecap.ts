@@ -1,4 +1,5 @@
 import type { FamiliarFace, User } from '../db/db';
+import { LOGIN_HERO } from './assets';
 import { memoryPhotoUrl } from './memoryPhotos';
 
 export interface MemorySlide {
@@ -53,8 +54,21 @@ const MARGARET_MEMORY_ALBUM: Omit<MemorySlide, 'id'>[] = [
   },
 ];
 
-function normalizePhotoUrl(url: string): string {
-  if (url.startsWith('data:')) return url;
+function isLocalAsset(url: string): boolean {
+  return !url.startsWith('http://') && !url.startsWith('https://');
+}
+
+function canonicalPhotoKey(url: string): string {
+  if (isLocalAsset(url)) {
+    return url.split('?')[0].split('#')[0];
+  }
+  const match = url.match(/photo-([a-z0-9-]+)/i);
+  if (match) return match[1];
+  return url.split('?')[0];
+}
+
+export function normalizePhotoUrl(url: string): string {
+  if (isLocalAsset(url)) return url.split('?')[0];
   let u = url.replace('w=400', 'w=800').replace('h=400', 'h=600').replace('w=200', 'w=800').replace('h=200', 'h=600');
   if (!u.includes('auto=format')) {
     u += u.includes('?') ? '&auto=format' : '?auto=format';
@@ -68,11 +82,20 @@ export function detectLoneliness(text: string): boolean {
 
 export function buildMemorySlides(user: User, familiarFaces: FamiliarFace[] = []): MemorySlide[] {
   const slides: MemorySlide[] = [];
+  const seen = new Set<string>();
+
   const heroPhoto = user.familyPhotoUrl
     ? normalizePhotoUrl(user.familyPhotoUrl)
-    : memoryPhotoUrl('garden');
+    : LOGIN_HERO.margaretProfile;
 
-  slides.push({
+  const pushSlide = (slide: MemorySlide) => {
+    const key = canonicalPhotoKey(slide.photoUrl);
+    if (seen.has(key)) return;
+    seen.add(key);
+    slides.push(slide);
+  };
+
+  pushSlide({
     id: 'family-hero',
     photoUrl: heroPhoto,
     caption: 'A cherished moment with your family.',
@@ -86,13 +109,12 @@ export function buildMemorySlides(user: User, familiarFaces: FamiliarFace[] = []
       : MARGARET_MEMORY_ALBUM;
 
   album.forEach((s, i) => {
-    if (s.photoUrl === heroPhoto) return;
-    slides.push({ ...s, id: `album-${i}` });
+    pushSlide({ ...s, id: `album-${i}` });
   });
 
   familiarFaces.forEach((face, i) => {
-    if (slides.some((s) => s.person === face.name)) return;
-    slides.push({
+    if (!face.photoUrl?.trim()) return;
+    pushSlide({
       id: `face-${face.id ?? i}`,
       photoUrl: normalizePhotoUrl(face.photoUrl),
       caption: `${face.name}, your ${face.relationship.toLowerCase()}.`,
