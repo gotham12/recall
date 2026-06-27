@@ -6,7 +6,6 @@ import { db, type User } from '../db/db';
 import { seedIfEmpty } from '../db/seed';
 import { checkSupervisorAuth } from '../lib/auth';
 import { loadUserSession } from '../lib/session';
-import { LOGIN_HERO } from '../lib/assets';
 import { photoForContact } from '../lib/safetyContacts';
 import StudioIcon from './StudioIcon';
 import OnboardingWizard from './OnboardingWizard';
@@ -19,34 +18,6 @@ type LoginStep =
   | 'patient-pin'
   | 'supervisor-list'
   | 'supervisor-auth';
-
-const STEP_HERO: Record<LoginStep, { src: string; alt: string; caption: string }> = {
-  welcome: {
-    src: LOGIN_HERO.welcome,
-    alt: 'Three generations sharing memories together',
-    caption: 'Memory · Medication · Moments',
-  },
-  'patient-list': {
-    src: LOGIN_HERO.patientList,
-    alt: 'Patient and caregiver watching the sunset',
-    caption: 'Your journey. You\'re not alone.',
-  },
-  'patient-pin': {
-    src: LOGIN_HERO.patientPin,
-    alt: 'Small meaningful steps on a garden path',
-    caption: 'Small steps. Meaningful days.',
-  },
-  'supervisor-list': {
-    src: LOGIN_HERO.supervisorList,
-    alt: 'Hands held in caring support',
-    caption: 'Care. Support. Together.',
-  },
-  'supervisor-auth': {
-    src: LOGIN_HERO.supervisorAuth,
-    alt: 'Caregiver at a desk with patient insights',
-    caption: 'You don\'t have to do it all alone.',
-  },
-};
 
 function patientPhoto(user: User): string | undefined {
   return photoForContact(user.name) ?? user.familyPhotoUrl ?? undefined;
@@ -70,8 +41,6 @@ export default function LoginScreen() {
   const containerRef = useRef<HTMLDivElement>(null);
   const cardRef = useRef<HTMLDivElement>(null);
   const stepRef = useRef<HTMLDivElement>(null);
-  const heroRef = useRef<HTMLDivElement>(null);
-  const heroImgRef = useRef<HTMLImageElement>(null);
 
   const patients = useLiveQuery(() => db.users.toArray(), []) ?? [];
 
@@ -85,20 +54,10 @@ export default function LoginScreen() {
     return 'supervisor-auth';
   }, [role, selectedPatient, supervisorPatient]);
 
-  const hero = STEP_HERO[step];
-
-  const flowDots = useMemo(() => {
-    if (role === null) return ['welcome'] as const;
-    if (role === 'patient') return ['patient-list', 'patient-pin'] as const;
-    return ['supervisor-list', 'supervisor-auth'] as const;
-  }, [role]);
-
   useEffect(() => {
     void seedIfEmpty();
     if (!containerRef.current) return;
-    const tl = gsap.timeline();
-    tl.from(cardRef.current, { y: 24, opacity: 0, duration: 0.55, ease: 'power3.out' });
-    tl.from('.dash-login__hero-photo', { scale: 1.08, opacity: 0, duration: 0.6, ease: 'power2.out' }, 0.08);
+    gsap.from(cardRef.current, { y: 24, opacity: 0, duration: 0.55, ease: 'power3.out' });
   }, []);
 
   const animateStepIn = useCallback(() => {
@@ -113,22 +72,9 @@ export default function LoginScreen() {
     );
   }, []);
 
-  const animateHeroSwap = useCallback(() => {
-    if (!heroRef.current || !heroImgRef.current) return;
-    gsap.fromTo(heroRef.current,
-      { opacity: 0.5 },
-      { opacity: 1, duration: 0.4, ease: 'power2.out' }
-    );
-    gsap.fromTo(heroImgRef.current,
-      { scale: 1.06, opacity: 0 },
-      { scale: 1, opacity: 1, duration: 0.5, ease: 'power3.out' }
-    );
-  }, []);
-
   useEffect(() => {
-    animateHeroSwap();
     animateStepIn();
-  }, [step, animateHeroSwap, animateStepIn]);
+  }, [step, animateStepIn]);
 
   const pulseButton = (el: HTMLElement) => {
     gsap.fromTo(el, { scale: 0.96 }, { scale: 1, duration: 0.28, ease: 'back.out(2.5)' });
@@ -202,40 +148,16 @@ export default function LoginScreen() {
   return (
     <div ref={containerRef} className="dash-login">
       <div ref={cardRef} className="dash-login__card">
-        <div ref={heroRef} className="dash-login__hero">
-          <div className="dash-login__hero-frame">
-            <img
-              ref={heroImgRef}
-              key={hero.src}
-              src={hero.src}
-              alt={hero.alt}
-              className="dash-login__hero-photo"
-              loading="eager"
-              decoding="async"
-            />
-            <div className="dash-login__hero-shade" />
-            {step === 'welcome' && (
-              <div className="dash-login__brand dash-login__brand--overlay">
-                <h1 className="dash-login__wordmark">Recall</h1>
-              </div>
-            )}
-            <p className="dash-login__hero-caption">{hero.caption}</p>
-          </div>
-          <div className="dash-login__step-dots" aria-hidden>
-            {flowDots.map((id) => (
-              <span
-                key={id}
-                className={`dash-login__dot${step === id ? ' dash-login__dot--active' : ''}`}
-              />
-            ))}
-          </div>
+        <div className="dash-login__brand">
+          <img src="/recall/logo.png" alt="Recall" className="dash-login__logo-img" />
+          <h1 className="dash-login__wordmark">Recall</h1>
+          <p className="dash-login__tagline">Memory · Medication · Moments</p>
         </div>
 
         <div ref={stepRef} className="dash-login__step">
           <div className="dash-login__step-body">
             {step === 'welcome' && (
               <>
-                <p className="dash-login__eyebrow">Welcome back</p>
                 <p className="dash-login__title">Who&apos;s using Recall?</p>
                 <p className="dash-login__subtitle">Choose how you&apos;d like to sign in today.</p>
               </>
@@ -244,7 +166,6 @@ export default function LoginScreen() {
             {step === 'patient-list' && (
               <>
                 <button type="button" className="dash-back" onClick={() => transitionTo(() => setRole(null))}>← Back</button>
-                <p className="dash-login__eyebrow">Patient</p>
                 <p className="dash-login__title">Who are you today?</p>
                 <p className="dash-login__subtitle">Tap your name to continue.</p>
               </>
@@ -259,7 +180,6 @@ export default function LoginScreen() {
                 >
                   ← Back
                 </button>
-                <p className="dash-login__eyebrow">Patient</p>
                 <p className="dash-login__title">Welcome back,<br />{selectedPatient.name.split(' ')[0]}</p>
                 {selectedPatient.patientPin && (
                   <>
@@ -282,7 +202,6 @@ export default function LoginScreen() {
             {step === 'supervisor-list' && (
               <>
                 <button type="button" className="dash-back" onClick={() => transitionTo(() => setRole(null))}>← Back</button>
-                <p className="dash-login__eyebrow">Supervisor</p>
                 <p className="dash-login__title">Who are you caring for?</p>
                 <p className="dash-login__subtitle">Select the patient you&apos;re monitoring today.</p>
               </>
@@ -297,7 +216,6 @@ export default function LoginScreen() {
                 >
                   ← Back
                 </button>
-                <p className="dash-login__eyebrow">Supervisor</p>
                 <p className="dash-login__title">Signing in for {supervisorPatient.name.split(' ')[0]}</p>
                 <input
                   type="password"
@@ -357,7 +275,7 @@ export default function LoginScreen() {
                   <span className="dash-btn__icon-wrap dash-btn__icon-wrap--amber"><StudioIcon name="user" size={20} /></span>
                   <span className="dash-btn__body">
                     <span className="dash-btn__label">Patient</span>
-                    <span className="dash-btn__hint">Daily care & reminders</span>
+                    <span className="dash-btn__hint">Daily care &amp; reminders</span>
                   </span>
                 </button>
                 <button
