@@ -6,8 +6,9 @@ const VOICE_ID = 'EXAVITQu4vr4xnSDxMaL';
 /** Jessica — expressive companion voice for Clara */
 const CLARA_VOICE_ID = 'cgSgspJ2msm6clMCkdW9';
 const ELEVENLABS_BASE = 'https://api.elevenlabs.io/v1';
-const MODEL_IDS = ['eleven_turbo_v2_5', 'eleven_flash_v2_5'];
-const CLARA_MODEL_IDS = ['eleven_multilingual_v2', 'eleven_flash_v2_5', 'eleven_turbo_v2_5'];
+const MODEL_IDS = ['eleven_flash_v2_5', 'eleven_turbo_v2_5'];
+const CLARA_MODEL_IDS = ['eleven_flash_v2_5', 'eleven_multilingual_v2', 'eleven_turbo_v2_5'];
+const ADVISOR_MODEL_IDS = ['eleven_flash_v2_5', 'eleven_turbo_v2_5'];
 
 let currentAudio: HTMLAudioElement | null = null;
 let sharedAudioCtx: AudioContext | null = null;
@@ -24,6 +25,8 @@ function isIOSDevice(): boolean {
 export interface SpeakOptions {
   warm?: boolean;
   clara?: boolean;
+  /** Recall AI caregiver advisor — Rachel voice, fast flash model */
+  advisor?: boolean;
 }
 
 export function isElevenLabsConfigured(): boolean {
@@ -101,7 +104,7 @@ export async function speak(text: string, options?: SpeakOptions): Promise<void>
 async function speakElevenLabs(text: string, gen: number, options?: SpeakOptions): Promise<void> {
   warnDirectApiKeys();
   let lastError: Error | null = null;
-  const models = options?.clara ? CLARA_MODEL_IDS : MODEL_IDS;
+  const models = options?.clara ? CLARA_MODEL_IDS : options?.advisor ? ADVISOR_MODEL_IDS : MODEL_IDS;
 
   for (const modelId of models) {
     if (gen !== speakGeneration) return;
@@ -117,7 +120,10 @@ async function speakElevenLabs(text: string, gen: number, options?: SpeakOptions
   throw lastError ?? new Error('ElevenLabs TTS failed');
 }
 
-function claraVoiceSettings(clara: boolean, warm: boolean) {
+function claraVoiceSettings(clara: boolean, warm: boolean, advisor: boolean) {
+  if (advisor) {
+    return { stability: 0.42, similarity_boost: 0.88, style: 0.48, use_speaker_boost: true, speed: 1.0 };
+  }
   if (clara) {
     return { stability: 0.35, similarity_boost: 0.92, style: 0.68, use_speaker_boost: true, speed: 1.02 };
   }
@@ -129,9 +135,10 @@ function claraVoiceSettings(clara: boolean, warm: boolean) {
 
 async function fetchElevenLabsAudio(text: string, modelId: string, options?: SpeakOptions): Promise<Blob> {
   const clara = options?.clara ?? false;
+  const advisor = options?.advisor ?? false;
   const warm = options?.warm ?? false;
   const voiceId = clara ? CLARA_VOICE_ID : VOICE_ID;
-  const voice_settings = claraVoiceSettings(clara, warm);
+  const voice_settings = claraVoiceSettings(clara, warm, advisor);
   const payload = { text, model_id: modelId, voice_settings };
 
   // 1️⃣ Direct ElevenLabs — bypasses proxy MeloTTS bug
@@ -150,6 +157,9 @@ async function fetchElevenLabsAudio(text: string, modelId: string, options?: Spe
       if (res.ok) {
         const blob = await res.blob();
         if (blob.size > 500) return blob;
+      } else if (res.status === 401 || res.status === 403) {
+        const detail = await res.text().catch(() => '');
+        throw new Error(`ElevenLabs ${res.status}: ${detail.slice(0, 80)}`);
       } else {
         const detail = await res.text().catch(() => '');
         console.warn('[TTS] Direct ElevenLabs failed:', res.status, detail.slice(0, 80));

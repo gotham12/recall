@@ -28,14 +28,24 @@ interface ChatMessage {
   content: string;
 }
 
-const CONTEXT_REFRESH_MS = 20_000;
-const POST_SPEAK_PAUSE_MS = 400;
+const CONTEXT_TTL_MS = 20_000;
+const CONTEXT_REFRESH_MS = 45_000;
+const POST_SPEAK_PAUSE_MS = 120;
+const LIVE_TICK_DEBOUNCE_MS = 2_000;
 
 function suggestedPrompts(patientFirst: string): string[] {
   return [
     `Explain ${patientFirst}'s ACSE score today`,
     `What should I ask at ${patientFirst}'s next checkup?`,
   ];
+}
+
+function voiceSummary(text: string, maxLen = 240): string {
+  const t = text.trim();
+  if (t.length <= maxLen) return t;
+  const cut = t.slice(0, maxLen);
+  const lastStop = Math.max(cut.lastIndexOf('.'), cut.lastIndexOf('!'), cut.lastIndexOf('?'));
+  return lastStop > 80 ? cut.slice(0, lastStop + 1) : cut + '…';
 }
 
 interface Props {
@@ -58,14 +68,18 @@ export default function RecallAIChat({ user }: Props) {
   const [llmConnected, setLlmConnected] = useState<boolean | null>(null);
   const [contextReady, setContextReady] = useState(false);
   const [showPrompts, setShowPrompts] = useState(true);
+  const [booting, setBooting] = useState(false);
 
   const { startListening, stopListening } = useClaraVoice();
   const contextRef = useRef<RecallAIContextBundle | null>(null);
+  const ctxLoadedAtRef = useRef(0);
+  const inflightContextRef = useRef<Promise<RecallAIContextBundle | null> | null>(null);
   const historyRef = useRef<{ role: 'user' | 'assistant'; content: string }[]>([]);
   const sessionActiveRef = useRef(false);
   const scrollRef = useRef<HTMLDivElement>(null);
   const initRef = useRef(false);
   const userIdRef = useRef<number | undefined>(undefined);
+  const checkInMarkedRef = useRef(false);
 
   const caregiverName = user?.caregiverName ?? 'Caregiver';
   const patientFirst = user?.name?.split(' ')[0] ?? 'Margaret';
@@ -88,12 +102,31 @@ export default function RecallAIChat({ user }: Props) {
     return msg;
   }, [scrollToBottom]);
 
-  const loadContext = useCallback(async () => {
+  const loadContext = useCallback(async (force = false): Promise<RecallAIContextBundle | null> => {
     if (!user?.id) return null;
-    const bundle = await buildRecallAIContext(user, acseScore, comfortModeActive);
-    contextRef.current = bundle;
-    setContextReady(true);
-    return bundle;
+
+    const now = Date.now();
+    if (!force && contextRef.current && now - ctxLoadedAtRef.current < CONTEXT_TTL_MS) {
+      return contextRef.current;
+    }
+
+    if (inflightContextRef.current) {
+      return inflightContextRef.current;
+    }
+
+    const promise = buildRecallAIContext(user, acseScore, comfortModeActive)
+      .then((bundle) => {
+        contextRef.current = bundle;
+        ctxLoadedAtRef.current = Date.now();
+        setContextReady(true);
+        return bundle;
+      })
+      .finally(() => {
+        inflightContextRef.current = null;
+      });
+
+    inflightContextRef.current = promise;
+    return promise;
   }, [user, acseScore, comfortModeActive]);
 
   const liveDataTick = useLiveQuery(
@@ -110,13 +143,20 @@ export default function RecallAIChat({ user }: Props) {
   );
 
   useEffect(() => {
-    if (!user?.id) return;
-    void loadContext();
-  }, [user?.id, acseScore, comfortModeActive, liveDataTick, loadContext]);
+    if (!user?.id || liveDataTick === undefined) return;
+    const timer = window.setTimeout(() => {
+      void loadContext(true);
+    }, LIVE_TICK_DEBOUNCE_MS);
+    return () => window.clearTimeout(timer);
+  }, [user?.id, liveDataTick, loadContext]);
 
   useEffect(() => {
     if (!user?.id) return;
-    const timer = window.setInterval(() => { void loadContext(); }, CONTEXT_REFRESH_MS);
+    const timer = window.setInterval(() => {
+      if (document.visibilityState === 'visible') {
+        void loadContext(true);
+      }
+    }, CONTEXT_REFRESH_MS);
     return () => window.clearInterval(timer);
   }, [user?.id, loadContext]);
 
@@ -135,47 +175,60 @@ export default function RecallAIChat({ user }: Props) {
     if (userIdRef.current !== user.id) {
       userIdRef.current = user.id;
       initRef.current = false;
+      checkInMarkedRef.current = false;
       setMessages([]);
       setContextReady(false);
+      contextRef.current = null;
+      ctxLoadedAtRef.current = 0;
       historyRef.current = [];
     }
     if (initRef.current) return;
     initRef.current = true;
-    markSupervisorCheckIn(user.id);
 
     const boot = async () => {
-      setState('thinking');
+      setBooting(true);
       try {
-        const bundle = await loadContext();
+        const bundle = await loadContext(true);
         if (!bundle) return;
 
         const snap = bundle.snapshot;
-        const context = formatBriefingContext(snap);
-        const fallback = localSupervisorBriefing(snap);
-        const result = await generateSupervisorBriefing(context, fallback);
-        const briefing = result.fromLlm
-          ? validateBriefingAgainstSnapshot(result.text, snap)
-          : result.text;
-
-        setLlmConnected(result.fromLlm);
-
-        const welcome = `Hello ${caregiverName}. I'm Recall AI — your specialist advisor for ${patientFirst}'s care. Here's today's briefing:\n\n${briefing}\n\nAsk me anything about treatment, medications, cognitive changes, or care planning.`;
+        const localBrief = localSupervisorBriefing(snap);
+        const welcome = `Hello ${caregiverName}. I'm Recall AI — your specialist advisor for ${patientFirst}'s care. Here's today's briefing:\n\n${localBrief}\n\nAsk me anything about treatment, medications, cognitive changes, or care planning.`;
 
         appendMessage('assistant', welcome);
+        setContextReady(true);
 
-        unlockAudioPlayback();
-        void speak(
-          `Hello ${caregiverName}. I've reviewed ${patientFirst}'s day. Ask me anything about ${patientFirst}'s care.`,
-          { clara: true }
-        ).catch(() => undefined);
+        void (async () => {
+          try {
+            const context = formatBriefingContext(snap);
+            const result = await generateSupervisorBriefing(context, localBrief);
+            if (!result.fromLlm) return;
+            const briefing = validateBriefingAgainstSnapshot(result.text, snap);
+            setLlmConnected(true);
+            const enhanced = `Hello ${caregiverName}. I'm Recall AI — your specialist advisor for ${patientFirst}'s care. Here's today's briefing:\n\n${briefing}\n\nAsk me anything about treatment, medications, cognitive changes, or care planning.`;
+            setMessages((prev) => {
+              if (!prev.length) return prev;
+              const copy = [...prev];
+              const last = copy[copy.length - 1];
+              if (last.role === 'assistant') {
+                copy[copy.length - 1] = { ...last, content: enhanced };
+                historyRef.current = [{ role: 'assistant', content: enhanced }];
+              }
+              return copy;
+            });
+          } catch (err) {
+            console.warn('[Recall AI] Background briefing polish failed:', err);
+          }
+        })();
       } catch (err) {
         console.error('[Recall AI boot]', err);
         appendMessage(
           'assistant',
           `Hello ${caregiverName}. I'm Recall AI. I had trouble loading the full briefing, but I can still answer care questions using live patient data. What would you like to know?`
         );
+        setContextReady(true);
       } finally {
-        setState('idle');
+        setBooting(false);
       }
     };
 
@@ -187,10 +240,11 @@ export default function RecallAIChat({ user }: Props) {
   }, [messages, scrollToBottom]);
 
   const speakReply = useCallback(async (response: string) => {
+    stopListening();
     setState('speaking');
     try {
       unlockAudioPlayback();
-      await speak(response, { clara: true });
+      await speak(voiceSummary(response), { advisor: true });
     } catch (err) {
       console.error('[Recall AI TTS]', err);
     } finally {
@@ -201,18 +255,29 @@ export default function RecallAIChat({ user }: Props) {
         setState('idle');
       }
     }
-  }, []);
+  }, [stopListening]);
 
-  const processMessage = useCallback(async (text: string, speakAloud = true) => {
+  const processMessage = useCallback(async (text: string, speakAloud = false) => {
     const trimmed = text.trim();
     if (!trimmed || !user?.id) return;
+
+    if (!checkInMarkedRef.current) {
+      markSupervisorCheckIn(user.id);
+      checkInMarkedRef.current = true;
+    }
 
     setError('');
     appendMessage('user', trimmed);
     setState('thinking');
 
-    await loadContext();
-    const bundle = contextRef.current;
+    const cached = contextRef.current;
+    const cacheFresh = cached && Date.now() - ctxLoadedAtRef.current < CONTEXT_TTL_MS;
+    const bundlePromise = cacheFresh ? Promise.resolve(cached) : loadContext(true);
+    if (cacheFresh) {
+      void loadContext(true);
+    }
+
+    const bundle = await bundlePromise;
     if (!bundle) {
       setError('Patient context not loaded yet.');
       setState('idle');
@@ -266,7 +331,7 @@ export default function RecallAIChat({ user }: Props) {
           return;
         }
         setState('listening');
-        await new Promise<void>((r) => setTimeout(r, 500));
+        await new Promise<void>((r) => setTimeout(r, 300));
       }
     }
     sessionActiveRef.current = false;
@@ -293,29 +358,29 @@ export default function RecallAIChat({ user }: Props) {
     }
 
     stopSpeaking();
+    void loadContext();
     sessionActiveRef.current = true;
     setInSession(true);
     setError('');
     void runConversation();
-  }, [inSession, stopSession, runConversation]);
+  }, [inSession, stopSession, runConversation, loadContext]);
 
   const handleTextSend = () => {
     const text = typedInput.trim();
     if (!text || inSession || !contextReady) return;
     setTypedInput('');
-    unlockAudioPlayback();
-    primeSpeechSynthesis();
-    void processMessage(text, true);
+    stopSpeaking();
+    void processMessage(text, false);
   };
 
   const handlePrompt = (prompt: string) => {
     if (inSession || !contextReady) return;
-    unlockAudioPlayback();
-    void processMessage(prompt, true);
+    stopSpeaking();
+    void processMessage(prompt, false);
   };
 
   const handleRefreshContext = async () => {
-    await loadContext();
+    await loadContext(true);
     appendMessage('assistant', `I've refreshed ${patientFirst}'s live data. What would you like to know?`);
   };
 
@@ -324,8 +389,8 @@ export default function RecallAIChat({ user }: Props) {
     state === 'listening' ? 'Listening… speak now' :
     state === 'thinking'  ? 'Thinking…' :
     state === 'speaking'  ? 'Speaking…' :
-    '';
-  const canSend = typedInput.trim().length > 0 && !inSession && contextReady;
+    booting ? 'Loading briefing…' : '';
+  const canSend = typedInput.trim().length > 0 && !inSession && contextReady && !booting;
 
   return (
     <div className="rai-room">
@@ -343,7 +408,7 @@ export default function RecallAIChat({ user }: Props) {
           <span className={`rai-status rai-status--${state}`}>
             {state === 'listening' ? '● Listening' :
              state === 'thinking'  ? '◌ Thinking' :
-             state === 'speaking'  ? '▶ Speaking' : 'Ready'}
+             state === 'speaking'  ? '▶ Speaking' : booting ? '◌ Loading' : 'Ready'}
           </span>
           {llmConnected === false && <span className="rai-offline">Offline</span>}
           <button type="button" className="rai-refresh tap-feedback" onClick={() => void handleRefreshContext()} aria-label="Refresh patient data">
@@ -355,7 +420,7 @@ export default function RecallAIChat({ user }: Props) {
       <div
         className="rai-messages studio-scroll"
         ref={scrollRef}
-        aria-busy={state === 'thinking'}
+        aria-busy={state === 'thinking' || booting}
         aria-live="polite"
       >
         {messages.map((m) => (
@@ -371,14 +436,21 @@ export default function RecallAIChat({ user }: Props) {
           </div>
         ))}
 
-        {state === 'thinking' && (
+        {(state === 'thinking' || booting) && messages.length === 0 && (
           <div className="rai-bubble rai-bubble--assistant rai-bubble--typing">
             <div className="rai-bubble__avatar"><StudioIcon name="brain" size={16} /></div>
             <div className="rai-typing"><span /><span /><span /></div>
           </div>
         )}
 
-        {showPrompts && !inSession && contextReady && messages.length <= 2 && (
+        {state === 'thinking' && messages.length > 0 && (
+          <div className="rai-bubble rai-bubble--assistant rai-bubble--typing">
+            <div className="rai-bubble__avatar"><StudioIcon name="brain" size={16} /></div>
+            <div className="rai-typing"><span /><span /><span /></div>
+          </div>
+        )}
+
+        {showPrompts && !inSession && contextReady && !booting && messages.length <= 2 && (
           <div className="rai-prompts">
             {preprompts.map((p) => (
               <button key={p} type="button" className="rai-prompt-chip tap-feedback" onClick={() => handlePrompt(p)}>
@@ -411,7 +483,7 @@ export default function RecallAIChat({ user }: Props) {
               value={typedInput}
               onChange={(e) => setTypedInput(e.target.value)}
               onKeyDown={(e) => { if (e.key === 'Enter') handleTextSend(); }}
-              disabled={inSession || !contextReady}
+              disabled={inSession || !contextReady || booting}
               aria-label="Type a question to Recall AI"
             />
             <button

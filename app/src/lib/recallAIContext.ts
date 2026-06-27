@@ -1,5 +1,5 @@
 import type { User } from '../db/db';
-import { buildClaraRichContext, formatClaraContextBlock } from './claraContext';
+import { buildClaraRichContext, formatClaraContextBlock, type ClaraRichContext } from './claraContext';
 import {
   formatBriefingContext,
   gatherSupervisorBriefingSnapshot,
@@ -19,18 +19,20 @@ export async function buildRecallAIContext(
   acseScore: number,
   comfortModeActive: boolean
 ): Promise<RecallAIContextBundle> {
-  const snapshot = await gatherSupervisorBriefingSnapshot(user, acseScore, comfortModeActive);
   const claraCtx = await buildClaraRichContext(user, acseScore, comfortModeActive);
-  const briefingBlock = formatBriefingContext(snapshot);
+  const snapshot = await gatherSupervisorBriefingSnapshot(user, acseScore, comfortModeActive, claraCtx);
   const claraBlock = formatClaraContextBlock(claraCtx);
 
-  const contextBlock = `[CAREGIVER BRIEFING DATA]
-${briefingBlock}
-
-[PATIENT LIVE STATE — same data ${snapshot.patientName}'s companion Clara sees]
+  const contextBlock = `[LIVE PATIENT DATA — ${snapshot.patientName}]
 ${claraBlock}
 
-Use ONLY the facts above when discussing ${snapshot.patientName}. This is the complete patient-interface mirror — medications, routines, people, safety circle, vitals, events, and Clara activity. If something is not listed, say you don't have that information in Recall yet.`;
+Since last check-in (${snapshot.lastCheckInLabel}):
+- ACSE: ${snapshot.acseScore}${snapshot.previousAcseScore != null ? ` (was ${snapshot.previousAcseScore})` : ''}; Comfort Mode: ${snapshot.comfortModeActive ? 'active' : 'off'}
+- Alerts: ${snapshot.alertsSinceCheckIn.join('; ') || 'none'}
+- Clara conversations: ${snapshot.claraConversations.join('; ') || 'none'}
+- Events since check-in: ${snapshot.eventsSinceCheckIn.map((e) => e.title).join(', ') || 'none'}
+
+Use ONLY the facts above when discussing ${snapshot.patientName}. If something is not listed, say you don't have that information in Recall yet.`;
 
   return {
     snapshot,

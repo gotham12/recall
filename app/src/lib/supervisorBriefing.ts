@@ -1,5 +1,5 @@
 import { db, type User } from '../db/db';
-import { buildClaraRichContext } from './claraContext';
+import { buildClaraRichContext, type ClaraRichContext } from './claraContext';
 import { useAppStore } from '../store/appStore';
 import { loadCareSettings } from './careSettings';
 
@@ -81,7 +81,8 @@ function medNameMatches(logName: string, medName: string): boolean {
 export async function gatherSupervisorBriefingSnapshot(
   user: User,
   acseScore: number,
-  comfortModeActive: boolean
+  comfortModeActive: boolean,
+  existingCtx?: ClaraRichContext
 ): Promise<SupervisorBriefingSnapshot> {
   const userId = user.id!;
   const lastCheckInAt = getLastSupervisorCheckIn(userId);
@@ -90,7 +91,7 @@ export async function gatherSupervisorBriefingSnapshot(
   const now = new Date();
   const settings = loadCareSettings(userId);
 
-  const ctx = await buildClaraRichContext(user, acseScore, comfortModeActive);
+  const ctx = existingCtx ?? await buildClaraRichContext(user, acseScore, comfortModeActive);
   const store = useAppStore.getState();
 
   const [events, medLogs, acseHistory, alerts, journal] = await Promise.all([

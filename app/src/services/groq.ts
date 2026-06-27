@@ -325,34 +325,35 @@ export async function recallAIChat(
     },
     ...history
       .filter((m) => m.role === 'user' || m.role === 'assistant')
-      .slice(-14)
+      .slice(-8)
       .map((m) => ({ role: m.role, content: m.content })),
     { role: 'user', content: userMessage },
   ];
 
   try {
-    const raw = await openRouterRecallAIChat(messages);
+    const raw = await groqChat(messages, { model: MODEL_PRIMARY, max_tokens: 320, temperature: 0.55 });
     return { reply: sanitizeRecallAIReply(raw), fromLlm: true };
-  } catch (openRouterErr) {
-    console.warn('[Recall AI] OpenRouter failed, trying Groq:', openRouterErr);
+  } catch (groqErr) {
+    console.warn('[Recall AI] Groq primary failed, trying fallback:', groqErr);
+    try {
+      const raw = await groqChat(messages, { model: MODEL_FALLBACK, max_tokens: 280, temperature: 0.55 });
+      return { reply: sanitizeRecallAIReply(raw), fromLlm: true };
+    } catch (groqErr2) {
+      console.warn('[Recall AI] Groq failed, trying OpenRouter:', groqErr2);
+    }
   }
 
   try {
-    const raw = await groqChat(messages, { model: MODEL_PRIMARY, max_tokens: 600, temperature: 0.55 });
+    const raw = await openRouterRecallAIChat(messages);
     return { reply: sanitizeRecallAIReply(raw), fromLlm: true };
-  } catch (primaryErr) {
-    console.warn('[Recall AI] Groq primary failed, trying fallback:', primaryErr);
-    try {
-      const raw = await groqChat(messages, { model: MODEL_FALLBACK, max_tokens: 500, temperature: 0.55 });
-      return { reply: sanitizeRecallAIReply(raw), fromLlm: true };
-    } catch (err) {
-      console.warn('[Recall AI] LLM unavailable, using local advisor:', err);
-      return {
-        reply: localRecallAIReply(userMessage, snapshot, caregiverName),
-        fromLlm: false,
-      };
-    }
+  } catch (openRouterErr) {
+    console.warn('[Recall AI] OpenRouter failed, using local advisor:', openRouterErr);
   }
+
+  return {
+    reply: localRecallAIReply(userMessage, snapshot, caregiverName),
+    fromLlm: false,
+  };
 }
 
 export interface MemoryAnchor {

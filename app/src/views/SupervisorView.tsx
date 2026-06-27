@@ -122,15 +122,6 @@ const SUP_PANEL_TITLES: Record<string, string> = {
   stats: 'Statistics',
 };
 
-// ─── Recall AI tab ──────────────────────────────────────────────────────────
-function RecallAITab({ user }: { user: User | null }) {
-  return (
-    <div className="recall-ai-tab">
-      <RecallAIChat user={user} />
-    </div>
-  );
-}
-
 // ─── Overview tab ───────────────────────────────────────────────────────────
 function OverviewTab({ user, acseScore, onOpen, onComfortMode, comfortActive }: {
   user: User | null; acseScore: number; onOpen: (id: string) => void;
@@ -628,7 +619,9 @@ export default function SupervisorView() {
 
       <main ref={mainRef} className={`app-main${tab === 'recall-ai' ? ' app-main--recall-ai' : ''}`}>
         {tab === 'overview'  && <OverviewTab user={user} acseScore={acseScore} onOpen={openPanel} onComfortMode={toggleComfortMode} comfortActive={comfortModeActive} />}
-        {tab === 'recall-ai'   && <RecallAITab user={user} />}
+        <div className="recall-ai-tab" style={{ display: tab === 'recall-ai' ? 'flex' : 'none', flex: 1, minHeight: 0 }}>
+          <RecallAIChat user={user} />
+        </div>
         {tab === 'schedule'  && <ScheduleTab user={user} onOpen={openPanel} />}
         {tab === 'acse'      && <ACSETab user={user} />}
         {tab === 'insights'  && <InsightsTab user={user} onOpen={openPanel} />}
