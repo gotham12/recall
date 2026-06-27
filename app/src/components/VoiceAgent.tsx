@@ -35,6 +35,7 @@ export default function VoiceAgent() {
   const acseScore = useAppStore((s) => s.acseScore);
   const triggerMemoryRecap = useAppStore((s) => s.triggerMemoryRecap);
   const activateComfortMode = useAppStore((s) => s.activateComfortMode);
+  const comfortModeActive = useAppStore((s) => s.comfortModeActive);
 
   const [state, setState] = useState<VoiceState>('idle');
   const [inSession, setInSession] = useState(false);
@@ -126,7 +127,7 @@ export default function VoiceAgent() {
     setClaraLine('One moment…');
 
     const intent = detectClaraIntent(trimmed);
-    const ctx = await buildClaraRichContext(user, acseScore);
+    const ctx = await buildClaraRichContext(user, acseScore, comfortModeActive);
     let response: string;
 
     if (intent.intent === 'add_routine') {
@@ -172,7 +173,7 @@ export default function VoiceAgent() {
     if (!sessionActiveRef.current) return;
     if (intent.cascade === 'memory_recap') await runCascade('memory_recap', intent.recapReason);
     else if (intent.cascade === 'comfort_mode') await runCascade('comfort_mode');
-  }, [checkRepeatQuestion, user, acseScore, speakResponse, runCascade, firstName]);
+  }, [checkRepeatQuestion, user, acseScore, comfortModeActive, speakResponse, runCascade, firstName]);
 
   const runConversation = useCallback(async () => {
     while (sessionActiveRef.current) {

@@ -90,7 +90,7 @@ export async function gatherSupervisorBriefingSnapshot(
   const now = new Date();
   const settings = loadCareSettings(userId);
 
-  const ctx = await buildClaraRichContext(user, acseScore);
+  const ctx = await buildClaraRichContext(user, acseScore, comfortModeActive);
   const store = useAppStore.getState();
 
   const [events, medLogs, acseHistory, alerts, journal] = await Promise.all([

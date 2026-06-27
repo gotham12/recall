@@ -20,32 +20,10 @@ type LoginStep =
   | 'supervisor-list'
   | 'supervisor-auth';
 
-const STEP_HERO: Record<LoginStep, { src: string; alt: string; caption: string }> = {
-  welcome: {
-    src: LOGIN_HERO.welcome,
-    alt: 'Three generations sharing memories together',
-    caption: 'Memory · Medication · Moments',
-  },
-  'patient-list': {
-    src: LOGIN_HERO.patientList,
-    alt: 'Patient and caregiver watching the sunset',
-    caption: 'Your journey. You\'re not alone.',
-  },
-  'patient-pin': {
-    src: LOGIN_HERO.patientPin,
-    alt: 'Small meaningful steps on a garden path',
-    caption: 'Small steps. Meaningful days.',
-  },
-  'supervisor-list': {
-    src: LOGIN_HERO.supervisorList,
-    alt: 'Hands held in caring support',
-    caption: 'Care. Support. Together.',
-  },
-  'supervisor-auth': {
-    src: LOGIN_HERO.supervisorAuth,
-    alt: 'Caregiver at a desk with patient insights',
-    caption: 'You don\'t have to do it all alone.',
-  },
+const WELCOME_HERO = {
+  src: LOGIN_HERO.welcome,
+  alt: 'Three generations sharing memories together',
+  caption: 'Memory · Medication · Moments',
 };
 
 function patientPhoto(user: User): string | undefined {
@@ -85,24 +63,18 @@ export default function LoginScreen() {
     return 'supervisor-auth';
   }, [role, selectedPatient, supervisorPatient]);
 
-  const hero = STEP_HERO[step];
+  const showHero = step === 'welcome';
 
   const profilePatient = useMemo(() => {
     if (selectedPatient) return selectedPatient;
     if (supervisorPatient) return supervisorPatient;
-    if (step === 'patient-list' || step === 'supervisor-list' || step === 'patient-pin' || step === 'supervisor-auth') {
+    if (step !== 'welcome') {
       return patients.find((p) => p.name === 'Margaret') ?? patients[0] ?? null;
     }
     return null;
   }, [selectedPatient, supervisorPatient, step, patients]);
 
   const profilePhotoUrl = profilePatient ? patientPhoto(profilePatient) : undefined;
-
-  const flowDots = useMemo(() => {
-    if (role === null) return ['welcome'] as const;
-    if (role === 'patient') return ['patient-list', 'patient-pin'] as const;
-    return ['supervisor-list', 'supervisor-auth'] as const;
-  }, [role]);
 
   useEffect(() => {
     void seedIfEmpty();
@@ -137,9 +109,9 @@ export default function LoginScreen() {
   }, []);
 
   useEffect(() => {
-    animateHeroSwap();
+    if (showHero) animateHeroSwap();
     animateStepIn();
-  }, [step, animateHeroSwap, animateStepIn]);
+  }, [step, showHero, animateHeroSwap, animateStepIn]);
 
   const pulseButton = (el: HTMLElement) => {
     gsap.fromTo(el, { scale: 0.96 }, { scale: 1, duration: 0.28, ease: 'back.out(2.5)' });
@@ -212,44 +184,33 @@ export default function LoginScreen() {
 
   return (
     <div ref={containerRef} className="dash-login">
-      <div ref={cardRef} className="dash-login__card">
-        <div ref={heroRef} className="dash-login__hero">
-          <div className="dash-login__hero-frame">
-            <img
-              ref={heroImgRef}
-              key={hero.src}
-              src={hero.src}
-              alt={hero.alt}
-              className="dash-login__hero-photo"
-              loading="eager"
-              decoding="async"
-            />
-            <div className="dash-login__hero-shade" />
-            {step === 'welcome' && (
+      <div ref={cardRef} className={`dash-login__card${showHero ? '' : ' dash-login__card--no-hero'}`}>
+        {showHero ? (
+          <div ref={heroRef} className="dash-login__hero">
+            <div className="dash-login__hero-frame">
+              <img
+                ref={heroImgRef}
+                src={WELCOME_HERO.src}
+                alt={WELCOME_HERO.alt}
+                className="dash-login__hero-photo"
+                loading="eager"
+                decoding="async"
+              />
+              <div className="dash-login__hero-shade" />
               <div className="dash-login__brand dash-login__brand--overlay">
                 <h1 className="dash-login__wordmark">Recall</h1>
               </div>
-            )}
-            {profilePhotoUrl && step !== 'welcome' && (
-              <div className="dash-login__hero-profile">
-                <img
-                  src={profilePhotoUrl}
-                  alt={profilePatient?.name ?? 'Patient'}
-                  loading="eager"
-                />
-              </div>
-            )}
-            <p className="dash-login__hero-caption">{hero.caption}</p>
+              <p className="dash-login__hero-caption">{WELCOME_HERO.caption}</p>
+            </div>
           </div>
-          <div className="dash-login__step-dots" aria-hidden>
-            {flowDots.map((id) => (
-              <span
-                key={id}
-                className={`dash-login__dot${step === id ? ' dash-login__dot--active' : ''}`}
-              />
-            ))}
+        ) : (
+          <div className="dash-login__compact-bar">
+            <h1 className="dash-login__wordmark">Recall</h1>
+            {profilePhotoUrl && (
+              <img src={profilePhotoUrl} alt={profilePatient?.name ?? 'Patient'} className="dash-login__compact-photo" />
+            )}
           </div>
-        </div>
+        )}
 
         <div ref={stepRef} className="dash-login__step">
           <div className="dash-login__step-body">

@@ -19,6 +19,10 @@ import LiveActivityFeed from '../components/supervisor/LiveActivityFeed';
 import MedicationAdherence from '../components/supervisor/MedicationAdherence';
 import WeeklyInsights from '../components/supervisor/WeeklyInsights';
 import RecallAIChat from '../components/supervisor/RecallAIChat';
+import FamiliarFaces from '../components/FamiliarFaces';
+import SafetyCircle from '../components/SafetyCircle';
+import RoutineChecklist from '../components/RoutineChecklist';
+import { isMedicationDueSoon } from '../lib/schedule';
 import { useAppStore } from '../store/appStore';
 import { logout } from '../lib/session';
 import SettingsSheet from '../components/SettingsSheet';
@@ -129,14 +133,22 @@ function OverviewTab({ user, acseScore, onOpen, onComfortMode, comfortActive }: 
   onComfortMode: () => void; comfortActive: boolean;
 }) {
   const scoreColor = acseScore >= 80 ? '#34C759' : acseScore >= 60 ? '#FF9500' : '#FF3B30';
-  const eventCount = useLiveQuery<number>(
-    () => user?.id ? db.events.where('userId').equals(user.id).count() : Promise.resolve(0),
+  const now = new Date();
+  const events = useLiveQuery<Event[]>(
+    () => user?.id ? db.events.where('userId').equals(user.id).sortBy('timestamp') : Promise.resolve([]),
     [user?.id]
-  ) ?? 0;
+  ) ?? [];
+  const eventCount = events.length;
   const medCount = useLiveQuery<number>(
     () => user?.id ? db.medicationLogs.where('userId').equals(user.id).count() : Promise.resolve(0),
     [user?.id]
   ) ?? 0;
+  const medications = user?.medications ?? [];
+  const dueMeds = medications.filter((m) => isMedicationDueSoon(m.schedule));
+  const upcoming = events
+    .filter((e) => !e.completed && new Date(e.timestamp) > now)
+    .sort((a, b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime())
+    .slice(0, 4);
 
   return (
     <div className="tab-scroll">
@@ -218,22 +230,109 @@ function OverviewTab({ user, acseScore, onOpen, onComfortMode, comfortActive }: 
         </div>
       </section>
 
-      {/* Patient info */}
+      {/* Patient profile */}
       {user && (
         <section className="app-section">
           <div className="sup-section-header">
             <div className="sup-section-dot" style={{ background: '#5856D6' }}/>
-            <h2 className="app-section-title" style={{ margin: 0 }}>Patient</h2>
+            <h2 className="app-section-title" style={{ margin: 0 }}>Patient Profile</h2>
           </div>
-          <div className="app-card" style={{ padding: '16px 20px', borderLeft: '3px solid #5856D6' }}>
-            <p style={{ fontWeight: 700, fontSize: 17, margin: '0 0 4px', color: '#1C1C1E' }}>{user.name}</p>
-            <p style={{ fontSize: 14, color: 'rgba(60,60,67,0.55)', margin: '0 0 2px' }}>Age {user.age} · {user.city}</p>
-            {user.caregiverName && <p style={{ fontSize: 14, color: 'rgba(60,60,67,0.55)', margin: 0 }}>
-              Caregiver: {user.caregiverName}
-            </p>}
+          <div className="app-card sup-patient-card" style={{ borderLeft: '3px solid #5856D6' }}>
+            {user.familyPhotoUrl && (
+              <img src={user.familyPhotoUrl} alt={user.name} className="sup-patient-card__photo" />
+            )}
+            <div>
+              <p style={{ fontWeight: 700, fontSize: 17, margin: '0 0 4px', color: '#1C1C1E' }}>{user.name}</p>
+              <p style={{ fontSize: 14, color: 'rgba(60,60,67,0.55)', margin: '0 0 2px' }}>Age {user.age} · {user.city}</p>
+              {user.homeAddress && <p style={{ fontSize: 13, color: 'rgba(60,60,67,0.50)', margin: '0 0 2px' }}>{user.homeAddress}</p>}
+              {user.caregiverName && <p style={{ fontSize: 14, color: 'rgba(60,60,67,0.55)', margin: 0 }}>
+                Caregiver: {user.caregiverName} ({user.caregiverRelationship})
+              </p>}
+            </div>
           </div>
+          {user.emergencyNote && (
+            <div className="app-card" style={{ marginTop: 10, padding: '12px 16px', borderLeft: '3px solid #FF9500' }}>
+              <p style={{ fontSize: 12, fontWeight: 600, color: '#FF9500', margin: '0 0 4px', textTransform: 'uppercase', letterSpacing: '0.04em' }}>Emergency note</p>
+              <p style={{ fontSize: 14, color: '#1C1C1E', margin: 0, lineHeight: 1.45 }}>{user.emergencyNote}</p>
+            </div>
+          )}
         </section>
       )}
+
+      {/* Medications due — mirrors patient Today tab */}
+      <section className="app-section">
+        <div className="sup-section-header">
+          <div className="sup-section-dot" style={{ background: '#EA6C00' }}/>
+          <h2 className="app-section-title" style={{ margin: 0 }}>Medications</h2>
+        </div>
+        <div className="app-card-group">
+          {dueMeds.length === 0 ? (
+            <div className="app-card-row app-card-row--single">
+              <span className="row-text">All medications up to date</span>
+            </div>
+          ) : dueMeds.slice(0, 3).map((med) => (
+            <div key={med.name} className="app-card-row" onClick={() => onOpen('medications')}>
+              <span className="row-text">{med.name}</span>
+              <span className="row-badge row-badge--orange">Due now</span>
+            </div>
+          ))}
+          <div className="app-card-row app-card-row--action" onClick={() => onOpen('medications')}>
+            <span className="row-text" style={{ color: '#007AFF' }}>View full medication plan</span>
+          </div>
+        </div>
+      </section>
+
+      {/* Coming up — mirrors patient Today tab */}
+      <section className="app-section">
+        <div className="sup-section-header">
+          <div className="sup-section-dot" style={{ background: '#007AFF' }}/>
+          <h2 className="app-section-title" style={{ margin: 0 }}>Coming Up</h2>
+        </div>
+        <div className="app-card-group">
+          {upcoming.length === 0 ? (
+            <div className="app-card-row app-card-row--single">
+              <span className="row-text" style={{ color: 'rgba(60,60,67,0.45)' }}>Nothing scheduled</span>
+            </div>
+          ) : upcoming.map((ev) => (
+            <div key={ev.id} className="app-card-row">
+              <span className="row-text">{ev.title}</span>
+              <span className="row-time">{new Date(ev.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
+            </div>
+          ))}
+        </div>
+      </section>
+
+      {/* Daily routine — mirrors patient Routine tab */}
+      <section className="app-section">
+        <div className="sup-section-header">
+          <div className="sup-section-dot" style={{ background: '#16A34A' }}/>
+          <h2 className="app-section-title" style={{ margin: 0 }}>Daily Routine</h2>
+        </div>
+        <div className="app-card" style={{ padding: '4px 0', borderLeft: '3px solid rgba(22,163,74,0.5)' }}>
+          <RoutineChecklist />
+        </div>
+      </section>
+
+      {/* People — mirrors patient People tab */}
+      <section className="app-section">
+        <div className="sup-section-header">
+          <div className="sup-section-dot" style={{ background: '#AF52DE' }}/>
+          <h2 className="app-section-title" style={{ margin: 0 }}>Familiar Faces</h2>
+        </div>
+        <div className="app-card" style={{ padding: '8px 4px', borderLeft: '3px solid rgba(175,82,222,0.5)' }}>
+          <FamiliarFaces />
+        </div>
+      </section>
+
+      <section className="app-section">
+        <div className="sup-section-header">
+          <div className="sup-section-dot" style={{ background: '#FF375F' }}/>
+          <h2 className="app-section-title" style={{ margin: 0 }}>Safety Circle</h2>
+        </div>
+        <div className="app-card" style={{ padding: '8px 4px', borderLeft: '3px solid rgba(255,55,95,0.5)' }}>
+          <SafetyCircle />
+        </div>
+      </section>
 
       {/* Live activity */}
       <section className="app-section">

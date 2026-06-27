@@ -20,7 +20,7 @@ export async function buildRecallAIContext(
   comfortModeActive: boolean
 ): Promise<RecallAIContextBundle> {
   const snapshot = await gatherSupervisorBriefingSnapshot(user, acseScore, comfortModeActive);
-  const claraCtx = await buildClaraRichContext(user, acseScore);
+  const claraCtx = await buildClaraRichContext(user, acseScore, comfortModeActive);
   const briefingBlock = formatBriefingContext(snapshot);
   const claraBlock = formatClaraContextBlock(claraCtx);
 
@@ -30,7 +30,7 @@ ${briefingBlock}
 [PATIENT LIVE STATE — same data Margaret's companion Clara sees]
 ${claraBlock}
 
-Use ONLY the facts above when discussing ${snapshot.patientName}. If something is not listed, say you don't have that information in Recall yet.`;
+Use ONLY the facts above when discussing ${snapshot.patientName}. This is the complete patient-interface mirror — medications, routines, people, safety circle, vitals, events, and Clara activity. If something is not listed, say you don't have that information in Recall yet.`;
 
   return {
     snapshot,

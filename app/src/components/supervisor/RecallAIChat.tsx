@@ -1,7 +1,9 @@
 import { useState, useRef, useCallback, useEffect } from 'react';
+import { useLiveQuery } from 'dexie-react-hooks';
 import { useClaraVoice } from '../../hooks/useClaraVoice';
 import { useAppStore } from '../../store/appStore';
 import type { User } from '../../db/db';
+import { db } from '../../db/db';
 import { buildRecallAIContext, type RecallAIContextBundle } from '../../lib/recallAIContext';
 import {
   formatBriefingContext,
@@ -25,6 +27,7 @@ interface ChatMessage {
   content: string;
 }
 
+const CONTEXT_REFRESH_MS = 20_000;
 const POST_SPEAK_PAUSE_MS = 400;
 const SUGGESTED_PROMPTS = [
   'Explain her ACSE score today',
@@ -86,6 +89,30 @@ export default function RecallAIChat({ user }: Props) {
     setContextReady(true);
     return bundle;
   }, [user, acseScore, comfortModeActive]);
+
+  const liveDataTick = useLiveQuery(
+    async () => {
+      if (!user?.id) return 0;
+      const [events, medLogs, routines] = await Promise.all([
+        db.events.where('userId').equals(user.id).count(),
+        db.medicationLogs.where('userId').equals(user.id).count(),
+        db.routineTasks.where('userId').equals(user.id).count(),
+      ]);
+      return events + medLogs + routines;
+    },
+    [user?.id]
+  );
+
+  useEffect(() => {
+    if (!user?.id) return;
+    void loadContext();
+  }, [user?.id, acseScore, comfortModeActive, liveDataTick, loadContext]);
+
+  useEffect(() => {
+    if (!user?.id) return;
+    const timer = window.setInterval(() => { void loadContext(); }, CONTEXT_REFRESH_MS);
+    return () => window.clearInterval(timer);
+  }, [user?.id, loadContext]);
 
   useEffect(() => {
     unlockAudioPlayback();
@@ -169,9 +196,7 @@ export default function RecallAIChat({ user }: Props) {
     appendMessage('user', trimmed);
     setState('thinking');
 
-    if (!contextRef.current) {
-      await loadContext();
-    }
+    await loadContext();
     const bundle = contextRef.current;
     if (!bundle) {
       setError('Patient context not loaded yet.');
