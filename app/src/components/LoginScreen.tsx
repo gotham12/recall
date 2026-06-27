@@ -6,7 +6,7 @@ import { db, type User } from '../db/db';
 import { seedIfEmpty } from '../db/seed';
 import { checkSupervisorAuth } from '../lib/auth';
 import { loadUserSession } from '../lib/session';
-import { FAMILY_PHOTOS } from '../lib/assets';
+import { LOGIN_HERO } from '../lib/assets';
 import { photoForContact } from '../lib/safetyContacts';
 import StudioIcon from './StudioIcon';
 import OnboardingWizard from './OnboardingWizard';
@@ -20,31 +20,31 @@ type LoginStep =
   | 'supervisor-list'
   | 'supervisor-auth';
 
-const STEP_HERO: Record<LoginStep, { src: string; alt: string; caption?: string }> = {
+const STEP_HERO: Record<LoginStep, { src: string; alt: string; caption: string }> = {
   welcome: {
-    src: `${import.meta.env.BASE_URL}logo.png`,
-    alt: 'Recall',
-    caption: 'Your memory companion',
+    src: LOGIN_HERO.welcome,
+    alt: 'Three generations sharing memories together',
+    caption: 'Memory · Medication · Moments',
   },
   'patient-list': {
-    src: FAMILY_PHOTOS.susan,
-    alt: 'Patient choosing profile',
-    caption: 'Daily care made gentle',
+    src: LOGIN_HERO.patientList,
+    alt: 'Patient and caregiver watching the sunset',
+    caption: 'Your journey. You\'re not alone.',
   },
   'patient-pin': {
-    src: FAMILY_PHOTOS.robert,
-    alt: 'Welcome back',
-    caption: 'Secure and familiar',
+    src: LOGIN_HERO.patientPin,
+    alt: 'Small meaningful steps on a garden path',
+    caption: 'Small steps. Meaningful days.',
   },
   'supervisor-list': {
-    src: FAMILY_PHOTOS.lily,
-    alt: 'Caregiver dashboard',
-    caption: 'Care with confidence',
+    src: LOGIN_HERO.supervisorList,
+    alt: 'Hands held in caring support',
+    caption: 'Care. Support. Together.',
   },
   'supervisor-auth': {
-    src: FAMILY_PHOTOS.susan,
-    alt: 'Supervisor sign in',
-    caption: 'Protected caregiver access',
+    src: LOGIN_HERO.supervisorAuth,
+    alt: 'Caregiver at a desk with patient insights',
+    caption: 'You don\'t have to do it all alone.',
   },
 };
 
@@ -85,33 +85,20 @@ export default function LoginScreen() {
     return 'supervisor-auth';
   }, [role, selectedPatient, supervisorPatient]);
 
-  const hero = useMemo(() => {
-    if (step === 'patient-pin' && selectedPatient) {
-      const photo = patientPhoto(selectedPatient);
-      return {
-        src: photo ?? STEP_HERO['patient-pin'].src,
-        alt: selectedPatient.name,
-        caption: `Welcome back, ${selectedPatient.name.split(' ')[0]}`,
-      };
-    }
-    if (step === 'supervisor-auth' && supervisorPatient) {
-      const photo = patientPhoto(supervisorPatient);
-      return {
-        src: photo ?? STEP_HERO['supervisor-auth'].src,
-        alt: supervisorPatient.name,
-        caption: `Caring for ${supervisorPatient.name.split(' ')[0]}`,
-      };
-    }
-    return STEP_HERO[step];
-  }, [step, selectedPatient, supervisorPatient]);
+  const hero = STEP_HERO[step];
+
+  const flowDots = useMemo(() => {
+    if (role === null) return ['welcome'] as const;
+    if (role === 'patient') return ['patient-list', 'patient-pin'] as const;
+    return ['supervisor-list', 'supervisor-auth'] as const;
+  }, [role]);
 
   useEffect(() => {
     void seedIfEmpty();
     if (!containerRef.current) return;
     const tl = gsap.timeline();
-    tl.from('.dash-login__brand', { y: -28, opacity: 0, duration: 0.7, ease: 'power3.out' });
-    tl.from(cardRef.current, { y: 48, opacity: 0, scale: 0.96, duration: 0.65, ease: 'back.out(1.4)' }, 0.12);
-    tl.from('.dash-login__hero', { scale: 1.08, opacity: 0, duration: 0.55, ease: 'power2.out' }, 0.2);
+    tl.from(cardRef.current, { y: 24, opacity: 0, duration: 0.55, ease: 'power3.out' });
+    tl.from('.dash-login__hero-photo', { scale: 1.08, opacity: 0, duration: 0.6, ease: 'power2.out' }, 0.08);
   }, []);
 
   const animateStepIn = useCallback(() => {
@@ -121,20 +108,20 @@ export default function LoginScreen() {
       { x: 36, opacity: 0 },
       { x: 0, opacity: 1, duration: 0.38, ease: 'power3.out' }
     );
-    gsap.from(stepRef.current.querySelectorAll('.dash-btn, .dash-input, .dash-login__subtitle'),
-      { y: 14, opacity: 0, duration: 0.34, stagger: 0.07, ease: 'power2.out', delay: 0.06 }
+    gsap.from(stepRef.current.querySelectorAll('.dash-login__step-body > *, .dash-btn, .dash-input'),
+      { y: 14, opacity: 0, duration: 0.34, stagger: 0.06, ease: 'power2.out', delay: 0.06 }
     );
   }, []);
 
   const animateHeroSwap = useCallback(() => {
     if (!heroRef.current || !heroImgRef.current) return;
     gsap.fromTo(heroRef.current,
-      { opacity: 0.4, scale: 0.97 },
-      { opacity: 1, scale: 1, duration: 0.45, ease: 'power2.out' }
+      { opacity: 0.5 },
+      { opacity: 1, duration: 0.4, ease: 'power2.out' }
     );
     gsap.fromTo(heroImgRef.current,
-      { scale: 1.12, opacity: 0 },
-      { scale: 1, opacity: 1, duration: 0.55, ease: 'power3.out' }
+      { scale: 1.06, opacity: 0 },
+      { scale: 1, opacity: 1, duration: 0.5, ease: 'power3.out' }
     );
   }, []);
 
@@ -214,12 +201,6 @@ export default function LoginScreen() {
 
   return (
     <div ref={containerRef} className="dash-login">
-      <div className="dash-login__brand">
-        <img src={`${import.meta.env.BASE_URL}logo.png`} alt="Recall logo" className="dash-login__logo-img" />
-        <h1 className="dash-login__wordmark">Recall</h1>
-        <p className="dash-login__tagline">Memory · Medication · Moments</p>
-      </div>
-
       <div ref={cardRef} className="dash-login__card">
         <div ref={heroRef} className="dash-login__hero">
           <div className="dash-login__hero-frame">
@@ -229,27 +210,145 @@ export default function LoginScreen() {
               src={hero.src}
               alt={hero.alt}
               className="dash-login__hero-photo"
+              loading="eager"
+              decoding="async"
             />
             <div className="dash-login__hero-shade" />
-            {hero.caption && <p className="dash-login__hero-caption">{hero.caption}</p>}
+            {step === 'welcome' && (
+              <div className="dash-login__brand dash-login__brand--overlay">
+                <h1 className="dash-login__wordmark">Recall</h1>
+              </div>
+            )}
+            <p className="dash-login__hero-caption">{hero.caption}</p>
           </div>
           <div className="dash-login__step-dots" aria-hidden>
-            {(['welcome', 'patient-list', 'supervisor-list'] as const).map((id) => (
+            {flowDots.map((id) => (
               <span
                 key={id}
-                className={`dash-login__dot${step === id || (step === 'patient-pin' && id === 'patient-list') || (step === 'supervisor-auth' && id === 'supervisor-list') ? ' dash-login__dot--active' : ''}`}
+                className={`dash-login__dot${step === id ? ' dash-login__dot--active' : ''}`}
               />
             ))}
           </div>
         </div>
 
         <div ref={stepRef} className="dash-login__step">
-          {step === 'welcome' && (
-            <>
-              <p className="dash-login__eyebrow">Welcome back</p>
-              <p className="dash-login__title">Who&apos;s using Recall?</p>
-              <p className="dash-login__subtitle">Choose how you&apos;d like to sign in today.</p>
-              <div className="dash-login__actions">
+          <div className="dash-login__step-body">
+            {step === 'welcome' && (
+              <>
+                <p className="dash-login__eyebrow">Welcome back</p>
+                <p className="dash-login__title">Who&apos;s using Recall?</p>
+                <p className="dash-login__subtitle">Choose how you&apos;d like to sign in today.</p>
+              </>
+            )}
+
+            {step === 'patient-list' && (
+              <>
+                <button type="button" className="dash-back" onClick={() => transitionTo(() => setRole(null))}>← Back</button>
+                <p className="dash-login__eyebrow">Patient</p>
+                <p className="dash-login__title">Who are you today?</p>
+                <p className="dash-login__subtitle">Tap your name to continue.</p>
+              </>
+            )}
+
+            {step === 'patient-pin' && selectedPatient && (
+              <>
+                <button
+                  type="button"
+                  className="dash-back"
+                  onClick={() => transitionTo(() => { setSelectedPatient(null); setPatientPin(''); setPinError(''); })}
+                >
+                  ← Back
+                </button>
+                <p className="dash-login__eyebrow">Patient</p>
+                <p className="dash-login__title">Welcome back,<br />{selectedPatient.name.split(' ')[0]}</p>
+                {selectedPatient.patientPin && (
+                  <>
+                    <input
+                      type="password"
+                      inputMode="numeric"
+                      maxLength={4}
+                      value={patientPin}
+                      onChange={(e) => { setPatientPin(e.target.value.replace(/\D/g, '')); setPinError(''); }}
+                      placeholder="Enter PIN"
+                      className="dash-input"
+                      autoFocus
+                    />
+                    {pinError && <p className="dash-error">{pinError}</p>}
+                  </>
+                )}
+              </>
+            )}
+
+            {step === 'supervisor-list' && (
+              <>
+                <button type="button" className="dash-back" onClick={() => transitionTo(() => setRole(null))}>← Back</button>
+                <p className="dash-login__eyebrow">Supervisor</p>
+                <p className="dash-login__title">Who are you caring for?</p>
+                <p className="dash-login__subtitle">Select the patient you&apos;re monitoring today.</p>
+              </>
+            )}
+
+            {step === 'supervisor-auth' && supervisorPatient && (
+              <>
+                <button
+                  type="button"
+                  className="dash-back"
+                  onClick={() => transitionTo(() => { setSupervisorPatient(null); setPassword(''); setError(''); })}
+                >
+                  ← Back
+                </button>
+                <p className="dash-login__eyebrow">Supervisor</p>
+                <p className="dash-login__title">Signing in for {supervisorPatient.name.split(' ')[0]}</p>
+                <input
+                  type="password"
+                  value={password}
+                  onChange={(e) => { setPassword(e.target.value); setError(''); }}
+                  onKeyDown={(e) => e.key === 'Enter' && handleSupervisorLogin()}
+                  placeholder="Password"
+                  className="dash-input"
+                  autoFocus
+                />
+                {error && <p className="dash-error">{error}</p>}
+                <p className="dash-login__demo-hint">
+                  Demo password: <strong>care2026</strong>
+                </p>
+              </>
+            )}
+
+            {(step === 'patient-list' || step === 'supervisor-list') && (
+              <div className="dash-login__user-list">
+                {patients.map((p) => {
+                  const photo = patientPhoto(p);
+                  const isPatient = step === 'patient-list';
+                  return (
+                    <button
+                      key={p.id}
+                      type="button"
+                      className="dash-btn dash-btn--user"
+                      onClick={(e) => transitionTo(
+                        () => (isPatient ? setSelectedPatient(p) : setSupervisorPatient(p)),
+                        e.currentTarget
+                      )}
+                    >
+                      {photo ? (
+                        <img src={photo} alt="" className="dash-btn__photo" />
+                      ) : (
+                        <span className="dash-btn__avatar">{initials(p.name)}</span>
+                      )}
+                      <span className="dash-btn__body">
+                        <span className="dash-btn__label">{p.name}</span>
+                        <span className="dash-btn__hint">{p.city}</span>
+                      </span>
+                    </button>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+
+          <div className="dash-login__actions">
+            {step === 'welcome' && (
+              <>
                 <button
                   type="button"
                   className="dash-btn dash-btn--primary"
@@ -272,161 +371,46 @@ export default function LoginScreen() {
                     <span className="dash-btn__hint">Caregiver dashboard</span>
                   </span>
                 </button>
-              </div>
-            </>
-          )}
+              </>
+            )}
 
-          {step === 'patient-list' && (
-            <>
-              <button type="button" className="dash-back" onClick={() => transitionTo(() => setRole(null))}>← Back</button>
-              <p className="dash-login__eyebrow">Patient</p>
-              <p className="dash-login__title">Who are you today?</p>
-              <p className="dash-login__subtitle">Tap your name to continue.</p>
-              <div className="dash-login__actions">
-                {patients.map((p) => {
-                  const photo = patientPhoto(p);
-                  return (
-                    <button
-                      key={p.id}
-                      type="button"
-                      className="dash-btn dash-btn--user"
-                      onClick={(e) => transitionTo(() => setSelectedPatient(p), e.currentTarget)}
-                    >
-                      {photo ? (
-                        <img src={photo} alt="" className="dash-btn__photo" />
-                      ) : (
-                        <span className="dash-btn__avatar">{initials(p.name)}</span>
-                      )}
-                      <span className="dash-btn__body">
-                        <span className="dash-btn__label">{p.name}</span>
-                        <span className="dash-btn__hint">{p.city}</span>
-                      </span>
-                    </button>
-                  );
-                })}
-                <button type="button" className="dash-btn dash-btn--ghost" onClick={() => setShowOnboarding(true)}>
-                  <span className="dash-btn__body"><span className="dash-btn__label">+ Set up new profile</span></span>
-                </button>
-              </div>
-            </>
-          )}
+            {step === 'patient-list' && (
+              <button type="button" className="dash-btn dash-btn--ghost" onClick={() => setShowOnboarding(true)}>
+                <span className="dash-btn__body"><span className="dash-btn__label">+ Set up new profile</span></span>
+              </button>
+            )}
 
-          {step === 'patient-pin' && selectedPatient && (
-            <>
+            {step === 'patient-pin' && selectedPatient && (
               <button
                 type="button"
-                className="dash-back"
-                onClick={() => transitionTo(() => { setSelectedPatient(null); setPatientPin(''); setPinError(''); })}
+                className="dash-btn dash-btn--primary dash-btn--cta"
+                onClick={(e) => {
+                  if (selectedPatient.patientPin && patientPin !== selectedPatient.patientPin) {
+                    setPinError('Incorrect PIN.');
+                    gsap.fromTo(e.currentTarget, { x: -6 }, { x: 0, duration: 0.08, repeat: 3, yoyo: true });
+                    return;
+                  }
+                  pulseButton(e.currentTarget);
+                  void handlePatientLogin(selectedPatient);
+                }}
               >
-                ← Back
+                <span className="dash-btn__body"><span className="dash-btn__label">Enter Dashboard</span></span>
               </button>
-              <p className="dash-login__eyebrow">Patient</p>
-              <p className="dash-login__title">Welcome back,<br />{selectedPatient.name.split(' ')[0]}</p>
-              <p className="dash-login__subtitle">Enter your PIN to open your dashboard.</p>
-              <div className="dash-login__actions">
-                {selectedPatient.patientPin && (
-                  <input
-                    type="password"
-                    inputMode="numeric"
-                    maxLength={4}
-                    value={patientPin}
-                    onChange={(e) => { setPatientPin(e.target.value.replace(/\D/g, '')); setPinError(''); }}
-                    placeholder="Enter PIN"
-                    className="dash-input"
-                    autoFocus
-                  />
-                )}
-                {pinError && <p className="dash-error">{pinError}</p>}
-                <button
-                  type="button"
-                  className="dash-btn dash-btn--primary"
-                  onClick={(e) => {
-                    if (selectedPatient.patientPin && patientPin !== selectedPatient.patientPin) {
-                      setPinError('Incorrect PIN.');
-                      gsap.fromTo(e.currentTarget, { x: -6 }, { x: 0, duration: 0.08, repeat: 3, yoyo: true });
-                      return;
-                    }
-                    pulseButton(e.currentTarget);
-                    void handlePatientLogin(selectedPatient);
-                  }}
-                >
-                  <span className="dash-btn__body"><span className="dash-btn__label">Enter Dashboard</span></span>
-                </button>
-              </div>
-            </>
-          )}
+            )}
 
-          {step === 'supervisor-list' && (
-            <>
-              <button type="button" className="dash-back" onClick={() => transitionTo(() => setRole(null))}>← Back</button>
-              <p className="dash-login__eyebrow">Supervisor</p>
-              <p className="dash-login__title">Who are you caring for?</p>
-              <p className="dash-login__subtitle">Select the patient you&apos;re monitoring today.</p>
-              <div className="dash-login__actions">
-                {patients.map((p) => {
-                  const photo = patientPhoto(p);
-                  return (
-                    <button
-                      key={p.id}
-                      type="button"
-                      className="dash-btn dash-btn--user"
-                      onClick={(e) => transitionTo(() => setSupervisorPatient(p), e.currentTarget)}
-                    >
-                      {photo ? (
-                        <img src={photo} alt="" className="dash-btn__photo" />
-                      ) : (
-                        <span className="dash-btn__avatar">{initials(p.name)}</span>
-                      )}
-                      <span className="dash-btn__body">
-                        <span className="dash-btn__label">{p.name}</span>
-                        <span className="dash-btn__hint">{p.city}</span>
-                      </span>
-                    </button>
-                  );
-                })}
-              </div>
-            </>
-          )}
-
-          {step === 'supervisor-auth' && supervisorPatient && (
-            <>
+            {step === 'supervisor-auth' && supervisorPatient && (
               <button
                 type="button"
-                className="dash-back"
-                onClick={() => transitionTo(() => { setSupervisorPatient(null); setPassword(''); setError(''); })}
+                className="dash-btn dash-btn--primary dash-btn--cta"
+                onClick={(e) => {
+                  pulseButton(e.currentTarget);
+                  void handleSupervisorLogin();
+                }}
               >
-                ← Back
+                <span className="dash-btn__body"><span className="dash-btn__label">Sign In</span></span>
               </button>
-              <p className="dash-login__eyebrow">Supervisor</p>
-              <p className="dash-login__title">Signing in for {supervisorPatient.name.split(' ')[0]}</p>
-              <p className="dash-login__subtitle">Enter your caregiver password to continue.</p>
-              <div className="dash-login__actions">
-                <input
-                  type="password"
-                  value={password}
-                  onChange={(e) => { setPassword(e.target.value); setError(''); }}
-                  onKeyDown={(e) => e.key === 'Enter' && handleSupervisorLogin()}
-                  placeholder="Password"
-                  className="dash-input"
-                  autoFocus
-                />
-                {error && <p className="dash-error">{error}</p>}
-                <button
-                  type="button"
-                  className="dash-btn dash-btn--primary"
-                  onClick={(e) => {
-                    pulseButton(e.currentTarget);
-                    void handleSupervisorLogin();
-                  }}
-                >
-                  <span className="dash-btn__body"><span className="dash-btn__label">Sign In</span></span>
-                </button>
-                <p className="dash-login__demo-hint">
-                  Demo password: <strong>care2026</strong>
-                </p>
-              </div>
-            </>
-          )}
+            )}
+          </div>
         </div>
       </div>
     </div>
