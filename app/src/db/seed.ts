@@ -256,7 +256,7 @@ async function syncMargaretFamilyData(): Promise<void> {
   }
 }
 
-const DONEPEZIL_COOLDOWN_HOURS = 6;
+const DONEPEZIL_TAKEN_MS = 3 * 60 * 60 * 1000;
 
 async function ensureDonepezilDemoLog(userId: number): Promise<void> {
   const user = await db.users.get(userId);
@@ -265,19 +265,31 @@ async function ensureDonepezilDemoLog(userId: number): Promise<void> {
   const hasDonepezil = user.medications?.some((m) => m.name.toLowerCase().includes('donepezil'));
   if (!hasDonepezil) return;
 
-  const cutoff = new Date(Date.now() - DONEPEZIL_COOLDOWN_HOURS * 60 * 60 * 1000).toISOString();
-  const recent = await db.medicationLogs
+  const targetTimestamp = new Date(Date.now() - DONEPEZIL_TAKEN_MS).toISOString();
+  const logs = await db.medicationLogs
     .where('userId')
     .equals(userId)
-    .and((log) => log.medicationName.toLowerCase().includes('donepezil') && log.timestamp > cutoff && log.confirmed !== false)
-    .first();
-  if (recent) return;
+    .and((log) => log.medicationName.toLowerCase().includes('donepezil') && log.confirmed !== false)
+    .toArray();
 
-  const timestamp = new Date(Date.now() - 45 * 60 * 1000).toISOString();
+  const latest = logs.sort(
+    (a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()
+  )[0];
+
+  if (latest?.id) {
+    await db.medicationLogs.update(latest.id, {
+      timestamp: targetTimestamp,
+      visionConfidence: 'high',
+      visionDescription: 'Morning dose verified.',
+      confirmed: true,
+    });
+    return;
+  }
+
   await db.medicationLogs.add({
     userId,
     medicationName: 'Donepezil',
-    timestamp,
+    timestamp: targetTimestamp,
     visionConfidence: 'high',
     visionDescription: 'Morning dose verified.',
     confirmed: true,

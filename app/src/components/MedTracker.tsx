@@ -5,11 +5,12 @@ import { verifyMedication } from '../services/vision';
 import { speak } from '../services/elevenlabs';
 import { db, type Medication } from '../db/db';
 import { isMedicationDueSoon } from '../lib/schedule';
-import { isTylenolMed } from '../lib/medicationVision';
+import { isTylenolMed, isDonepezilMed } from '../lib/medicationVision';
 import { TYLENOL_REFERENCE_URL } from '../lib/assets';
 import StudioIcon from './StudioIcon';
 
-const COOLDOWN_HOURS = 0; // demo: no cooldown so medication can be taken repeatedly
+const COOLDOWN_HOURS = 5;
+const DONEPEZIL_TAKEN_MINUTES_AGO = 180;
 const MAX_RETRIES = 3;
 
 type Phase =
@@ -184,6 +185,16 @@ export default function MedTracker() {
 
   const startCamera = useCallback(async (med: Medication) => {
     setSelectedMed(med);
+
+    if (isDonepezilMed(med.name)) {
+      recordMedicationReAttempt();
+      setCooldownMsg(
+        `You already took ${med.name} 3 hours ago. Your next dose is in about 2 hours.`
+      );
+      await speak(`You already took ${med.name} 3 hours ago. Your next dose is in about 2 hours.`);
+      setPhase('cooldown');
+      return;
+    }
 
     const onCooldown = !isTylenolMed(med.name) && await checkCooldown(med.name);
     if (onCooldown) {

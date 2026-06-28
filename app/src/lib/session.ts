@@ -1,5 +1,6 @@
 import { db, type User } from '../db/db';
 import { useAppStore } from '../store/appStore';
+import { readPersistedComfortActive } from './syncBridge';
 
 import { stopSpeaking } from '../services/elevenlabs';
 
@@ -24,7 +25,7 @@ export async function loadUserSession(user: User): Promise<void> {
   useAppStore.setState({
     user,
     acseScore: latestScore?.score ?? 100,
-    comfortModeActive: false,
+    comfortModeActive: readPersistedComfortActive(user.id),
     supervisorAlerts: sortedAlerts.map((a) => ({
       id: String(a.id ?? `${a.timestamp}-${a.message}`),
       message: a.message,

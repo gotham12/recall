@@ -42,11 +42,38 @@ function writeRoom(userId: number, messages: SyncMessage[]): void {
   }
 }
 
+function comfortKey(userId: number): string {
+  return `recall-comfort-${userId}`;
+}
+
+export function readPersistedComfortActive(userId: number): boolean {
+  try {
+    const raw = localStorage.getItem(comfortKey(userId));
+    if (!raw) return false;
+    const parsed = JSON.parse(raw) as { active?: boolean };
+    return Boolean(parsed.active);
+  } catch {
+    return false;
+  }
+}
+
+function persistComfortActive(userId: number, active: boolean): void {
+  try {
+    localStorage.setItem(comfortKey(userId), JSON.stringify({ active, at: Date.now() }));
+  } catch {
+    /* ignore */
+  }
+}
+
 export function publishSync(userId: number, message: SyncMessage): void {
   const stamped = { ...message, at: message.at || Date.now(), tabId: LOCAL_TAB_ID } as SyncMessage;
   const room = readRoom(userId);
   room.push(stamped);
   writeRoom(userId, room);
+
+  if (stamped.type === 'comfort') {
+    persistComfortActive(userId, stamped.active);
+  }
 
   try {
     const ch = new BroadcastChannel(CHANNEL);
