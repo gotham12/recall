@@ -31,8 +31,8 @@ public class RecallAudioSessionPlugin: CAPPlugin {
                 let s = self.session()
                 try s.setCategory(
                     .playback,
-                    mode: .spokenAudio,
-                    options: [.mixWithOthers, .duckOthers]
+                    mode: .default,
+                    options: [.mixWithOthers, .defaultToSpeaker]
                 )
                 try s.setActive(true, options: [])
                 call.resolve()

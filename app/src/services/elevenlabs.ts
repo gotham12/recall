@@ -8,7 +8,7 @@ const VOICE_ID = 'EXAVITQu4vr4xnSDxMaL';
 const CLARA_VOICE_ID = 'cgSgspJ2msm6clMCkdW9';
 const ELEVENLABS_BASE = 'https://api.elevenlabs.io/v1';
 const MODEL_IDS = ['eleven_turbo_v2_5', 'eleven_flash_v2_5'];
-const CLARA_MODEL_IDS = ['eleven_multilingual_v2', 'eleven_flash_v2_5', 'eleven_turbo_v2_5'];
+const CLARA_MODEL_IDS = ['eleven_flash_v2_5', 'eleven_multilingual_v2', 'eleven_turbo_v2_5'];
 
 let currentAudio: HTMLAudioElement | null = null;
 let sharedAudioCtx: AudioContext | null = null;
@@ -86,6 +86,7 @@ export async function speak(text: string, options?: SpeakOptions): Promise<void>
   try {
     stopSpeaking();
     const myGen = speakGeneration;
+    unlockAudioPlayback();
 
     if (isElevenLabsConfigured()) {
       try {
@@ -180,9 +181,15 @@ async function fetchElevenLabsAudio(text: string, modelId: string, options?: Spe
   throw new Error('No ElevenLabs API key or proxy');
 }
 
-/** Play via Web Audio on iOS (reliable); HTML Audio elsewhere */
+/** Play via HTML Audio on iOS first (gesture-friendly); Web Audio as fallback */
 async function playBlob(blob: Blob, gen: number): Promise<void> {
   if (isIOSDevice()) {
+    try {
+      await playAudioBlob(blob, gen);
+      return;
+    } catch (err) {
+      console.warn('[TTS] iOS HTML audio failed, trying Web Audio:', err);
+    }
     await playAudioBlobWebAudio(blob, gen);
     return;
   }
@@ -202,6 +209,7 @@ async function playAudioBlob(blob: Blob, gen: number): Promise<void> {
 
     const audio = new Audio(url);
     audio.setAttribute('playsinline', 'true');
+    audio.volume = 1;
     currentAudio = audio;
 
     const finish = () => {
@@ -290,6 +298,7 @@ async function speakBrowser(text: string, gen: number, options?: SpeakOptions): 
   if (gen !== speakGeneration) return;
 
   console.warn('[TTS] Using browser voice fallback — ElevenLabs unavailable');
+  unlockAudioPlayback();
 
   const voices = await loadVoices();
   if (gen !== speakGeneration) return;

@@ -33,15 +33,17 @@ export async function proxyPostBlob(path: string, body: unknown): Promise<Blob> 
   if (!API_BASE_URL) throw new Error('API proxy not configured');
   const res = await fetch(`${API_BASE_URL}${path}`, {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json', Accept: 'audio/mpeg' },
+    headers: { 'Content-Type': 'application/json', Accept: 'audio/mpeg, audio/wav, audio/*' },
     body: JSON.stringify(body),
   });
   if (!res.ok) throw new Error(`Proxy ${path} failed (${res.status})`);
   const contentType = res.headers.get('Content-Type') ?? '';
   const blob = await res.blob();
   if (path.includes('/tts')) {
-    if (contentType.includes('audio/wav') || contentType.includes('audio/wave')) {
-      throw new Error('Proxy TTS returned robotic WAV — ElevenLabs unavailable on worker');
+    const provider = res.headers.get('X-TTS-Provider');
+    if (provider === 'melotts' || contentType.includes('audio/wav') || contentType.includes('audio/wave')) {
+      console.warn('[TTS] Using MeloTTS fallback — ElevenLabs unavailable');
+      return blob;
     }
     if (!contentType.includes('mpeg') && !contentType.includes('mp3') && blob.size > 12) {
       const head = new Uint8Array(await blob.slice(0, 4).arrayBuffer());

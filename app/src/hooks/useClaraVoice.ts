@@ -61,11 +61,7 @@ function extractTranscript(results: SpeechResultList): string {
 // ── Web Speech API path (preferred — works on iOS Safari, Chrome, Edge) ───────
 async function listenWithSpeechAPI(abortSignal: { aborted: boolean }): Promise<string> {
   await prepareMicForScreenRecord();
-  try {
-    return await listenWithSpeechAPIInner(abortSignal);
-  } finally {
-    await releaseMicAfterClara();
-  }
+  return listenWithSpeechAPIInner(abortSignal);
 }
 
 function listenWithSpeechAPIInner(abortSignal: { aborted: boolean }): Promise<string> {
@@ -244,11 +240,7 @@ async function transcribeBlob(blob: Blob, mimeType: string): Promise<string> {
 
 async function listenWithRecorder(abortSignal: { aborted: boolean }): Promise<string> {
   await prepareMicForScreenRecord();
-  try {
-    return await listenWithRecorderInner(abortSignal);
-  } finally {
-    await releaseMicAfterClara();
-  }
+  return listenWithRecorderInner(abortSignal);
 }
 
 function listenWithRecorderInner(abortSignal: { aborted: boolean }): Promise<string> {
@@ -356,10 +348,12 @@ export function useClaraVoice() {
   // Fall back to MediaRecorder+Whisper only when Speech API is truly unavailable.
   const speechAvailable = typeof window !== 'undefined' && getSpeechRecognitionClass() !== null;
 
-  const stopListening = useCallback(() => {
+  const stopListening = useCallback((opts?: { releaseMic?: boolean }) => {
     abortRef.current = true;
     setIsListening(false);
-    void releaseMicAfterClara();
+    if (opts?.releaseMic !== false) {
+      void releaseMicAfterClara();
+    }
   }, []);
 
   const startListening = useCallback((): Promise<string> => {

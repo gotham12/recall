@@ -17,7 +17,7 @@ import {
   primeSpeechSynthesis,
 } from '../services/elevenlabs';
 import { addRoutineEvent, parseRoutineUtterance } from '../lib/routineUtils';
-import { isIOSBrowser, isScreenRecordingActive } from '../lib/iosAudioSession';
+import { isIOSBrowser, isNativeIOS, isScreenRecordingActive, preparePlaybackForScreenRecord, releaseMicAfterClara } from '../lib/iosAudioSession';
 import StudioIcon, { type IconName } from './StudioIcon';
 import ClaraFlowerPulse from './ClaraFlowerPulse';
 
@@ -131,16 +131,23 @@ export default function VoiceAgent() {
 
   const speakResponse = useCallback(async (response: string) => {
     if (!sessionActiveRef.current) return;
-    stopListening();
+    stopListening({ releaseMic: false });
     setClaraLine(response);
     setState('speaking');
 
     try {
       unlockAudioPlayback();
+      if (isNativeIOS()) {
+        await preparePlaybackForScreenRecord();
+      }
       await speakAloud(response);
     } catch (err) {
       console.error('[Clara TTS] all methods failed:', err);
+      setError('Voice is unavailable right now — you can still read my reply below.');
     } finally {
+      if (isNativeIOS()) {
+        await releaseMicAfterClara();
+      }
       await new Promise<void>((r) => setTimeout(r, POST_SPEAK_PAUSE_MS));
       if (sessionActiveRef.current) {
         setState('listening');

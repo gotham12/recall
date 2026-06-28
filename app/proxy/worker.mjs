@@ -239,10 +239,13 @@ async function handleTts(body, env) {
   const hasElevenLabs = Boolean(env.ELEVENLABS_API_KEY?.trim());
 
   if (hasElevenLabs) {
-    return await elevenLabsTts(body, env);
+    try {
+      return await elevenLabsTts(body, env);
+    } catch (err) {
+      console.error('ElevenLabs TTS failed, falling back to Workers AI MeloTTS:', err);
+    }
   }
 
-  // MeloTTS only when ElevenLabs is not configured — never mask EL failures
   if (env.AI && body.text?.trim()) {
     try {
       const result = await env.AI.run('@cf/myshell-ai/melotts', {
@@ -254,7 +257,7 @@ async function handleTts(body, env) {
         const bytes = typeof audio === 'string' ? base64ToBytes(audio) : audio;
         if (bytes?.byteLength) {
           return new Response(bytes, {
-            headers: { ...CORS, 'Content-Type': 'audio/wav' },
+            headers: { ...CORS, 'Content-Type': 'audio/wav', 'X-TTS-Provider': 'melotts' },
           });
         }
       }
