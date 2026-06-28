@@ -16,8 +16,8 @@ export const LOGIN_HERO = {
 
 /** Familiar-face profile photos — bundled in public/photos/ */
 export const FAMILY_PHOTOS = {
-  susan: `${base}photos/susan.png`,
-  robert: `${base}photos/robert.png`,
+  susan: `${base}photos/susan.jpg`,
+  robert: `${base}photos/robert.jpg`,
   lily: `${base}photos/lily.png`,
 } as const;
 

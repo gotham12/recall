@@ -10,6 +10,31 @@ import StudioIcon from './StudioIcon';
 const FALLBACK_PHOTO = LOGIN_HERO.margaretProfile;
 const AUTO_ADVANCE_MS = 5500;
 const SPEAK_TIMEOUT_MS = 8000;
+const PHOTO_LOAD_TIMEOUT_MS = 6000;
+
+function preloadPhoto(url: string, cache: Set<string>): void {
+  if (!url || cache.has(url)) return;
+  cache.add(url);
+  const img = new Image();
+  img.src = url;
+}
+
+function waitForPhoto(url: string, timeoutMs = PHOTO_LOAD_TIMEOUT_MS): Promise<boolean> {
+  return new Promise((resolve) => {
+    const img = new Image();
+    let settled = false;
+    const finish = (ok: boolean) => {
+      if (settled) return;
+      settled = true;
+      window.clearTimeout(timer);
+      resolve(ok);
+    };
+    const timer = window.setTimeout(() => finish(false), timeoutMs);
+    img.onload = () => finish(true);
+    img.onerror = () => finish(false);
+    img.src = url;
+  });
+}
 
 function waitMs(ms: number, session: number, sessionRef: RefObject<number>): Promise<boolean> {
   return new Promise((resolve) => {
@@ -34,6 +59,8 @@ export default function MemoryPhotoRecap() {
   const slidesRef = useRef<MemorySlide[]>([]);
   const loopRunningRef = useRef(false);
   const facesFingerprintRef = useRef('');
+  const wasActiveRef = useRef(false);
+  const preloadCacheRef = useRef(new Set<string>());
 
   const faces = useLiveQuery<FamiliarFace[]>(
     () => (user?.id ? db.familiarFaces.where('userId').equals(user.id).toArray() : []),
@@ -65,6 +92,10 @@ export default function MemoryPhotoRecap() {
     if (!slide || session !== sessionRef.current) return;
 
     showSlide(idx);
+
+    const loaded = await waitForPhoto(slide.photoUrl);
+    if (session !== sessionRef.current) return;
+    if (!loaded) setFailedSlideId(slide.id);
 
     const loadGen = loadGenRef.current;
     void (async () => {
@@ -110,6 +141,8 @@ export default function MemoryPhotoRecap() {
     setSlides(album);
     setIndex(0);
     setFailedSlideId(null);
+    album.forEach((s) => preloadPhoto(s.photoUrl, preloadCacheRef.current));
+    preloadPhoto(FALLBACK_PHOTO, preloadCacheRef.current);
 
     if (album.length === 0) {
       dismissMemoryRecap();
@@ -126,10 +159,20 @@ export default function MemoryPhotoRecap() {
     if (!memoryRecapActive || !user) {
       if (!memoryRecapActive) {
         cancelRecap();
+        slidesRef.current = [];
         setSlides([]);
         setIndex(0);
         setFailedSlideId(null);
       }
+      wasActiveRef.current = false;
+      return;
+    }
+
+    const justOpened = !wasActiveRef.current;
+    wasActiveRef.current = true;
+
+    if (justOpened) {
+      startRecapRef.current(true);
       return;
     }
 
@@ -210,12 +253,13 @@ export default function MemoryPhotoRecap() {
         <div className="memory-recap__stage">
           <div className="memory-recap__photo-wrap">
             <img
-              key={slide.id}
+              key={`${slide.id}-${photoSrc}`}
               src={photoSrc}
               alt={slide.caption}
               className="memory-recap__photo memory-recap__photo--enter"
               loading="eager"
               decoding="async"
+              fetchPriority="high"
               onError={() => handleImgError(slide.id)}
             />
             <div className="memory-recap__caption">

@@ -106,10 +106,24 @@ const THANKS_PATTERNS = [
   /\b(thank you|thanks|appreciate)\b/i,
 ];
 
+/** Demo-friendly prompts that should open the family photo shuffle */
+const WARMTH_PATTERNS = [
+  /\btell me something (nice|good|happy|positive|warm|beautiful)\b/i,
+  /\bsomething nice\b/i,
+  /\bshow me (my )?(family|photos|memories|pictures)\b/i,
+  /\b(family|memory) (photos|pictures|memories)\b/i,
+  /\bi miss (my )?(family|everyone|them)\b/i,
+  /\b(feel|feeling) (sad|down|blue|low)\b/i,
+];
+
 export function detectClaraIntent(text: string): ClaraIntentResult {
   const t = text.trim();
 
   if (detectLoneliness(t)) {
+    return { intent: 'loneliness', cascade: 'memory_recap', recapReason: 'loneliness', tailoredFirst: true };
+  }
+
+  if (WARMTH_PATTERNS.some((p) => p.test(t))) {
     return { intent: 'loneliness', cascade: 'memory_recap', recapReason: 'loneliness', tailoredFirst: true };
   }
 

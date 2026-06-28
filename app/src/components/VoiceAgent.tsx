@@ -160,16 +160,12 @@ export default function VoiceAgent() {
 
   const runCascade = useCallback(
     async (cascade: 'memory_recap' | 'comfort_mode', recapReason?: MemoryRecapReason) => {
-    if (!sessionActiveRef.current) return;
-    void (async () => {
       await new Promise<void>((r) => setTimeout(r, CASCADE_DELAY_MS));
-      if (!sessionActiveRef.current) return;
       sessionActiveRef.current = false;
       setInSession(false);
       setState('idle');
       if (cascade === 'memory_recap') triggerMemoryRecap(recapReason ?? 'disorientation');
       else if (cascade === 'comfort_mode' && !useAppStore.getState().comfortModeActive) activateComfortMode();
-    })();
     },
     [triggerMemoryRecap, activateComfortMode]
   );
@@ -238,9 +234,8 @@ export default function VoiceAgent() {
     if (!sessionActiveRef.current) return;
     await speakResponse(response);
 
-    if (!sessionActiveRef.current) return;
-    if (intent.cascade === 'memory_recap') void runCascade('memory_recap', intent.recapReason);
-    else if (intent.cascade === 'comfort_mode') void runCascade('comfort_mode');
+    if (intent.cascade === 'memory_recap') await runCascade('memory_recap', intent.recapReason);
+    else if (intent.cascade === 'comfort_mode') await runCascade('comfort_mode');
   }, [checkRepeatQuestion, user, loadClaraContext, speakResponse, runCascade, firstName]);
 
   const runConversation = useCallback(async () => {
@@ -311,11 +306,7 @@ export default function VoiceAgent() {
     sessionActiveRef.current = true;
     setInSession(true);
     setError('');
-    void processUtterance(text).finally(() => {
-      sessionActiveRef.current = false;
-      setInSession(false);
-      setState('idle');
-    });
+    void processUtterance(text);
   };
 
   const handleSuggestion = (text: string) => {
@@ -326,11 +317,7 @@ export default function VoiceAgent() {
     sessionActiveRef.current = true;
     setInSession(true);
     setError('');
-    void processUtterance(text).finally(() => {
-      sessionActiveRef.current = false;
-      setInSession(false);
-      setState('idle');
-    });
+    void processUtterance(text);
   };
 
   useEffect(() => {
