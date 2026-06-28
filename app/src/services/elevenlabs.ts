@@ -1,6 +1,6 @@
 import { ELEVENLABS_API_KEY } from '../env';
 import { proxyPostBlob, usesApiProxy, warnDirectApiKeys } from './apiClient';
-import { isNativeIOS, preparePlaybackForScreenRecord, releaseMicAfterClara } from '../lib/iosAudioSession';
+import { isNativeIOS, preparePlaybackForScreenRecord } from '../lib/iosAudioSession';
 
 /** Rachel — clear, warm American voice */
 const VOICE_ID = 'EXAVITQu4vr4xnSDxMaL';
@@ -38,7 +38,6 @@ export function primeSpeechSynthesis(): void {
 export function unlockAudioPlayback(): void {
   if (isNativeIOS()) {
     void preparePlaybackForScreenRecord();
-    return;
   }
 
   try {
@@ -72,9 +71,6 @@ export function stopSpeaking(): void {
     interruptPlayback = null;
   }
   if ('speechSynthesis' in window) window.speechSynthesis.cancel();
-  if (isNativeIOS()) {
-    void releaseMicAfterClara();
-  }
 }
 
 export async function speak(text: string, options?: SpeakOptions): Promise<void> {
@@ -109,6 +105,9 @@ export async function speak(text: string, options?: SpeakOptions): Promise<void>
 
 async function speakElevenLabs(text: string, gen: number, options?: SpeakOptions): Promise<void> {
   warnDirectApiKeys();
+  if (isNativeIOS()) {
+    await preparePlaybackForScreenRecord();
+  }
   let lastError: Error | null = null;
   const models = options?.clara ? CLARA_MODEL_IDS : MODEL_IDS;
 
