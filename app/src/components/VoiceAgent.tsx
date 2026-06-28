@@ -26,6 +26,7 @@ type VoiceState = 'idle' | 'listening' | 'thinking' | 'speaking';
 const POST_SPEAK_PAUSE_MS = 120;
 const CASCADE_DELAY_MS = 400;
 const CLARA_CONTEXT_TTL_MS = 15_000;
+const RECAP_OPEN_DELAY_MS = 1_200;
 
 const SUGGESTIONS = [
   { label: 'What day is it?', icon: '📅' },
@@ -232,11 +233,23 @@ export default function VoiceAgent() {
     }
 
     if (!sessionActiveRef.current) return;
-    await speakResponse(response);
 
-    if (intent.cascade === 'memory_recap') await runCascade('memory_recap', intent.recapReason);
-    else if (intent.cascade === 'comfort_mode') await runCascade('comfort_mode');
-  }, [checkRepeatQuestion, user, loadClaraContext, speakResponse, runCascade, firstName]);
+    const cascade = intent.cascade;
+    const recapReason = intent.recapReason;
+
+    if (cascade === 'memory_recap') {
+      void speakResponse(response);
+      await new Promise<void>((r) => setTimeout(r, RECAP_OPEN_DELAY_MS));
+      triggerMemoryRecap(recapReason ?? 'loneliness', { interruptSpeech: true });
+      sessionActiveRef.current = false;
+      setInSession(false);
+      setState('idle');
+      return;
+    }
+
+    await speakResponse(response);
+    if (cascade === 'comfort_mode') await runCascade('comfort_mode');
+  }, [checkRepeatQuestion, user, loadClaraContext, speakResponse, runCascade, firstName, triggerMemoryRecap]);
 
   const runConversation = useCallback(async () => {
     while (sessionActiveRef.current) {

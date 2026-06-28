@@ -5667,7 +5667,7 @@ html[data-easy-mode='true'] .home-widget__label { font-size: 16px; }
 .memory-recap {
   position: fixed;
   inset: 0;
-  z-index: 200;
+  z-index: 10000;
   display: flex;
   align-items: center;
   justify-content: center;

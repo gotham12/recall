@@ -50,7 +50,7 @@ function speakWithTimeout(text: string): Promise<void> {
 }
 
 export default function MemoryPhotoRecap() {
-  const { user, memoryRecapActive, memoryRecapReason, dismissMemoryRecap } = useAppStore();
+  const { user, memoryRecapActive, memoryRecapReason, memoryRecapEpoch, dismissMemoryRecap } = useAppStore();
   const [slides, setSlides] = useState<MemorySlide[]>([]);
   const [index, setIndex] = useState(0);
   const [failedSlideId, setFailedSlideId] = useState<string | null>(null);
@@ -60,6 +60,7 @@ export default function MemoryPhotoRecap() {
   const loopRunningRef = useRef(false);
   const facesFingerprintRef = useRef('');
   const wasActiveRef = useRef(false);
+  const lastEpochRef = useRef(0);
   const preloadCacheRef = useRef(new Set<string>());
 
   const faces = useLiveQuery<FamiliarFace[]>(
@@ -169,9 +170,11 @@ export default function MemoryPhotoRecap() {
     }
 
     const justOpened = !wasActiveRef.current;
+    const epochChanged = memoryRecapEpoch !== lastEpochRef.current;
     wasActiveRef.current = true;
+    lastEpochRef.current = memoryRecapEpoch;
 
-    if (justOpened) {
+    if (justOpened || epochChanged) {
       startRecapRef.current(true);
       return;
     }
@@ -183,7 +186,7 @@ export default function MemoryPhotoRecap() {
     } else if (slidesRef.current.length === 0) {
       startRecapRef.current(false);
     }
-  }, [memoryRecapActive, user?.id, faces, cancelRecap]);
+  }, [memoryRecapActive, memoryRecapEpoch, user?.id, faces, cancelRecap]);
 
   useEffect(() => () => cancelRecap(), [cancelRecap]);
 
